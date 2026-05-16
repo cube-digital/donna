@@ -3,5 +3,19 @@ name = "server"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = []
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.42.79",
+    "django>=5.2.14",
+    "django-cors-headers>=4.9.0",
+    "django-environ>=0.13.0",
+    "django-filter>=25.2",
+    "django-redis>=6.0.0",
+    "django-storages>=1.14.6",
+    "djangorestframework>=3.17.1",
+    "djangorestframework-simplejwt>=5.5.1",
+    "drf-nested-routers>=0.95.0",
+    "drf-spectacular>=0.29.0",
+    "pydantic>=2.13.4",
+    "uvicorn>=0.47.0",
+]
