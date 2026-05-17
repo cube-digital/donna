@@ -28,11 +28,6 @@ class Channel(TimestampsMixin, UserAuditMixin):
         PRIVATE = "private", "Private"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    workspace = models.ForeignKey(
-        Workspace,
-        on_delete=models.CASCADE,
-        related_name="channels",
-    )
     kind = models.CharField(
         max_length=16,
         choices=Kind.choices,
@@ -45,6 +40,13 @@ class Channel(TimestampsMixin, UserAuditMixin):
         max_length=16,
         choices=Visibility.choices,
         default=Visibility.PUBLIC,
+    )
+
+    # Relationships
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="channels",
     )
 
     members = models.ManyToManyField(
@@ -128,15 +130,17 @@ class AgentSession(TimestampsMixin):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=120, default="Donna")
+    memory = models.JSONField(default=dict, blank=True)
+    config = models.JSONField(default=dict, blank=True)
+    last_active_at = models.DateTimeField(null=True, blank=True)
+
+    # Relationships
     channel = models.ForeignKey(
         Channel,
         on_delete=models.CASCADE,
         related_name="agent_sessions",
     )
-    name = models.CharField(max_length=120, default="Donna")
-    memory = models.JSONField(default=dict, blank=True)
-    config = models.JSONField(default=dict, blank=True)
-    last_active_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "agent_sessions"
@@ -150,6 +154,9 @@ class Message(TimestampsMixin):
     """A message in a channel, authored by exactly one of: a User or an AgentSession."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    body = models.TextField()
+
+    # Relationships
     channel = models.ForeignKey(
         Channel,
         on_delete=models.CASCADE,
@@ -169,7 +176,6 @@ class Message(TimestampsMixin):
         blank=True,
         related_name="messages",
     )
-    body = models.TextField()
 
     class Meta:
         db_table = "messages"
