@@ -67,6 +67,15 @@ class WorkspaceMiddleware:
         "/api/v1/workspaces": ["POST", "GET"],
     }
 
+    # Paths (suffix match) that do **not** require a tenant header. Used for
+    # integration callbacks: provider webhooks and OAuth redirect targets,
+    # which both terminate at predictable URL suffixes regardless of the
+    # connector slug in the middle.
+    IGNORED_SUFFIXES = {
+        "/webhook/callback": ["POST"],
+        "/oauth/callback":   ["GET"],
+    }
+
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -84,6 +93,13 @@ class WorkspaceMiddleware:
     def process_request(self, request):
         for path, methods in self.IGNORED_PATHS.items():
             if request.path.startswith(path) and request.method in methods:
+                request.workspace = None
+                request.company = None
+                request.tenant_id = None
+                return None
+
+        for suffix, methods in self.IGNORED_SUFFIXES.items():
+            if request.path.endswith(suffix) and request.method in methods:
                 request.workspace = None
                 request.company = None
                 request.tenant_id = None

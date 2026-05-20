@@ -1,12 +1,12 @@
 """
-Structured logging configuration for Narrio.
+Structured logging configuration for Donna.
 
 This module provides structured logging using structlog with optional
 BetterStack Logtail integration. It includes request context propagation
 via Django middleware.
 
 Usage:
-    from narrio.core.logging import get_logger, update_request_context
+    from donna.core.logging import get_logger, update_request_context
 
     logger = get_logger(__name__)
     logger.info("user_action", user_id="123", action="login")
@@ -101,7 +101,7 @@ class NarrioContextProcessor:
         event_dict.update(context)
 
         # Add standard fields
-        event_dict.setdefault("service", "narrio-api")
+        event_dict.setdefault("service", "donna-api")
         event_dict.setdefault("version", os.getenv("APP_VERSION", "1.0.0"))
         event_dict.setdefault(
             "environment", "development" if settings.DEBUG else "production"

@@ -1,0 +1,42 @@
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtualenvs / package builds
+.venv
+venv
+.eggs
+*.egg-info
+dist
+build
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Local data / SQLite / storage
+*.sqlite3
+*.sqlite3-journal
+var
+staticfiles
+media
+
+# Env files (override via compose env_file)
+.env
+.env.local
+
+# Git / IDE
+.git
+.gitignore
+.idea
+.vscode
+*.swp
+
+# Docker bootstrap
+Dockerfile*
+docker-compose*
+.dockerignore

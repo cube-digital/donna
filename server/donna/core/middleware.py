@@ -11,7 +11,7 @@ import time
 from django.http import Http404
 from django.utils.functional import SimpleLazyObject
 
-from docupal.core.logging import (
+from donna.core.logging import (
     clear_request_context,
     get_logger,
     set_request_context,

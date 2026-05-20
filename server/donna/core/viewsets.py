@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 
-from docupal.core import generics, mixins
+from donna.core import generics, mixins
 
 
 class GenericViewSet(viewsets.ViewSetMixin, generics.GenericAPIView):

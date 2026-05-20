@@ -2,4 +2,5 @@ from django.apps import AppConfig
 
 
 class WorkspacesConfig(AppConfig):
-    name = 'workspaces'
+    name = "donna.workspaces"
+    label = "workspaces"

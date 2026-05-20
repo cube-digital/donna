@@ -65,9 +65,10 @@ class Channel(TimestampsMixin, UserAuditMixin):
                 name="uq_channel_workspace_slug",
             ),
             # DMs are always private by definition.
+            # NOTE: Use string values here — the inner Kind/Visibility enums
+            # aren't in scope inside the Meta class body.
             models.CheckConstraint(
-                condition=~models.Q(kind=Kind.DIRECT)
-                | models.Q(visibility=Visibility.PRIVATE),
+                condition=~models.Q(kind="direct") | models.Q(visibility="private"),
                 name="dm_must_be_private",
             ),
         ]

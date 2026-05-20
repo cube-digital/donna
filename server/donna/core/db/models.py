@@ -40,30 +40,8 @@ class UserAuditMixin(models.Model):
         abstract = True
 
 
-class KnowledgeLinkable:
-    """
-    Mixin for any model that can have knowledge items linked to it.
-
-    The model must also declare::
-
-        knowledge_links = GenericRelation(
-            'knowledge.KnowledgeLink',
-            content_type_field='entity_type',
-            object_id_field='entity_id',
-        )
-    """
-
-    def link_knowledge(self, item, role=""):
-        from narrio.knowledge.models import KnowledgeLink
-
-        return KnowledgeLink.objects.link(self, item, role)
-
-    def unlink_knowledge(self, item, role=None):
-        from narrio.knowledge.models import KnowledgeLink
-
-        return KnowledgeLink.objects.unlink(self, item, role)
-
-    def bulk_link_knowledge(self, items, role=""):
-        from narrio.knowledge.models import KnowledgeLink
-
-        return KnowledgeLink.objects.bulk_link(self, items, role)
+# KnowledgeLinkable was a copy-paste from the original `narrio` codebase that
+# imported a non-existent `narrio.knowledge.models.KnowledgeLink`. Donna does
+# not ship a knowledge-link generic relation. Removed per Phase 0 cleanup
+# (see plans/04-roadmap.md). Re-introduce here if a real knowledge-link
+# pattern is needed across multiple apps.

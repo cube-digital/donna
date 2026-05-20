@@ -2,4 +2,5 @@ from django.apps import AppConfig
 
 
 class ChatConfig(AppConfig):
-    name = 'chat'
+    name = "donna.chat"
+    label = "chat"

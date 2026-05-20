@@ -1,4 +1,4 @@
-"""DRF mixins that delegate CRUD to :class:`docupal.core.services.BaseService` methods."""
+"""DRF mixins that delegate CRUD to :class:`donna.core.services.BaseService` methods."""
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -25,7 +25,7 @@ class ServiceMethodMixin:
 
         Note:
             ``company`` is set from ``request.company`` (active workspace) when
-            :class:`~docupal.workspaces.middlewares.WorkspaceMiddleware` has run.
+            :class:`~donna.workspaces.middlewares.WorkspaceMiddleware` has run.
         """
         service_class = getattr(self, "service_class", None)
         if service_class is None:
