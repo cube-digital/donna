@@ -6,6 +6,7 @@ Provides:
 - Tenant resolution from ``X-Tenant-Id`` header or user membership.
 """
 
+from django.core.exceptions import PermissionDenied
 from django.http import Http404
 
 from donna.core.context import set_tenant_context
@@ -65,6 +66,12 @@ class WorkspaceMiddleware:
         "/api/auth": ["POST", "GET"],
         "/health": ["GET"],
         "/api/v1/workspaces": ["POST", "GET"],
+        # SSE stream fans in across all user's workspaces — no single
+        # workspace context applies. See plans/10-realtime-layer.md.
+        "/api/v1/notifications/stream": ["GET"],
+        # WebSocket handshake (HTTP upgrade) — workspace context lives
+        # in per-subscribe authorization, not on the connection itself.
+        "/ws": ["GET"],
     }
 
     # Paths (suffix match) that do **not** require a tenant header. Used for
@@ -105,19 +112,25 @@ class WorkspaceMiddleware:
                 request.tenant_id = None
                 return None
 
-        # 1. Prefer explicit X-Tenant-Id header (resolve immediately)
+        # Tenanted path — X-Workspace-Id header is mandatory. Resolve once,
+        # attach to request, propagate to logging contextvars. Views can then
+        # trust request.workspace is always set (or this middleware short-
+        # circuits before the view runs).
         workspace_id = request.META.get("HTTP_X_WORKSPACE_ID")
-        if workspace_id:
-            try:
-                workspace = Workspace.objects.get(id=workspace_id)
-            except Workspace.DoesNotExist:
-                raise self.TENANT_NOT_FOUND_EXCEPTION(
-                    f"No workspace found for id {workspace_id}"
-                )
-            request.workspace = workspace
-            request.company = workspace
-            set_tenant_context(request)
-            return None
+        if not workspace_id:
+            raise PermissionDenied("X-Workspace-Id header required")
+
+        try:
+            workspace = Workspace.objects.get(id=workspace_id)
+        except Workspace.DoesNotExist:
+            raise self.TENANT_NOT_FOUND_EXCEPTION(
+                f"No workspace found for id {workspace_id}"
+            )
+
+        request.workspace = workspace
+        request.company = workspace
+        set_tenant_context(request)
+        return None
 
     def process_response(self, request, response):
         set_tenant_context(None)

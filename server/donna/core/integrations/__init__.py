@@ -32,7 +32,7 @@ from .exceptions import (
     WorkspaceResolutionFailed,
 )
 from .oauth import BaseOAuthHandler
-from .provider import IntegrationProvider, TokenScope
+from .provider import IntegrationProvider, TokenScope, validate_against_schema
 from .registry import (
     all_loaded,
     configured_for_workspace,
@@ -46,6 +46,7 @@ __all__ = [
     # Protocol + base classes
     "IntegrationProvider",
     "TokenScope",
+    "validate_against_schema",
     "BaseHTTPClient",
     "BaseWebhookHandler",
     "BaseOAuthHandler",

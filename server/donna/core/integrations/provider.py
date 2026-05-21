@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     ClassVar,
     Literal,
     Protocol,
@@ -23,6 +24,7 @@ from typing import (
 
 if TYPE_CHECKING:
     from donna.authentication.models import OAuthProvider, OAuthToken
+    from donna.integrations.models import Connection
     from donna.workspaces.models import Workspace
 
     from .adapter import BaseAdapter
@@ -32,6 +34,25 @@ if TYPE_CHECKING:
 
 
 TokenScope = Literal["user", "workspace"]
+
+
+def validate_against_schema(config: dict, schema: dict) -> dict:
+    """
+    Default config-validator helper. Runs jsonschema validation, raises
+    ``ValueError`` on failure (translated to DRF 400 at the view layer).
+
+    Connectors override ``IntegrationProvider.validate_config`` to layer
+    cross-field rules on top (e.g. Drive's scope-required check).
+    """
+    from jsonschema import Draft202012Validator, ValidationError as _SchemaError
+
+    try:
+        Draft202012Validator(schema).validate(config)
+    except _SchemaError as exc:
+        # exc.message focuses on the failing field; absolute_path adds context
+        path = "/".join(str(p) for p in exc.absolute_path) or "<root>"
+        raise ValueError(f"config[{path}]: {exc.message}") from exc
+    return config
 
 
 @runtime_checkable
@@ -59,6 +80,17 @@ class IntegrationProvider(Protocol):
 
     # ── Capabilities ────────────────────────────────────────────────────────
     supports_webhooks: ClassVar[bool]
+
+    # ── Per-Connection config contract ──────────────────────────────────────
+    # JSON Schema describing the shape of ``Connection.config`` for this
+    # connector. Validated server-side on every PATCH. Connectors can also
+    # generate a UI form from it later (Airbyte's connectionSpecification
+    # pattern — see plans/08-connection-pattern.md).
+    config_schema: ClassVar[dict[str, Any]]
+
+    # Default ``Connection.config`` value applied when the framework
+    # auto-creates a Connection row on OAuth pair.
+    default_config: ClassVar[dict[str, Any]]
 
     # ── Factory methods ─────────────────────────────────────────────────────
     def client(self, token: "OAuthToken") -> "BaseHTTPClient":
@@ -96,5 +128,29 @@ class IntegrationProvider(Protocol):
 
             from .tasks import ingest_<entity>
             ingest_<entity>.delay(str(workspace.id), parsed["<id_field>"])
+        """
+        ...
+
+    # ── Per-Connection config hooks ─────────────────────────────────────────
+    def validate_config(self, config: dict, *, connection: "Connection | None" = None) -> dict:
+        """
+        Validate the incoming ``Connection.config`` payload and return the
+        normalized version. Default impl runs ``validate_against_schema``;
+        connectors override to add cross-field rules (e.g. "drive.readonly
+        scope required when mode=everything").
+
+        ``connection`` is passed when the validator needs to inspect the
+        backing OAuthToken (e.g. scopes granted).
+        """
+        ...
+
+    def picker(self, resource: str, params: dict, *, connection: "Connection") -> dict:
+        """
+        Return vendor data used to populate the Subscription config UI.
+
+        Examples: Gmail's ``labels``, Drive's ``browse`` / ``drives``.
+        Reached via ``GET /api/v1/integrations/{slug}/subscription/picker/{resource}``.
+
+        Connectors that don't expose any picker raise ``NotImplementedError``.
         """
         ...

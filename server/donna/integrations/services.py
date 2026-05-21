@@ -275,4 +275,26 @@ class RegistryService:
                 "scope":         parsed.get("scope", ""),
             },
         )
+
+        # Auto-create / refresh the Connection row for this connector.
+        # See plans/08-connection-pattern.md "Pair flow → Connection
+        # auto-creation". Sibling connectors that share the same OAuth
+        # vendor (e.g. Drive after Gmail) lazy-create on first read of
+        # their /subscription/ endpoint — not here.
+        from .models import Connection
+
+        conn_user = user if cls.token_scope == "user" else None
+        connection, conn_created = Connection.objects.get_or_create(
+            workspace=workspace,
+            user=conn_user,
+            provider_slug=slug,
+            defaults={
+                "token":  token,
+                "config": dict(getattr(cls, "default_config", {}) or {}),
+            },
+        )
+        if not conn_created and connection.token_id != token.id:
+            connection.token = token
+            connection.save(update_fields=["token", "updated_at"])
+
         return token

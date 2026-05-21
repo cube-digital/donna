@@ -5,6 +5,9 @@ Env-driven (via django-environ). Defaults are suitable for local development;
 override via environment variables for any non-dev deployment.
 """
 
+import os
+import secrets
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -14,22 +17,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── Environment ───────────────────────────────────────────────────────────────
 
-env = environ.Env(
-    DEBUG=(bool, True),
-    ALLOWED_HOSTS=(list, ["*"]),
-    LOG_LEVEL=(str, "INFO"),
-    LOG_FORMAT=(str, "json"),
-)
+environ.Env.read_env(env_file=str(BASE_DIR.joinpath(".env")))
+env = environ.Env()
 
-# Load .env file if present (looks for `.env` next to settings.py).
-environ.Env.read_env(BASE_DIR / ".env")
+SECRET_KEY = env.str("SECRET_KEY", default=secrets.token_urlsafe())
 
-SECRET_KEY = env(
-    "SECRET_KEY",
-    default="django-insecure-dev-only-_^41*gm-7$4(ui2av_)kerd-w!1&t30ra*%h-d9g$zkr(82h^3",
-)
-DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+DEBUG = env.str("DEBUG", default="false").lower() == "true"
+TESTING = env.str("TESTING", default="false").lower() == "true"
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 
 # ─── Apps ──────────────────────────────────────────────────────────────────────
 
@@ -44,6 +39,7 @@ INSTALLED_APPS = [
 
     # Third-party
     "rest_framework",
+    "channels",                          # Django Channels — WS transport (see plans/10-realtime-layer.md)
 
     # Donna apps
     "donna.core",
@@ -102,15 +98,26 @@ ASGI_APPLICATION = "donna.asgi.application"
 # ─── Database ──────────────────────────────────────────────────────────────────
 
 DATABASES = {
-    "default": env.db_url(
-        "DATABASE_URL",
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-    ),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "NAME": env.str("DATABASE_NAME", default="narrio"),
+        "USER": env.str("DATABASE_USERNAME", default="narrio"),
+        "PASSWORD": env.str("DATABASE_PASSWORD", default="narrio"),
+        "HOST": env.str("DATABASE_HOST", default="narrio"),
+        "PORT": env.str("DATABASE_PORT", default=5432),
+        "CONN_MAX_AGE": env.int("DATABASE_CONN_MAX_AGE", default=25),
+        "TEST": {
+            "NAME": env.str("TEST_DATABASE_NAME", default="narrio_test"),
+        },
+    }
 }
 
 # ─── DRF ───────────────────────────────────────────────────────────────────────
 
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_RENDERER_CLASSES": [
         "donna.core.renderers.StandardJSONRenderer",
     ],
@@ -121,7 +128,43 @@ REST_FRAMEWORK = {
     ],
     # AUTHENTICATION_CLASSES intentionally omitted until the JWT-vs-session
     # decision lands (see plans/04-roadmap.md Phase 0).
+    "PAGE_SIZE": 10,
+    "NON_FIELD_ERRORS_KEY": "error",
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.JSONParser",
+    ],
+    "SEARCH_PARAM": "q",
+    "ORDERING_PARAM": "sort",
 }
+
+# ─── simplejwt ─────────────────────────────────────────────────────────────────
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME":  timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES":      ("Bearer",),
+}
+
+# ─── Auth + frontend ──────────────────────────────────────────────────────────
+WEB_REDIRECT_HOST = env.str("WEB_REDIRECT_HOST", default="http://localhost:5173")
+
+# Google login OAuth — INTENTIONALLY SEPARATE from the integration-OAuth
+# rows in donna.authentication.OAuthProvider (those drive Gmail/Drive
+# ingestion). Login only needs identity; we don't persist Google refresh
+# tokens at login.
+GOOGLE_LOGIN_CLIENT_ID     = env.str("GOOGLE_LOGIN_CLIENT_ID",     default="")
+GOOGLE_LOGIN_CLIENT_SECRET = env.str("GOOGLE_LOGIN_CLIENT_SECRET", default="")
+GOOGLE_LOGIN_REDIRECT_URI  = env.str("GOOGLE_LOGIN_REDIRECT_URI",  default="")
+
+# ─── Email backend ────────────────────────────────────────────────────────────
+EMAIL_BACKEND       = env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST          = env.str("EMAIL_HOST",     default="")
+EMAIL_PORT          = env.int("EMAIL_PORT",     default=587)
+EMAIL_HOST_USER     = env.str("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS       = env.bool("EMAIL_USE_TLS", default=True)
+DEFAULT_FROM_EMAIL  = env.str("DEFAULT_FROM_EMAIL", default="noreply@donna.local")
 
 # ─── Storage (pluggable, env-var-driven) ──────────────────────────────────────
 #
@@ -220,7 +263,29 @@ CELERY_BEAT_SCHEDULE = {
         "task":     "integrations.google.mail.fanout_sync",
         "schedule": env.int("DONNA_GMAIL_SYNC_INTERVAL", default=300),  # 5 min
     },
+    "drive-fanout-sync": {
+        "task":     "integrations.google.drive.fanout_sync",
+        "schedule": env.int("DONNA_DRIVE_SYNC_INTERVAL", default=300),  # 5 min
+    },
 }
+
+# ─── Channels (WebSocket transport) ───────────────────────────────────────────
+#
+# RedisChannelLayer reuses the Celery broker URL. Override via
+# CHANNELS_REDIS_URL when you want WS pubsub on a separate Redis.
+# See plans/10-realtime-layer.md.
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env.str("CHANNELS_REDIS_URL", default=CELERY_BROKER_URL)],
+        },
+    },
+}
+
+# Presence TTL — WS clients heartbeat at half this interval.
+DONNA_PRESENCE_TTL_SECONDS = env.int("DONNA_PRESENCE_TTL_SECONDS", default=30)
 
 # ─── Password validation ───────────────────────────────────────────────────────
 
@@ -242,6 +307,80 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# DRF Spectacular
+SPECTACULAR_SETTINGS = {
+    "TITLE": "narrio-api",
+    "DESCRIPTION": "REST schema for narrio-api. App: knowledge. API version: v1. "
+    "Includes request/response components, HTTP methods, and endpoint descriptions.",
+    "VERSION": "1.0.0",
+    "TAGS": [
+        {"name": "status", "description": "Health check"},
+        {"name": "auth", "description": "Authentication & tokens"},
+        {"name": "buyers", "description": "Buyer management"},
+        {"name": "users", "description": "User management"},
+        {"name": "companies", "description": "Company management"},
+        {"name": "teams", "description": "Team management"},
+        {"name": "invitations", "description": "Team invitations"},
+        {"name": "deals", "description": "Deal management & import"},
+        {"name": "knowledge", "description": "Knowledge base"},
+        {"name": "notifications", "description": "Notifications & tasks"},
+        {"name": "pipelines", "description": "Deal pipeline management"},
+        {"name": "pipeline-stages", "description": "Pipeline stage management"},
+        {"name": "integrations", "description": "HubSpot & CRM integrations"},
+        {"name": "chat", "description": "AI chat sessions per deal"},
+    ],
+    "SERVE_INCLUDE_SCHEMA": True,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {
+        "displayOperationId": False,
+        "docExpansion": "list",
+        "filter": True,
+    },
+}
+
+# CORS
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = ["*"]
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+)
+
+# Authentication Simple JWT
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    # "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "id",
+    "TOKEN_CLAIMS": {
+        "first_name": "first_name",
+        "last_name": "last_name",
+        "email": "email",
+        "type": "type",
+    },
+}
 
 # ─── Logging ───────────────────────────────────────────────────────────────────
 # Configure structlog last so it picks up final settings.

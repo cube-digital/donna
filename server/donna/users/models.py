@@ -41,6 +41,12 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255, blank=True)
 
+    # Email verification — soft gate. v1: signup allowed without verifying,
+    # frontend nags the user. Google login flips this to True (Google has
+    # already attested the email).
+    email_verified = models.BooleanField(default=False)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
 

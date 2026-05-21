@@ -21,12 +21,18 @@ The `/docs/` files remain useful as background on the original problem and trust
 4. [04-roadmap.md](04-roadmap.md) — what's done, what's blocking, the phase-by-phase build sequence.
 5. [05-integration-architecture.md](05-integration-architecture.md) — tiered approach (deep custom / agent-action / long-tail sync), the `donna/integrations/` framework, silver-layer model, staged migration from custom-build to platforms, n8n deployment model.
 6. [06-deployment-and-self-hosting.md](06-deployment-and-self-hosting.md) — Donna Cloud vs on-premise, plain workers (Celery + Redis), S3-compatible storage, BYO OAuth flow per provider, OSS license decision, Helm chart aspiration.
+7. [08-connection-pattern.md](08-connection-pattern.md) — single polymorphic `Connection` model (one row per workspace/user/provider), JSON `config` + JSON `state`, per-connector `config_schema` (JSON Schema), industry-validated against Airbyte / Nango / Singer / n8n / Hookdeck.
+8. [08a-gmail-integration.md](08a-gmail-integration.md) — Gmail subscription config: `everything` / `time_window` / `subscriptions` modes; labels + queries + domains (OR-combined); label picker; per-stream state shape.
+9. [08b-google-drive-integration.md](08b-google-drive-integration.md) — Drive integration: hybrid Google Picker + custom folder browser; progressive OAuth scope (`drive.file` → `drive.readonly` upgrade); v1 file-type coverage; Shared Drives included.
+10. [09-auth-and-notifications.md](09-auth-and-notifications.md) — User authentication (email/password + Google login + password reset + email verification) and in-app notifications (DB feed + SSE). Cherry-picked from narrio's production code.
+11. [10-realtime-layer.md](10-realtime-layer.md) — Realtime architecture: SSE per-(user, workspace) for notifications + Django Channels WebSockets for chat / DMs / presence / agent token streaming. One Redis pubsub backbone, two transports.
 
 ## Reference / deep dives
 
 These aren't plans — they're learning material gathered during the design sessions. Read them to understand the background reasoning, the landscape, and the design vocabulary the plan docs use.
 
 - [07-integration-platform-landscape.md](07-integration-platform-landscape.md) — how n8n, Airbyte, Nango, Composio, Activepieces structure their integrations; framework-vs-procedural patterns; build-vs-buy economics with concrete numbers; MCP and the AI-native integration shift; self-hosting infrastructure patterns; OSS license landscape; webhook reliability; a decision framework for new products.
+- [whats-app-integration.md](whats-app-integration.md) — **documented-only**, not yet implemented. Baileys sidecar architecture for personal WhatsApp accounts; QR-code pairing; per-chat subscriptions; cross-user dedup via `WhatsAppMessageSeen`; ban-risk mitigations; future Business Cloud API path.
 
 ## Status snapshot (kept in 04)
 

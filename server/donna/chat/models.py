@@ -195,6 +195,54 @@ class Message(TimestampsMixin):
         ]
 
 
+class ChannelReadState(TimestampsMixin):
+    """
+    Per ``(user, channel)`` last-read pointer. Drives unread badges.
+
+    Slack-style: one row per (user, channel), not per message. The
+    frontend reads this on channel open to position the unread divider,
+    advances it via ``POST /api/v1/chat/channels/{id}/read-state/`` (or
+    WS ``mark_read`` action), and re-reads it when waking from
+    background. See plans/10-realtime-layer.md.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="channel_read_states",
+    )
+    channel = models.ForeignKey(
+        Channel,
+        on_delete=models.CASCADE,
+        related_name="read_states",
+    )
+    last_read_message = models.ForeignKey(
+        "Message",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Last message the user has read in this channel.",
+    )
+    last_read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "channel_read_states"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "channel"],
+                name="uq_channel_read_state_user_channel",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user", "channel"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"read({self.user_id}@{self.channel_id})"
+
+
 class Document(TimestampsMixin, UserAuditMixin):
     """A Cowork-style collaborative artifact created within a channel."""
 

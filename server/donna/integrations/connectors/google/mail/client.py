@@ -125,6 +125,14 @@ class GmailClient(BaseGoogleClient):
             if not page_token:
                 return
 
+    # ── Labels ──────────────────────────────────────────────────────────────
+    def list_labels(self) -> dict:
+        """``users.labels.list`` — returns ``{labels: [{id, name, type, ...}, ...]}``.
+
+        Used by the picker endpoint to populate the subscription config UI.
+        """
+        return self.get("/users/me/labels")
+
     # ── Profile (for workspace resolution + account identity) ───────────────
     def get_profile(self) -> dict:
         """``users.getProfile`` → ``emailAddress``, ``messagesTotal``,

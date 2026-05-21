@@ -75,8 +75,17 @@ class GoogleOAuthHandler(BaseOAuthHandler):
     revocation_url = GOOGLE_REVOKE_URL
 
     # ── Flow construction ──────────────────────────────────────────────────
-    def _flow(self, redirect_uri: str | None = None) -> Flow:
+    def _flow(
+        self,
+        redirect_uri: str | None = None,
+        extra_scopes: list[str] | None = None,
+    ) -> Flow:
         cfg = self.config
+        scopes = list(cfg.default_scopes or [])
+        if extra_scopes:
+            for s in extra_scopes:
+                if s not in scopes:
+                    scopes.append(s)
         return Flow.from_client_config(
             client_config={
                 "web": {
@@ -86,7 +95,7 @@ class GoogleOAuthHandler(BaseOAuthHandler):
                     "token_uri":     GOOGLE_TOKEN_URL,
                 },
             },
-            scopes=cfg.default_scopes,
+            scopes=scopes,
             redirect_uri=redirect_uri or cfg.redirect_uri,
         )
 
@@ -97,14 +106,19 @@ class GoogleOAuthHandler(BaseOAuthHandler):
         state_payload: dict,
         redirect_uri: str | None = None,
         extra_params: dict[str, str] | None = None,
+        extra_scopes: list[str] | None = None,
     ) -> str:
         """
         Build Google's authorize URL with offline access + incremental scopes.
         Signs state with Donna's framework-level salt so the callback view
         can verify it via ``BaseOAuthHandler.verify_state``.
+
+        ``extra_scopes`` augments the per-vendor ``default_scopes`` for this
+        single flow — used by Drive's progressive scope upgrade
+        (``drive.readonly``).
         """
         state = signing.dumps(state_payload, salt=_STATE_SALT)
-        flow = self._flow(redirect_uri=redirect_uri)
+        flow = self._flow(redirect_uri=redirect_uri, extra_scopes=extra_scopes)
         url, _ = flow.authorization_url(
             access_type="offline",
             include_granted_scopes="true",
