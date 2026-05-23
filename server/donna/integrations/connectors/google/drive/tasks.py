@@ -48,7 +48,7 @@ def ingest_drive_file(
     file_id: str,
 ) -> dict:
     """Fetch metadata + (optional) text + bytes; upsert DeliveryPackage."""
-    from donna.authentication.models import OAuthToken
+    from donna.integrations.models import OAuthToken
     from donna.integrations.models import DeliveryPackage
 
     provider_cls = get_provider("drive")
@@ -132,7 +132,8 @@ def ingest_drive_file(
             "file_id":             file_id,
             "mime":                file_meta.get("mimeType"),
             "delivery_package_id": str(package.id),
-            "created":             created,
+            # ``created`` collides with LogRecord's built-in field name.
+            "row_created":         created,
             "has_text":            bool(exported_text),
             "has_binary":          binary_bytes is not None,
         },

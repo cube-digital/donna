@@ -1,0 +1,15 @@
+meta {
+  name: Subscription Get
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/integrations/{{connectorSlug}}/subscription/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}

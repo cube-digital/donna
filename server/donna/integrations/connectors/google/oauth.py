@@ -81,12 +81,15 @@ class GoogleOAuthHandler(BaseOAuthHandler):
         extra_scopes: list[str] | None = None,
     ) -> Flow:
         cfg = self.config
-        scopes = list(cfg.default_scopes or [])
+        # Scopes live on the connector class, not on the DB row.
+        # BaseOAuthHandler.default_scopes unions across all connectors
+        # sharing this credentials row (Gmail + Drive → google).
+        scopes = list(self.default_scopes)
         if extra_scopes:
             for s in extra_scopes:
                 if s not in scopes:
                     scopes.append(s)
-        return Flow.from_client_config(
+        flow = Flow.from_client_config(
             client_config={
                 "web": {
                     "client_id":     cfg.client_id,
@@ -98,6 +101,15 @@ class GoogleOAuthHandler(BaseOAuthHandler):
             scopes=scopes,
             redirect_uri=redirect_uri or cfg.redirect_uri,
         )
+        # google_auth_oauthlib ≥ recent versions default
+        # ``autogenerate_code_verifier=True`` on ``Flow.__init__``. That auto-
+        # adds ``code_challenge`` to the authorize URL, which Google then
+        # demands matching ``code_verifier`` on exchange. We use the standard
+        # ``client_secret`` (confidential) flow for Web clients — no PKCE.
+        # Disable here so authorize URL stays free of code_challenge.
+        flow.autogenerate_code_verifier = False
+        flow.code_verifier = None
+        return flow
 
     # ── Authorize URL ──────────────────────────────────────────────────────
     def build_authorize_url(
@@ -153,11 +165,18 @@ class GoogleOAuthHandler(BaseOAuthHandler):
             expiry_aware = creds.expiry.replace(tzinfo=_tz.utc)
             expires_in = max(0, int((expiry_aware - timezone.now()).total_seconds()))
 
+        # ``creds.scopes`` mirrors the *requested* scopes — not the actually-
+        # granted ones. With ``include_granted_scopes=true``, Google's
+        # response carries the union (e.g. drive.file + gmail.modify) inside
+        # the raw token's ``scope`` field. Read that for the source of truth.
+        raw_token = getattr(flow.oauth2session, "token", None) or {}
+        granted_scope = raw_token.get("scope") or " ".join(creds.scopes or [])
+
         return {
             "access_token":  creds.token,
             "refresh_token": creds.refresh_token or "",
             "expires_in":    expires_in if expires_in is not None else 3600,
-            "scope":         " ".join(creds.scopes or []),
+            "scope":         granted_scope,
             "token_type":    "Bearer",
             # id_token surfaced for future userinfo extraction (deferred).
             "id_token":      getattr(creds, "id_token", None),

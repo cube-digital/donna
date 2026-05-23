@@ -1,0 +1,20 @@
+meta {
+  name: List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/notifications/?limit=20&offset=0
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+params:query {
+  limit: 20
+  offset: 0
+}

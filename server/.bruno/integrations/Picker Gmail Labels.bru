@@ -1,0 +1,15 @@
+meta {
+  name: Picker Gmail Labels
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/api/v1/integrations/gmail/subscription/picker/labels
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}

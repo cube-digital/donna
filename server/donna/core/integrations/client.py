@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Iterator
 import httpx
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthToken
+    from donna.integrations.models import OAuthToken
 
 
 logger = logging.getLogger(__name__)

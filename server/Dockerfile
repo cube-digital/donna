@@ -1,63 +1,88 @@
 # syntax=docker/dockerfile:1.7
 #
 # Multi-stage Dockerfile for the Donna server.
-# Single image, multiple commands: web (gunicorn), worker (celery), shell, etc.
+#
+# Base: Astral's official uv image (Python 3.13, Debian Bookworm slim).
+# - Maintained by the uv authors → secure, small, fast.
+# - Ships uv preinstalled → no third-party COPY trick needed.
+#
+# Two stages:
+#   builder — installs project deps via `uv sync --frozen --no-install-project`.
+#             Caches uv's wheel cache + bind-mounts pyproject/uv.lock so the
+#             dep-only layer rebuilds only when those files change.
+#   runtime — copies the prepared .venv, adds project source, runs as
+#             non-root. Entrypoint script runs migrate + collectstatic +
+#             uvicorn. Worker / beat services bypass the entrypoint and
+#             exec `celery` directly (see docker-compose.yml).
 
-# ─── Stage 1: builder — install Python deps with uv ────────────────────────────
-FROM python:3.13-slim AS builder
+# ─── Stage 1: builder ─────────────────────────────────────────────────────────
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
+    UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/venv
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Build-only OS deps (psycopg2 needs libpq + headers, plus a C compiler).
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
         build-essential \
+        gcc \
         libpq-dev \
-        curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# uv from official image (small, fast).
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+WORKDIR /opt/donna
 
-WORKDIR /app
+# Install dependencies in their own layer using a cached uv wheel store.
+# pyproject.toml + uv.lock are bind-mounted (no COPY) so this layer's
+# cache key tracks them; project source is added later.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    uv sync --frozen --no-install-project --no-dev
 
-# Install deps first (cache layer) using only the lock-like files.
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-install-project 2>/dev/null || uv sync --no-install-project
 
-# ─── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM python:3.13-slim AS runtime
+# ─── Stage 2: runtime ─────────────────────────────────────────────────────────
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH" \
-    DJANGO_SETTINGS_MODULE=donna.settings
+    DJANGO_SETTINGS_MODULE=donna.settings \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
-# Runtime deps only — no build tooling.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Runtime OS deps only — no compiler toolchain.
+# libpq5 for psycopg2 runtime; postgresql-client for the entrypoint's
+# pg_isready-equivalent + `docker compose run --rm server psql ...`.
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
         libpq5 \
+        postgresql-client \
         curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --shell /bin/bash app
+    && useradd --create-home --shell /bin/bash donna
 
-WORKDIR /app
+WORKDIR /opt/donna
 
-# Copy the prepared venv from builder.
-COPY --from=builder /opt/venv /opt/venv
+# Bring the venv across from the builder.
+COPY --from=builder --chown=donna:donna /opt/venv /opt/venv
 
-# Project source.
-COPY --chown=app:app . /app
+# Project source last so dep-layer cache holds across most edits.
+COPY --chown=donna:donna . /opt/donna
 
-# Storage + static dirs (default_storage filesystem backend writes here).
-RUN mkdir -p /app/var/storage /app/staticfiles && chown -R app:app /app/var /app/staticfiles
+# Storage + static directories used by the filesystem storage backend
+# and Django's collectstatic.
+RUN mkdir -p /opt/donna/var/storage /opt/donna/staticfiles \
+    && chown -R donna:donna /opt/donna/var /opt/donna/staticfiles \
+    && chmod +x /opt/donna/deploy/entrypoint.sh
 
-USER app
+USER donna
 
 EXPOSE 8000
 
-# Entrypoint runs migrate + collectstatic for the web role; bypassed for worker.
-COPY --chown=app:app deploy/entrypoint.sh /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["web"]
+# Reset uv's own entrypoint so our entrypoint script is what gets called.
+ENTRYPOINT ["/opt/donna/deploy/entrypoint.sh"]

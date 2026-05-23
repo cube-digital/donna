@@ -1,10 +1,10 @@
 """
 Notifications API views.
 
-  GET  /api/v1/notifications/                 list current user's alerts
-  POST /api/v1/notifications/mark-read        body: {ids: [...]}
-  POST /api/v1/notifications/mark-all-read
-  GET  /api/v1/notifications/stream           SSE (async)
+  GET   /api/v1/notifications/                 list current user's alerts
+  GET   /api/v1/notifications/{id}/            retrieve
+  PATCH /api/v1/notifications/seen/            body: {seen: bool, ids?: [...]}
+  GET   /api/v1/notifications/stream           SSE (async)
 
 ``stream`` is an async view that streams Redis pubsub messages over
 SSE. Requires an ASGI server (uvicorn — already in deps). The other
@@ -17,14 +17,14 @@ from http import HTTPStatus
 
 from channels.db import database_sync_to_async
 from django.http import StreamingHttpResponse
-from rest_framework import generics, status
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from ...models import Notification
 from ...services import NotificationService
-from .serializers import MarkReadSerializer, NotificationSerializer
+from .serializers import NotificationSerializer, SeenPatchSerializer
 
 
 @database_sync_to_async
@@ -42,35 +42,41 @@ def _get_user_workspace_ids(user_id) -> list[str]:
 logger = logging.getLogger(__name__)
 
 
-class NotificationListView(generics.ListAPIView):
-    """Paginated list of the current user's notifications."""
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Notification feed for the current user.
+
+    list:        GET   /api/v1/notifications/
+    retrieve:    GET   /api/v1/notifications/{id}/
+    seen:        PATCH /api/v1/notifications/seen/    body: {seen, ids?}
+
+    ``seen`` is one bulk PATCH endpoint. Body shape:
+
+        {"seen": true,  "ids": ["<uuid>", "<uuid>"]}   ← these only
+        {"seen": true,  "ids": []}                     ← all caller's notifications
+        {"seen": true}                                 ← all caller's notifications
+        {"seen": false, "ids": ["<uuid>"]}             ← un-mark a single one
+    """
 
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user).order_by("-created_at")
-
-
-class MarkReadView(APIView):
-    """Bulk-mark notifications as read."""
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        serializer = MarkReadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        updated = NotificationService.mark_as_read(
-            request.user, [str(i) for i in serializer.validated_data["ids"]]
+        return (
+            Notification.objects
+            .filter(user=self.request.user)
+            .order_by("-created_at")
         )
-        return Response({"updated": updated}, status=status.HTTP_200_OK)
 
-
-class MarkAllReadView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        updated = NotificationService.mark_all_read(request.user)
+    @action(detail=False, methods=["patch"], url_path="seen")
+    def seen(self, request):
+        serializer = SeenPatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        updated = NotificationService.set_seen(
+            request.user,
+            seen=serializer.validated_data["seen"],
+            notification_ids=[str(i) for i in serializer.validated_data.get("ids") or []],
+        )
         return Response({"updated": updated}, status=status.HTTP_200_OK)
 
 

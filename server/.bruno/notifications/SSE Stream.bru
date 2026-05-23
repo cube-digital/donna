@@ -1,0 +1,29 @@
+meta {
+  name: SSE Stream
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/notifications/stream
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Accept: text/event-stream
+}
+
+docs {
+  Server-Sent Events stream — Bruno will keep the connection open
+  and append frames as they arrive. Cleaner to test with
+  ``curl -N -H "Authorization: Bearer $TOKEN"
+   -H "X-Workspace-Id: $WS" localhost:8000/api/v1/notifications/stream``.
+  
+  Channels fanned in for the caller (see plans/10-realtime-layer.md):
+  
+  - ``user-{uid}-notifications``         — personal
+  - ``workspace-{wid}-notifications``    — per workspace membership
+  - ``user-{uid}-workspace-{wid}-feed``  — per workspace membership
+}

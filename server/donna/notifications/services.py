@@ -127,6 +127,19 @@ class NotificationService:
     def mark_all_read(user) -> int:
         return Notification.objects.mark_all_read(user)
 
+    @staticmethod
+    def set_seen(
+        user,
+        seen: bool,
+        notification_ids: list[str] | None = None,
+    ) -> int:
+        """
+        Flip ``seen`` for ``user``'s rows. ``notification_ids``
+        empty/None applies to ALL of the user's rows currently not
+        matching ``seen``. Returns the count actually changed.
+        """
+        return Notification.objects.set_seen(user, seen, notification_ids)
+
     # ── Ephemeral publish ───────────────────────────────────────────────────
     @staticmethod
     def publish(

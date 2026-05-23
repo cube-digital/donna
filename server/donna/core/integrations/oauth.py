@@ -26,7 +26,7 @@ from django.core import signing
 from django.utils import timezone
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider, OAuthToken
+    from donna.integrations.models import ClientCredentials, OAuthToken
 
 from .exceptions import (
     OAuthExchangeFailed,
@@ -47,8 +47,11 @@ class BaseOAuthHandler:
     """
     Default OAuth 2.0 authorization-code flow.
 
-    One instance bound to a specific OAuthProvider row (which carries
-    client_id, client_secret, redirect_uri, authorize_url, token_url, scopes).
+    Bound to one ``ClientCredentials`` row (carries client_id / secret /
+    redirect_uri / webhook_secret). The vendor's authorize_url, token_url
+    and default scope list come from the registered connector class —
+    not from the DB row — so admins never have to paste URLs or keep
+    them in sync.
     """
 
     #: Optional revocation endpoint. Override per provider when known.
@@ -57,8 +60,70 @@ class BaseOAuthHandler:
     #: HTTP timeout for token-endpoint calls.
     timeout: float = 30.0
 
-    def __init__(self, config: "OAuthProvider"):
+    #: Where the client_id / client_secret travel in token-endpoint requests.
+    #: RFC 6749 mandates Basic ("client_secret_basic"); some providers also
+    #: accept body ("client_secret_post"). Strict ones (e.g. Fathom) reject
+    #: body. Default is Basic — override per provider only when needed.
+    token_endpoint_auth_method: str = "client_secret_basic"
+
+    def __init__(
+        self,
+        config: "ClientCredentials",
+        connector_cls: type | None = None,
+    ):
+        """
+        ``connector_cls`` pins the handler to one specific connector so the
+        authorize URL only requests *that* connector's scopes. Required for
+        incremental OAuth: connecting Gmail must not request Drive scopes
+        even though both share ``oauth_provider_slug='google'``. Providers
+        pass ``type(self)`` from their ``oauth_handler()`` factory.
+
+        When ``connector_cls`` is None, scopes union across all connectors
+        sharing the credentials row (legacy behaviour).
+        """
         self.config = config
+        self.connector_cls = connector_cls
+
+    # ── Connector metadata (URLs + scopes live on the connector class) ─────
+    def _connector_classes(self) -> list:
+        """All registered connector classes backed by this credentials row."""
+        from .registry import all_loaded
+
+        slug = self.config.slug
+        matches = [c for c in all_loaded() if c.oauth_provider_slug == slug]
+        if not matches:
+            from .exceptions import OAuthError
+
+            raise OAuthError(
+                f"no connector class registered with oauth_provider_slug={slug!r}"
+            )
+        return matches
+
+    def _primary_connector(self):
+        """Connector pinned at construction, or first match by slug."""
+        return self.connector_cls or self._connector_classes()[0]
+
+    @property
+    def authorize_url(self) -> str:
+        return self._primary_connector().default_authorize_url
+
+    @property
+    def token_url(self) -> str:
+        return self._primary_connector().default_token_url
+
+    @property
+    def default_scopes(self) -> list[str]:
+        """
+        Scopes for the pinned connector only when ``connector_cls`` was set
+        at construction (enables incremental OAuth); otherwise union across
+        all connectors sharing this credentials row.
+        """
+        if self.connector_cls is not None:
+            return list(self.connector_cls.default_scopes or [])
+        scopes: set[str] = set()
+        for cls in self._connector_classes():
+            scopes.update(cls.default_scopes or [])
+        return sorted(scopes)
 
     # ── Authorize URL ───────────────────────────────────────────────────────
     def build_authorize_url(
@@ -81,17 +146,24 @@ class BaseOAuthHandler:
             "response_type": "code",
             "client_id": self.config.client_id,
             "redirect_uri": redirect_uri or self.config.redirect_uri,
-            "scope": " ".join(self.config.default_scopes or []),
+            "scope": " ".join(self.default_scopes),
             "state": state,
         }
         if extra_params:
             params.update(extra_params)
 
-        return f"{self.config.authorize_url}?{urlencode(params)}"
+        return f"{self.authorize_url}?{urlencode(params)}"
 
     # ── State verification ──────────────────────────────────────────────────
-    def verify_state(self, state: str) -> dict:
-        """Verify and decode a state token. Raises OAuthStateInvalid on failure."""
+    @staticmethod
+    def verify_state(state: str) -> dict:
+        """
+        Verify and decode a state token. Raises OAuthStateInvalid on failure.
+
+        Static — signing salt is framework-level, not row- or handler-specific.
+        Callers can decode state before knowing which connector / credentials
+        row to use (e.g. callback view dispatching by URL vendor slug).
+        """
         try:
             return signing.loads(state, salt=_STATE_SALT, max_age=_STATE_MAX_AGE_SECONDS)
         except signing.SignatureExpired as exc:
@@ -99,18 +171,46 @@ class BaseOAuthHandler:
         except signing.BadSignature as exc:
             raise OAuthStateInvalid("state token signature invalid") from exc
 
+    # ── Token endpoint auth helpers ─────────────────────────────────────────
+    def _token_request_kwargs(self, body: dict) -> dict:
+        """
+        Apply this handler's ``token_endpoint_auth_method`` to an httpx
+        ``post`` call. Returns kwargs for ``httpx.post``.
+        """
+        method = self.token_endpoint_auth_method
+        if method == "client_secret_basic":
+            # Pass via HTTP Basic — RFC 6749 §2.3.1 preferred.
+            return {
+                "data": body,
+                "auth": (self.config.client_id, self.config.client_secret or ""),
+            }
+        if method == "client_secret_post":
+            # Some legacy providers want creds in body.
+            return {
+                "data": {
+                    **body,
+                    "client_id":     self.config.client_id,
+                    "client_secret": self.config.client_secret or "",
+                },
+            }
+        raise OAuthExchangeFailed(
+            f"unsupported token_endpoint_auth_method: {method!r}"
+        )
+
     # ── Token exchange ──────────────────────────────────────────────────────
     def exchange_code(self, code: str, redirect_uri: str | None = None) -> dict:
         """POST to the upstream token endpoint with the auth code."""
-        data = {
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": self.config.client_id,
-            "client_secret": self.config.client_secret,
+        body = {
+            "grant_type":   "authorization_code",
+            "code":         code,
             "redirect_uri": redirect_uri or self.config.redirect_uri,
         }
         try:
-            response = httpx.post(self.config.token_url, data=data, timeout=self.timeout)
+            response = httpx.post(
+                self.token_url,
+                timeout=self.timeout,
+                **self._token_request_kwargs(body),
+            )
         except httpx.HTTPError as exc:
             raise OAuthExchangeFailed(f"network error contacting token endpoint: {exc}") from exc
 
@@ -156,14 +256,16 @@ class BaseOAuthHandler:
         if not token.refresh_token:
             raise TokenRefreshFailed("token has no refresh_token; cannot refresh")
 
-        data = {
-            "grant_type": "refresh_token",
+        body = {
+            "grant_type":    "refresh_token",
             "refresh_token": token.refresh_token,
-            "client_id": self.config.client_id,
-            "client_secret": self.config.client_secret,
         }
         try:
-            response = httpx.post(self.config.token_url, data=data, timeout=self.timeout)
+            response = httpx.post(
+                self.token_url,
+                timeout=self.timeout,
+                **self._token_request_kwargs(body),
+            )
         except httpx.HTTPError as exc:
             raise TokenRefreshFailed(f"network error refreshing token: {exc}") from exc
 

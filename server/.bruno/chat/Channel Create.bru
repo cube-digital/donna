@@ -1,0 +1,26 @@
+meta {
+  name: Channel Create
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/chat/channels/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "kind": "CHANNEL",
+    "name": "engineering",
+    "slug": "engineering",
+    "topic": "Engineering discussion",
+    "visibility": "PUBLIC"
+  }
+}

@@ -1,0 +1,27 @@
+meta {
+  name: DM Open
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/chat/dms/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "peer_user_id": "{{peerUserId}}"
+  }
+}
+
+docs {
+  Returns / creates the Channel(kind=DIRECT) row that holds both
+  members. Idempotent.
+}

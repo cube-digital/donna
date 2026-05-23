@@ -1,0 +1,28 @@
+meta {
+  name: Read State Advance
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/chat/channels/{{channelId}}/read-state/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "message_id": "{{messageId}}"
+  }
+}
+
+docs {
+  Slack-style — single pointer per (user, channel). Publishes
+  ``{event: read.advanced}`` to ``chat-channel-{id}`` so other
+  members see the read receipt.
+}

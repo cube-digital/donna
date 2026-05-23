@@ -1,0 +1,17 @@
+meta {
+  name: Google Callback (manual)
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/auth/google/callback?code=&state=
+  body: none
+  auth: none
+}
+
+docs {
+  Not for direct use — Google calls this endpoint after the user
+  consents. Kept here only so the URL shape is documented in the
+  collection.
+}

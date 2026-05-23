@@ -36,7 +36,7 @@ from .adapter import GmailMessageAdapter
 from .client import GmailClient
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider, OAuthToken
+    from donna.integrations.models import ClientCredentials, OAuthToken
     from donna.integrations.models import Connection
     from donna.workspaces.models import Workspace
 
@@ -115,8 +115,10 @@ class GmailProvider:
     def client(self, token: "OAuthToken") -> GmailClient:
         return GmailClient(token=token)
 
-    def oauth_handler(self, oauth_provider: "OAuthProvider") -> GoogleOAuthHandler:
-        return GoogleOAuthHandler(config=oauth_provider)
+    def oauth_handler(self, oauth_provider: "ClientCredentials") -> GoogleOAuthHandler:
+        # Pin handler to this connector — incremental OAuth: only ask for
+        # Gmail scopes, not the Drive scopes that share the google row.
+        return GoogleOAuthHandler(config=oauth_provider, connector_cls=type(self))
 
     def webhook_handler(self) -> BaseWebhookHandler:  # pragma: no cover
         raise NotImplementedError(

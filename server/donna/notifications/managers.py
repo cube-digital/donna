@@ -24,3 +24,14 @@ class NotificationManager(models.Manager):
 
     def mark_all_read(self, user) -> int:
         return self.filter(user=user, seen=False).update(seen=True)
+
+    def set_seen(self, user, seen: bool, notification_ids: list | None = None) -> int:
+        """
+        Flip ``seen`` for ``user``'s rows. ``notification_ids`` empty/None
+        applies to ALL of the user's rows currently not matching ``seen``.
+        Returns the count of rows actually changed (no-op rows excluded).
+        """
+        qs = self.filter(user=user)
+        if notification_ids:
+            qs = qs.filter(id__in=notification_ids)
+        return qs.exclude(seen=seen).update(seen=seen)

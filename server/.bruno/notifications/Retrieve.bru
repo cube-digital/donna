@@ -1,0 +1,15 @@
+meta {
+  name: Retrieve
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/notifications/{{notificationId}}/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}

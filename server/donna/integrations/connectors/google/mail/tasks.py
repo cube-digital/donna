@@ -102,7 +102,8 @@ def ingest_gmail_message(self, workspace_id: str, message_id: str) -> dict:
             "message_id":           message_id,
             "storage_key":          storage_key,
             "delivery_package_id":  str(package.id),
-            "created":              created,
+            # ``created`` collides with LogRecord's built-in field name.
+            "row_created":          created,
         },
     )
 

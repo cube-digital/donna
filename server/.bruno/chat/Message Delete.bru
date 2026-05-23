@@ -1,0 +1,15 @@
+meta {
+  name: Message Delete
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/chat/messages/{{messageId}}/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}

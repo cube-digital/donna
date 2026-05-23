@@ -1,0 +1,29 @@
+meta {
+  name: Drive Scope Upgrade
+  type: http
+  seq: 30
+}
+
+post {
+  url: {{baseUrl}}/api/v1/integrations/drive/subscription/upgrade-scope
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "redirect_to": ""
+  }
+}
+
+docs {
+  Returns ``{authorize_url}`` requesting ``drive.readonly`` on top of
+  the existing ``drive.file`` grant. Open in browser → user re-consents
+  → Google redirects to ``/oauth/callback`` which updates the
+  OAuthToken's ``scope`` field.
+}

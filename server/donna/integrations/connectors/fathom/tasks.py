@@ -39,8 +39,7 @@ def ingest_fathom_meeting(self, workspace_id: str, meeting_id: str) -> dict:
         Dict with ``storage_key`` and ``delivery_package_id`` for caller/logs.
     """
     # Imports inside the task so Django apps are ready at execution time.
-    from donna.authentication.models import OAuthToken
-    from donna.integrations.models import DeliveryPackage
+    from donna.integrations.models import DeliveryPackage, OAuthToken
 
     provider_cls = get_provider("fathom")
     provider = provider_cls()
@@ -87,7 +86,8 @@ def ingest_fathom_meeting(self, workspace_id: str, meeting_id: str) -> dict:
             "meeting_id":           meeting_id,
             "storage_key":          storage_key,
             "delivery_package_id":  str(package.id),
-            "created":              created,
+            # ``created`` collides with LogRecord's built-in field name.
+            "row_created":          created,
         },
     )
 

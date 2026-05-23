@@ -18,7 +18,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider
+    from donna.integrations.models import ClientCredentials
 
 from .exceptions import WebhookPayloadInvalid, WebhookSignatureInvalid
 
@@ -42,7 +42,7 @@ class BaseWebhookHandler:
     #: this to ``"sha256="`` so it gets stripped before comparison.
     signature_prefix: str = ""
 
-    def __init__(self, config: "OAuthProvider"):
+    def __init__(self, config: "ClientCredentials"):
         self.config = config
 
     # ── Signature verification ──────────────────────────────────────────────

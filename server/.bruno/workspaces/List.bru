@@ -1,0 +1,34 @@
+meta {
+  name: List (auto-sets workspaceId)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/workspaces/
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  // Save the FIRST workspace's id into env var `workspaceId`.
+  // Every other request in the collection sends `X-Workspace-Id: {{workspaceId}}`.
+  const response = res.getBody();
+  const items = (response && response.data) || [];
+  const first = Array.isArray(items)
+    ? items[0]
+    : (items.results && items.results[0]);
+  if (first && first.id) {
+    bru.setEnvVar("workspaceId", first.id);
+  }
+}
+
+docs {
+  Run this once after Signin. Pulls all workspaces the signed-in user
+  belongs to, auto-saves the first one's id to the ``workspaceId`` env
+  var. Every other request in the collection already injects
+  ``X-Workspace-Id: {{workspaceId}}`` so it's ready immediately.
+
+  Pick a different workspace by editing ``workspaceId`` directly in
+  the local env, or change this script to filter by slug.
+}

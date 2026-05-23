@@ -1,0 +1,21 @@
+meta {
+  name: Picker Drive Browse
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/api/v1/integrations/drive/subscription/picker/browse?parent=root
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+params:query {
+  parent: root
+  ~drive_id:
+  ~page_token:
+}

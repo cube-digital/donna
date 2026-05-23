@@ -1,0 +1,20 @@
+meta {
+  name: Picker Drive Drives
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/api/v1/integrations/drive/subscription/picker/drives
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Lists Shared Drives. Requires ``drive.readonly`` scope on the
+  backing token.
+}

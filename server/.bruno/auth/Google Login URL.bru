@@ -1,0 +1,18 @@
+meta {
+  name: Google Login URL
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/auth/google/login
+  body: none
+  auth: none
+}
+
+docs {
+  Returns ``{authorization_url}``. Open the URL in a browser to
+  complete the consent flow — Google redirects back to
+  ``/api/auth/google/callback`` which issues a JWT and 302s to the
+  frontend (``WEB_REDIRECT_HOST/login/callback``).
+}

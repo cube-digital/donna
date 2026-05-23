@@ -13,21 +13,20 @@ urlpatterns = [
     path("api/v1/", include("donna.integrations.urls")),
     path("api/v1/notifications/", include("donna.notifications.urls")),
     path("api/v1/chat/", include("donna.chat.urls")),
-]
 
-if settings.DEBUG or settings.TESTING:
-    urlpatterns += [
-        path(
-            "swagger/",
-            SpectacularSwaggerView.as_view(url_name="schema-swagger-json"),
-            name="apidoc",
-        ),
-        path(
-            "swagger/swagger.json/",
-            SpectacularJSONAPIView.as_view(),
-            name="schema-swagger-json",
-        ),
-    ]
+    # API schema + Swagger UI. Always mounted; gate behind auth in prod
+    # via SPECTACULAR_SETTINGS["SERVE_PERMISSIONS"] if needed.
+    path(
+        "swagger/",
+        SpectacularSwaggerView.as_view(url_name="schema-swagger-json"),
+        name="apidoc",
+    ),
+    path(
+        "swagger/swagger.json/",
+        SpectacularJSONAPIView.as_view(),
+        name="schema-swagger-json",
+    ),
+]
 
 if settings.DEBUG:
     urlpatterns += [

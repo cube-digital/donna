@@ -23,7 +23,7 @@ from .adapter import FathomMeetingAdapter
 from .client import FathomClient
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider, OAuthToken
+    from donna.integrations.models import ClientCredentials, OAuthToken
     from donna.workspaces.models import Workspace
 
 
@@ -41,9 +41,9 @@ class FathomProvider:
     token_scope = "user"
 
     # ── Static OAuth defaults (consumed by integrations_bootstrap) ─────────
-    default_authorize_url = "https://fathom.video/oauth/authorize"
-    default_token_url = "https://fathom.video/oauth/token"
-    default_scopes: list[str] = ["transcripts:read", "meetings:read"]
+    default_authorize_url = "https://fathom.video/external/v1/oauth2/authorize"
+    default_token_url = "https://fathom.video/external/v1/oauth2/token"
+    default_scopes: list[str] = ["public_api"]
 
     # ── Capabilities ────────────────────────────────────────────────────────
     supports_webhooks = True
@@ -58,8 +58,8 @@ class FathomProvider:
         # (override via metadata if needed).
         return BaseWebhookHandler(config=self._oauth_config())
 
-    def oauth_handler(self, oauth_provider: "OAuthProvider") -> BaseOAuthHandler:
-        return BaseOAuthHandler(config=oauth_provider)
+    def oauth_handler(self, oauth_provider: "ClientCredentials") -> BaseOAuthHandler:
+        return BaseOAuthHandler(config=oauth_provider, connector_cls=type(self))
 
     def adapter_for(self, raw: dict) -> FathomMeetingAdapter:
         return FathomMeetingAdapter(raw=raw)
@@ -81,7 +81,7 @@ class FathomProvider:
         which is enough for the single-user MVP. The fallback raises clearly
         if it's ambiguous so the gap is visible.
         """
-        from donna.authentication.models import OAuthToken
+        from donna.integrations.models import OAuthToken
 
         external_user_id = (
             parsed.get("user_id")
@@ -136,8 +136,18 @@ class FathomProvider:
         ingest_fathom_meeting.delay(str(workspace.id), str(meeting_id))
 
     # ── Internal ────────────────────────────────────────────────────────────
-    def _oauth_config(self) -> "OAuthProvider":
-        """Look up the OAuthProvider row backing this connector."""
-        from donna.authentication.models import OAuthProvider
+    def _oauth_config(self) -> "ClientCredentials":
+        """
+        Return the deployment-wide ClientCredentials row.
 
-        return OAuthProvider.objects.get(slug=self.oauth_provider_slug)
+        Webhook verification has no workspace context at request time, so
+        ``webhook_secret`` must live on the global row (``workspace=NULL``).
+        Workspace-scoped rows can carry per-workspace ``client_id`` /
+        ``client_secret`` for the OAuth flow but never the webhook secret.
+        """
+        from donna.integrations.models import ClientCredentials
+
+        return ClientCredentials.objects.get(
+            slug=self.oauth_provider_slug,
+            workspace__isnull=True,
+        )

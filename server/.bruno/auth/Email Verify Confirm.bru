@@ -1,0 +1,11 @@
+meta {
+  name: Email Verify Confirm
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/auth/email/verify/confirm/{{emailVerifyToken}}
+  body: none
+  auth: none
+}

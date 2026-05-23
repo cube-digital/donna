@@ -1,0 +1,22 @@
+meta {
+  name: Message Edit
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/chat/messages/{{messageId}}/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "body": "edited"
+  }
+}

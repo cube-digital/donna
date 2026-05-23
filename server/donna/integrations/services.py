@@ -25,9 +25,10 @@ from donna.core.integrations import (
 
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider, OAuthToken
     from donna.users.models import User
     from donna.workspaces.models import Workspace
+
+    from .models import ClientCredentials, OAuthToken
 
 
 logger = logging.getLogger(__name__)
@@ -82,10 +83,10 @@ class RegistryService:
     # ── Listing ─────────────────────────────────────────────────────────────
     def list_for_workspace(self, workspace: "Workspace") -> list[IntegrationStatus]:
         """All connectors visible to the workspace, with connection status."""
-        from donna.authentication.models import OAuthProvider, OAuthToken
+        from .models import ClientCredentials, OAuthToken
 
         enabled_slugs = set(
-            OAuthProvider.objects
+            ClientCredentials.objects
             .filter(is_enabled=True)
             .values_list("slug", flat=True)
         )
@@ -119,13 +120,17 @@ class RegistryService:
         """Status for one connector. Raises ProviderNotRegistered if unknown."""
         from django.db.models import Q
 
-        from donna.authentication.models import OAuthProvider, OAuthToken
+        from .models import ClientCredentials, OAuthToken
 
         cls = get_provider(slug)  # raises ProviderNotRegistered
 
-        is_configured = OAuthProvider.objects.filter(
-            slug=cls.oauth_provider_slug, is_enabled=True
-        ).exists()
+        # Either workspace-specific row OR deployment-wide row counts as configured.
+        is_configured = (
+            ClientCredentials.objects.resolve(
+                cls.oauth_provider_slug, workspace=workspace
+            )
+            is not None
+        )
 
         # Caller sees a connection if either the workspace has one, or the
         # current user has a personal one.
@@ -156,28 +161,29 @@ class RegistryService:
         """
         Build the upstream authorize URL. Returns the URL to redirect to.
         """
-        from donna.authentication.models import OAuthProvider
+        from .models import ClientCredentials
 
         cls = get_provider(slug)
         provider = cls()
 
-        try:
-            oauth_config = OAuthProvider.objects.get(slug=cls.oauth_provider_slug)
-        except OAuthProvider.DoesNotExist as exc:
+        oauth_config = ClientCredentials.objects.resolve(
+            cls.oauth_provider_slug, workspace=workspace
+        )
+        if oauth_config is None:
             raise NotConfigured(
-                f"OAuthProvider({cls.oauth_provider_slug!r}) row is missing"
-            ) from exc
-        if not oauth_config.is_enabled:
-            raise NotConfigured(
-                f"OAuthProvider({cls.oauth_provider_slug!r}) is disabled"
+                f"No enabled ClientCredentials({cls.oauth_provider_slug!r}) "
+                f"row for workspace={workspace.id} or deployment-wide."
             )
 
         handler = provider.oauth_handler(oauth_config)
         state_payload = {
-            "user_id":      str(user.id),
-            "workspace_id": str(workspace.id),
-            "slug":         slug,
-            "redirect_to":  redirect_to or "",
+            "user_id":              str(user.id),
+            "workspace_id":         str(workspace.id),
+            "slug":                 slug,
+            "redirect_to":          redirect_to or "",
+            # Pin the exact ClientCredentials row that signed the authorize
+            # URL — callback exchanges the code with the same client_id/secret.
+            "client_credentials_id": str(oauth_config.id),
         }
         return handler.build_authorize_url(state_payload=state_payload)
 
@@ -188,14 +194,15 @@ class RegistryService:
         Revoke + delete the OAuthToken for this caller. Returns True when a
         token was removed, False when nothing was connected.
         """
-        from donna.authentication.models import OAuthProvider, OAuthToken
+        from .models import ClientCredentials, OAuthToken
 
         cls = get_provider(slug)
         provider = cls()
 
-        try:
-            oauth_config = OAuthProvider.objects.get(slug=cls.oauth_provider_slug)
-        except OAuthProvider.DoesNotExist:
+        oauth_config = ClientCredentials.objects.resolve(
+            cls.oauth_provider_slug, workspace=workspace
+        )
+        if oauth_config is None:
             return False
 
         # Match the caller's token — user-scoped first, then workspace-scoped.
@@ -229,19 +236,53 @@ class RegistryService:
         """
         Complete the OAuth dance from a callback view. Verifies state,
         exchanges code, persists the OAuthToken. Returns the new/updated row.
+
+        ``slug`` is the URL slug — i.e. the vendor / ``oauth_provider_slug``
+        (e.g. ``"google"``), not the connector slug. One Google OAuth app
+        means one registered redirect URI; the actual connector being
+        connected (gmail / drive / calendar) lives inside the signed state.
         """
-        from donna.authentication.models import OAuthProvider, OAuthToken
+        from donna.core.integrations import OAuthStateInvalid
+        from donna.core.integrations.oauth import BaseOAuthHandler
+
+        from .models import ClientCredentials, OAuthToken
         from donna.users.models import User
         from donna.workspaces.models import Workspace
 
-        cls = get_provider(slug)
-        provider = cls()
-        oauth_config = OAuthProvider.objects.get(slug=cls.oauth_provider_slug)
-        handler = provider.oauth_handler(oauth_config)
+        # Decode state up front — signing salt is framework-level, no handler
+        # or credentials row needed.
+        state_payload = BaseOAuthHandler.verify_state(state)
 
-        state_payload = handler.verify_state(state)
+        # The connector slug (gmail / drive / fathom) lives in the state.
+        connector_slug = state_payload["slug"]
+        cls = get_provider(connector_slug)
+        if cls.oauth_provider_slug != slug:
+            raise OAuthStateInvalid(
+                f"state connector {connector_slug!r} "
+                f"(vendor={cls.oauth_provider_slug!r}) does not match "
+                f"callback vendor {slug!r}"
+            )
+        provider = cls()
+
         user = User.objects.get(id=state_payload["user_id"])
         workspace = Workspace.objects.get(id=state_payload["workspace_id"])
+
+        # Pinned row — exchange the code with the exact client_id/secret
+        # that signed the authorize URL.
+        pinned_id = state_payload.get("client_credentials_id")
+        if pinned_id:
+            oauth_config = ClientCredentials.objects.get(id=pinned_id)
+        else:
+            # Legacy state payload without pinning — fall back to resolver.
+            oauth_config = ClientCredentials.objects.resolve(
+                cls.oauth_provider_slug, workspace=workspace
+            )
+            if oauth_config is None:
+                raise NotConfigured(
+                    f"No enabled ClientCredentials({cls.oauth_provider_slug!r}) "
+                    f"row resolves for workspace={workspace.id}."
+                )
+        handler = provider.oauth_handler(oauth_config)
 
         response = handler.exchange_code(code)
         parsed = handler.parse_token_response(response)
@@ -287,7 +328,9 @@ class RegistryService:
         connection, conn_created = Connection.objects.get_or_create(
             workspace=workspace,
             user=conn_user,
-            provider_slug=slug,
+            # URL slug is the vendor; the connector identity (gmail / drive)
+            # is what `Connection.provider_slug` should track.
+            provider_slug=connector_slug,
             defaults={
                 "token":  token,
                 "config": dict(getattr(cls, "default_config", {}) or {}),

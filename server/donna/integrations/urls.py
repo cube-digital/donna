@@ -14,7 +14,9 @@ Mounted under ``/api/v1/`` by the project urls.py. Generates:
   GET    /api/v1/integrations/{slug}/subscription/picker/{resource}  picker data
 
   POST   /api/v1/integrations/{slug}/webhook/callback                public webhook
-  GET    /api/v1/integrations/{slug}/oauth/callback                  public OAuth callback
+  GET    /api/v1/integrations/{vendor_slug}/oauth/callback           public OAuth callback
+                                                                     (vendor slug e.g. ``google``
+                                                                     — connector identity in state)
 """
 from __future__ import annotations
 

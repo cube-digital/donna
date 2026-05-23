@@ -1,0 +1,34 @@
+meta {
+  name: Subscription Patch (Drive)
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/integrations/drive/subscription/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "config": {
+      "mode": "subscriptions",
+      "files": [],
+      "folders": [
+        {"id": "1XyZAbCdEfGhI", "name": "Engineering", "recursive": true}
+      ]
+    }
+  }
+}
+
+docs {
+  Folder watching + ``mode=everything`` require the ``drive.readonly``
+  scope; otherwise the server returns 400 with a hint pointing at
+  ``POST /subscription/upgrade-scope``.
+}

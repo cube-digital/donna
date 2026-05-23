@@ -1,0 +1,66 @@
+# Copy to .env. Used by both:
+#   1. docker-compose (interpolated into compose vars + passed via env_file)
+#   2. Host-side `uv run` / `uvicorn` (django-environ loads from this file)
+#
+# When running entirely on the host, set DATABASE_HOST=localhost and
+# REDIS_HOST=localhost. When using docker-compose, keep the service
+# names (postgres / redis) — that's what containers see internally.
+
+# ─── Django ───────────────────────────────────────────────────────────────────
+SECRET_KEY=replace-me-in-production
+DEBUG=True
+TESTING=false
+ALLOWED_HOSTS=*
+LOG_LEVEL=INFO
+LOG_FORMAT=console                          # console (dev) | json (prod)
+
+# ─── Postgres ────────────────────────────────────────────────────────────────
+DATABASE_NAME=donna
+DATABASE_USERNAME=donna
+DATABASE_PASSWORD=donna
+DATABASE_HOST=database                      # compose service name; use `localhost` for host runs
+DATABASE_PORT=5432
+DATABASE_CONN_MAX_AGE=25
+
+# ─── Redis (broker + cache + channels) ───────────────────────────────────────
+REDIS_HOST=cache                            # compose service name; use `localhost` for host runs
+REDIS_PORT=6379
+CELERY_BROKER_URL=redis://redis:6379/0
+# CELERY_RESULT_BACKEND=redis://redis:6379/1
+CELERY_TASK_ALWAYS_EAGER=False
+CELERY_CONCURRENCY=4
+# Channels (WebSocket layer) reuses CELERY_BROKER_URL unless set explicitly:
+# CHANNELS_REDIS_URL=redis://redis:6379/0
+
+# ─── Storage (filesystem default; swap to S3 etc. as needed) ─────────────────
+DONNA_STORAGE_BACKEND=filesystem
+DONNA_FILESYSTEM_ROOT=/app/var/storage
+# DONNA_S3_BUCKET=donna-dev
+# DONNA_S3_ENDPOINT_URL=
+# DONNA_S3_ACCESS_KEY=
+# DONNA_S3_SECRET_KEY=
+# DONNA_S3_REGION=us-east-1
+# DONNA_S3_ADDRESSING_STYLE=virtual         # set to "path" for MinIO
+
+# ─── Frontend redirect host (auth flows + Google login) ──────────────────────
+WEB_REDIRECT_HOST=http://localhost:5173
+
+# ─── Email backend (password reset + email verification) ─────────────────────
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+# EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# EMAIL_HOST=
+# EMAIL_PORT=587
+# EMAIL_HOST_USER=
+# EMAIL_HOST_PASSWORD=
+# EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=noreply@donna.local
+
+# ─── Realtime layer ───────────────────────────────────────────────────────────
+DONNA_PRESENCE_TTL_SECONDS=30
+
+# ─── Integration sync intervals (Celery beat, seconds) ────────────────────────
+DONNA_GMAIL_SYNC_INTERVAL=300
+DONNA_DRIVE_SYNC_INTERVAL=300
+
+# ─── Integrations opt-out (comma-separated slugs) ────────────────────────────
+DONNA_DISABLED_INTEGRATIONS=

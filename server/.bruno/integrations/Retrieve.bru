@@ -1,0 +1,20 @@
+meta {
+  name: Retrieve
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/integrations/fathom/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Set ``connectorSlug`` env var to one of: ``gmail``, ``drive``,
+  ``fathom`` (or any other registered connector).
+}

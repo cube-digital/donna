@@ -1,0 +1,11 @@
+meta {
+  name: Retrieve
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/workspaces/{{workspaceId}}/
+  body: none
+  auth: inherit
+}

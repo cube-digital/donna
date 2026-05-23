@@ -1,0 +1,17 @@
+meta {
+  name: Logout (blacklist refresh)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/logout
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh": "{{refreshToken}}"
+  }
+}

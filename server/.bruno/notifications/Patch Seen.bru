@@ -1,0 +1,34 @@
+meta {
+  name: Patch Seen
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/notifications/seen/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "seen": true,
+    "ids": []
+  }
+}
+
+docs {
+  Bulk PATCH ``seen``.
+
+  - ``ids: []`` or omit → applies to ALL caller's notifications not
+    already matching ``seen``.
+  - ``ids: ["uuid", "uuid"]`` → applies to listed only.
+  - ``seen: false`` un-marks.
+
+  Response: ``{updated: N}`` (count actually changed; no-ops excluded).
+}

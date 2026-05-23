@@ -97,10 +97,10 @@ def configured_for_workspace(workspace: "Workspace") -> list[type["IntegrationPr
     enablement (feature flags, plan tiers) is a one-line change.
     """
     # Imported lazily — registry is core/framework, OAuthProvider is app-model.
-    from donna.authentication.models import OAuthProvider
+    from donna.integrations.models import ClientCredentials
 
     enabled_slugs = set(
-        OAuthProvider.objects
+        ClientCredentials.objects
         .filter(is_enabled=True)
         .values_list("slug", flat=True)
     )

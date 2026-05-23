@@ -1,12 +1,19 @@
 """
 ProviderOAuthCallbackView — single dispatcher for all OAuth callbacks.
 
-URL: ``GET /api/v1/integrations/{slug}/oauth/callback``
+URL: ``GET /api/v1/integrations/{vendor_slug}/oauth/callback``
 
-Non-tenanted; the workspace is recovered from the signed state token.
-The view delegates to ``RegistryService.handle_callback`` to verify state,
-exchange the code, and persist the ``OAuthToken``. On success the browser is
-redirected back to a frontend URL recovered from the state payload.
+The URL path carries the *vendor* slug (e.g. ``google``), not a connector
+slug. One vendor app means one registered redirect URI; the connector
+identity (gmail / drive / calendar / fathom) is recovered from the signed
+state token. ``RegistryService.handle_callback`` decodes the state, looks
+up the connector class, verifies the URL vendor matches the connector's
+``oauth_provider_slug``, then exchanges the code and persists the
+``OAuthToken``.
+
+Non-tenanted; workspace + user come from the state payload. On success
+the browser is redirected back to a frontend URL recovered from the same
+payload.
 """
 from __future__ import annotations
 
@@ -48,13 +55,20 @@ class ProviderOAuthCallbackView(APIView):
         state = request.query_params.get("state")
         upstream_error = request.query_params.get("error")
 
+        upstream_error_description = request.query_params.get("error_description")
         if upstream_error:
             logger.warning(
-                "oauth_callback_upstream_error",
-                extra={"slug": slug, "error": upstream_error},
+                "oauth_callback_upstream_error slug=%s error=%s description=%s",
+                slug,
+                upstream_error,
+                upstream_error_description,
             )
             return _redirect_with_status(
-                _DEFAULT_SUCCESS_PATH, slug, status="error", reason=upstream_error
+                _DEFAULT_SUCCESS_PATH,
+                slug,
+                status="error",
+                reason=upstream_error,
+                detail=(upstream_error_description or "")[:300],
             )
 
         if not code or not state:
@@ -71,20 +85,34 @@ class ProviderOAuthCallbackView(APIView):
             raise NotFound(f"unknown integration {slug!r}")
         except OAuthStateInvalid as exc:
             logger.warning(
-                "oauth_callback_state_invalid",
-                extra={"slug": slug, "error": str(exc)},
+                "oauth_callback_state_invalid slug=%s error=%s", slug, exc,
             )
             return Response(
                 {"detail": "invalid or expired state"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except OAuthExchangeFailed as exc:
-            logger.warning(
-                "oauth_callback_exchange_failed",
-                extra={"slug": slug, "error": str(exc)},
+            # Log full traceback + upstream response text in one line.
+            logger.exception(
+                "oauth_callback_exchange_failed slug=%s error=%s", slug, exc,
             )
             return _redirect_with_status(
-                _DEFAULT_SUCCESS_PATH, slug, status="error", reason="exchange_failed"
+                _DEFAULT_SUCCESS_PATH,
+                slug,
+                status="error",
+                reason="exchange_failed",
+                detail=str(exc)[:300],
+            )
+        except Exception as exc:                 # noqa: BLE001
+            logger.exception(
+                "oauth_callback_unhandled slug=%s error=%s", slug, exc,
+            )
+            return _redirect_with_status(
+                _DEFAULT_SUCCESS_PATH,
+                slug,
+                status="error",
+                reason="server_error",
+                detail=str(exc)[:300],
             )
 
         logger.info(

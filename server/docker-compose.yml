@@ -1,131 +1,129 @@
 # Donna local stack.
 #
+# Credentials, hosts, and tunables come from .env (compose interpolates
+# `${VAR}` references at parse time AND containers pull the same file via
+# env_file:). See .env.example for the full list.
+#
 # Services:
-#   postgres  — primary database (port 5432)
-#   redis     — Celery broker + cache (port 6379)
-#   web       — Django/gunicorn (port 8000) — runs migrate + collectstatic +
-#               integrations_bootstrap on start
+#   database  — Postgres (data)
+#   cache     — Redis (Celery broker + Channels layer + cache)
+#   server    — Django/uvicorn (HTTP + WebSockets in one ASGI process)
+#                runs migrate + collectstatic on start via deploy/entrypoint.sh
 #   worker    — Celery worker for connector ingestion tasks
-#   beat      — Celery beat scheduler (idle until a periodic task is added)
+#   beat      — Celery beat scheduler (Gmail + Drive sync fanouts)
 #
 # Bring up:
 #   docker compose up --build
 #
 # One-off commands:
-#   docker compose run --rm web migrate
-#   docker compose run --rm web bootstrap
-#   docker compose run --rm web shell
-#
-# Storage:
-#   `default_storage` writes to /app/var/storage inside the container, mounted
-#   to the `donna_storage` named volume so files persist across restarts.
+#   docker compose run --rm server python manage.py integrations_bootstrap
+#   docker compose run --rm server python manage.py createsuperuser
+#   docker compose run --rm server python manage.py shell
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
+  database:
+    image: postgres:17-alpine
+    container_name: donna-database
     environment:
-      POSTGRES_DB: donna
-      POSTGRES_USER: donna
-      POSTGRES_PASSWORD: donna
+      POSTGRES_DB:       ${DATABASE_NAME:-donna}
+      POSTGRES_USER:     ${DATABASE_USERNAME:-donna}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-donna}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${DATABASE_HOST_PORT:-5551}:${DATABASE_PORT:-5432}"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U donna -d donna"]
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-donna} -d ${DATABASE_NAME:-donna}"]
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: always
 
-  redis:
+  cache:
     image: redis:7-alpine
-    restart: unless-stopped
+    container_name: donna-cache
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6667}:${REDIS_PORT:-6379}"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: always
 
-  web:
+  server:
+    image: donna
+    container_name: donna-server
     build:
       context: .
       dockerfile: Dockerfile
-    image: donna/server:dev
     restart: unless-stopped
-    command: ["web"]
     env_file:
-      - path: .env
-        required: false
-    environment:
-      DJANGO_SETTINGS_MODULE: donna.settings
-      DEBUG: "True"
-      ALLOWED_HOSTS: "*"
-      DATABASE_URL: postgres://donna:donna@postgres:5432/donna
-      CELERY_BROKER_URL: redis://redis:6379/0
-      DONNA_STORAGE_BACKEND: filesystem
-      DONNA_FILESYSTEM_ROOT: /app/var/storage
+      - env/.env.docker
     depends_on:
-      postgres:
+      database:
         condition: service_healthy
-      redis:
+      cache:
         condition: service_healthy
     volumes:
-      - donna_storage:/app/var/storage
-      - donna_static:/app/staticfiles
+      - ./donna:/opt/donna/donna
     ports:
-      - "8000:8000"
+      - "${WEB_HOST_PORT:-8190}:8000"
 
   worker:
-    image: donna/server:dev
+    image: donna
+    container_name: donna-worker
     restart: unless-stopped
-    command: ["worker"]
+    # entrypoint cleared so we don't re-run migrate/collectstatic per worker;
+    # those happen exactly once in the `server` container.
+    entrypoint: []
+    command:
+      - celery
+      - -A
+      - donna
+      - worker
+      - --loglevel=${CELERY_LOG_LEVEL:-info}
+      - --concurrency=${CELERY_CONCURRENCY:-4}
     env_file:
-      - path: .env
-        required: false
-    environment:
-      DJANGO_SETTINGS_MODULE: donna.settings
-      DATABASE_URL: postgres://donna:donna@postgres:5432/donna
-      CELERY_BROKER_URL: redis://redis:6379/0
-      DONNA_STORAGE_BACKEND: filesystem
-      DONNA_FILESYSTEM_ROOT: /app/var/storage
-      CELERY_CONCURRENCY: "4"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      web:
-        condition: service_started
+      - env/.env.docker
     volumes:
-      - donna_storage:/app/var/storage
+      - ./donna:/opt/donna/donna
+    depends_on:
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      server:
+        condition: service_started
 
   beat:
-    image: donna/server:dev
+    image: donna
+    container_name: donna-beat-machine
     restart: unless-stopped
-    command: ["beat"]
+    entrypoint: []
+    command:
+      - celery
+      - -A
+      - donna
+      - beat
+      - --loglevel=${CELERY_LOG_LEVEL:-info}
+      - --schedule=/tmp/celerybeat-schedule
     env_file:
-      - path: .env
-        required: false
-    environment:
-      DJANGO_SETTINGS_MODULE: donna.settings
-      DATABASE_URL: postgres://donna:donna@postgres:5432/donna
-      CELERY_BROKER_URL: redis://redis:6379/0
+      - env/.env.docker
+    volumes:
+      - ./donna:/opt/donna/donna
     depends_on:
-      postgres:
+      database:
         condition: service_healthy
-      redis:
+      cache:
         condition: service_healthy
-      web:
+      server:
         condition: service_started
 
 volumes:
   postgres_data:
   redis_data:
-  donna_storage:
-  donna_static:
+  minio_data:

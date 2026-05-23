@@ -1,0 +1,31 @@
+meta {
+  name: Create (auto-saves workspaceId)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/workspaces/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Acme",
+    "slug": "acme"
+  }
+}
+
+script:post-response {
+  const response = res.getBody();
+  const created = response && response.data;
+  if (created && created.id) {
+    bru.setEnvVar("workspaceId", created.id);
+  }
+}
+
+docs {
+  Creates a new workspace and stores its id in ``workspaceId``.
+  Use this once on a fresh DB.
+}

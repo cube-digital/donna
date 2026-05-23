@@ -27,10 +27,18 @@ class NotificationSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class MarkReadSerializer(serializers.Serializer):
-    """Body for ``POST /notifications/mark-read`` — list of notification IDs."""
+class SeenPatchSerializer(serializers.Serializer):
+    """
+    Body for ``PATCH /notifications/seen/``.
 
+    - ``seen``: required boolean — value to set.
+    - ``ids``: optional list of notification IDs. Omitted/empty means
+      "apply to ALL the caller's notifications that don't already match".
+    """
+
+    seen = serializers.BooleanField()
     ids = serializers.ListField(
         child=serializers.UUIDField(),
-        min_length=1,
+        required=False,
+        allow_empty=True,
     )

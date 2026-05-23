@@ -66,6 +66,10 @@ class WorkspaceMiddleware:
         "/api/auth": ["POST", "GET"],
         "/health": ["GET"],
         "/api/v1/workspaces": ["POST", "GET"],
+        "/favicon.ico": ["GET"],
+        # Frontend SPA routes — OAuth callbacks 302 to /app/... for UI feedback;
+        # workspace context comes from the SPA session, not the URL.
+        "/app": ["GET"],
         # SSE stream fans in across all user's workspaces — no single
         # workspace context applies. See plans/10-realtime-layer.md.
         "/api/v1/notifications/stream": ["GET"],

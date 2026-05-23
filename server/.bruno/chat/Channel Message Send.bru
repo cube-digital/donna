@@ -1,0 +1,29 @@
+meta {
+  name: Channel Message Send
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/chat/channels/{{channelId}}/messages/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "body": "hello from bruno",
+    "client_msg_id": ""
+  }
+}
+
+docs {
+  Same code path as the WS ``send_message`` action. The persisted
+  message is fanned out to every WS subscriber of
+  ``chat-channel-{id}`` via ``channel_layer.group_send``.
+}

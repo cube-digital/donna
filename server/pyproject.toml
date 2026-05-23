@@ -30,4 +30,6 @@ dependencies = [
     "redis>=7.4.0",
     "structlog>=25.5.0",
     "uvicorn>=0.47.0",
+    "watchfiles>=1.0.0",
+    "whitenoise>=6.12.0",
 ]

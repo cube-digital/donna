@@ -19,4 +19,4 @@ class WorkspaceMembershipAdmin(admin.ModelAdmin):
     list_filter = ("role",)
     search_fields = ("workspace__name", "user__email")
     readonly_fields = ("id", "created_at", "updated_at")
-    raw_id_fields = ("workspace", "user")
+    autocomplete_fields = ("workspace", "user")

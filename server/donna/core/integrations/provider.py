@@ -23,8 +23,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider, OAuthToken
-    from donna.integrations.models import Connection
+    from donna.integrations.models import ClientCredentials, Connection, OAuthToken
     from donna.workspaces.models import Workspace
 
     from .adapter import BaseAdapter
@@ -101,7 +100,7 @@ class IntegrationProvider(Protocol):
         """Return the webhook handler (signature verification + parse)."""
         ...
 
-    def oauth_handler(self, oauth_provider: "OAuthProvider") -> "BaseOAuthHandler":
+    def oauth_handler(self, oauth_provider: "ClientCredentials") -> "BaseOAuthHandler":
         """Return the OAuth handler bound to a specific OAuthProvider row."""
         ...
 

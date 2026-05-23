@@ -1,0 +1,67 @@
+meta {
+  name: WebSocket (docs only)
+  type: http
+  seq: 99
+}
+
+get {
+  url: {{wsBaseUrl}}/ws/
+  body: none
+  auth: none
+}
+
+docs {
+  Bruno does not handle WebSockets — this entry is documentation.
+
+  ## Connect
+
+  ```
+  wscat -c "ws://localhost:8000/ws/" -s "bearer.${ACCESS_TOKEN}"
+  ```
+
+  Server reads JWT from the ``Sec-WebSocket-Protocol`` header
+  (``bearer.<token>``). On accept it joins:
+
+  - ``presence-user-{uid}``
+  - ``workspace-{wid}-events`` for every workspace membership
+
+  ## Actions (client → server)
+
+  ```
+  { "action": "subscribe_channel",   "channel_id": "<cid>" }
+  { "action": "unsubscribe_channel", "channel_id": "<cid>" }
+  { "action": "send_message",        "channel_id": "<cid>", "body": "...",
+    "client_msg_id": "<uuid>" }
+  { "action": "edit_message",        "message_id": "<mid>", "body": "..." }
+  { "action": "delete_message",      "message_id": "<mid>" }
+  { "action": "typing",              "channel_id": "<cid>" }
+  { "action": "mark_read",           "channel_id": "<cid>",
+    "message_id": "<mid>" }
+  { "action": "heartbeat" }
+  { "action": "open_dm",             "peer_user_id": "<uid>" }
+  ```
+
+  ## Events (server → client)
+
+  ```
+  { "event": "connected", "user_id": "..." }
+  { "event": "message.created",   "channel_id": "...", "message": {...} }
+  { "event": "message.updated",   "channel_id": "...", "message": {...} }
+  { "event": "message.deleted",   "channel_id": "...", "message_id": "..." }
+  { "event": "typing",            "channel_id": "...", "user_id": "..." }
+  { "event": "presence",          "user_id": "...", "online": true }
+  { "event": "channel.created",   "workspace_id": "...", "channel": {...} }
+  { "event": "read.advanced",     "channel_id": "...", "user_id": "...",
+    "message_id": "..." }
+  { "event": "dm.opened",         "channel_id": "...", "peer_user_id": "..." }
+  { "event": "error",             "code": "...", "detail": "..." }
+  ```
+
+  ## Agent token stream
+
+  ```
+  wscat -c "ws://localhost:8000/ws/agent/${RUN_ID}/" -s "bearer.${TOKEN}"
+  ```
+
+  Server pushes ``{event: agent.token, token: "..."}`` per chunk.
+}

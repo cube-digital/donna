@@ -24,7 +24,7 @@ from donna.core.integrations import BaseHTTPClient
 from donna.core.integrations.exceptions import TokenRefreshFailed
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthToken
+    from donna.integrations.models import OAuthToken
 
 
 logger = logging.getLogger(__name__)
@@ -63,15 +63,15 @@ class BaseGoogleClient(BaseHTTPClient):
 
     def _refresh_token_in_place(self) -> None:
         """Refresh ``self.token``'s access_token via Google's refresh flow."""
-        from donna.authentication.models import OAuthProvider
+        from donna.integrations.models import ClientCredentials
         # Lazy import — keeps framework deps clean.
         from .oauth import GoogleOAuthHandler
 
         try:
-            oauth_config = OAuthProvider.objects.get(slug=self.token.provider.slug)
-        except OAuthProvider.DoesNotExist as exc:
+            oauth_config = ClientCredentials.objects.get(slug=self.token.provider.slug)
+        except ClientCredentials.DoesNotExist as exc:
             raise TokenRefreshFailed(
-                f"OAuthProvider({self.token.provider.slug!r}) row missing"
+                f"ClientCredentials({self.token.provider.slug!r}) row missing"
             ) from exc
 
         handler = GoogleOAuthHandler(config=oauth_config)

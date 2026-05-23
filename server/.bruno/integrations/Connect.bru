@@ -1,0 +1,29 @@
+meta {
+  name: Connect (start OAuth)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/integrations/drive/connect/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "redirect_to": ""
+  }
+}
+
+docs {
+  Returns ``{authorize_url}``. Open in a browser to complete OAuth;
+  the provider redirects back to
+  ``/api/v1/integrations/{slug}/oauth/callback`` which upserts the
+  OAuthToken + auto-creates the Connection row.
+}

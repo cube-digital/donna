@@ -27,7 +27,7 @@ from .adapter import DriveFileAdapter
 from .client import DriveClient
 
 if TYPE_CHECKING:
-    from donna.authentication.models import OAuthProvider, OAuthToken
+    from donna.integrations.models import ClientCredentials, OAuthToken
     from donna.integrations.models import Connection
     from donna.workspaces.models import Workspace
 
@@ -103,8 +103,10 @@ class DriveProvider:
     def client(self, token: "OAuthToken") -> DriveClient:
         return DriveClient(token=token)
 
-    def oauth_handler(self, oauth_provider: "OAuthProvider") -> GoogleOAuthHandler:
-        return GoogleOAuthHandler(config=oauth_provider)
+    def oauth_handler(self, oauth_provider: "ClientCredentials") -> GoogleOAuthHandler:
+        # Pin handler to this connector — incremental OAuth: only ask for
+        # Drive scopes, not the Gmail scopes that share the google row.
+        return GoogleOAuthHandler(config=oauth_provider, connector_cls=type(self))
 
     def webhook_handler(self) -> BaseWebhookHandler:  # pragma: no cover
         raise NotImplementedError(
@@ -168,18 +170,26 @@ class DriveProvider:
         The callback uses the standard ``/oauth/callback`` flow — token
         scopes get merged via ``include_granted_scopes=true``.
         """
-        from donna.authentication.models import OAuthProvider
+        from donna.integrations.models import ClientCredentials
 
-        oauth_config = OAuthProvider.objects.get(slug=self.oauth_provider_slug)
+        oauth_config = ClientCredentials.objects.resolve(
+            self.oauth_provider_slug, workspace=connection.workspace
+        )
+        if oauth_config is None:
+            raise ValueError(
+                f"No enabled ClientCredentials({self.oauth_provider_slug!r}) "
+                f"row for workspace={connection.workspace_id}."
+            )
         handler = self.oauth_handler(oauth_config)
 
         # State payload mirrors RegistryService.initiate_connect — same
         # callback verifies and upserts the OAuthToken.
         state_payload = {
-            "user_id":      str(connection.user_id) if connection.user_id else "",
-            "workspace_id": str(connection.workspace_id),
-            "slug":         self.slug,
-            "redirect_to":  redirect_to or "",
+            "user_id":              str(connection.user_id) if connection.user_id else "",
+            "workspace_id":         str(connection.workspace_id),
+            "slug":                 self.slug,
+            "redirect_to":          redirect_to or "",
+            "client_credentials_id": str(oauth_config.id),
         }
         return handler.build_authorize_url(
             state_payload=state_payload,

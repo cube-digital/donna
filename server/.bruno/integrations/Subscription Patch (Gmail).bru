@@ -1,0 +1,34 @@
+meta {
+  name: Subscription Patch (Gmail)
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/integrations/gmail/subscription/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "config": {
+      "mode": "subscriptions",
+      "labels": ["Label_42"],
+      "domains": ["acme.com"]
+    }
+  }
+}
+
+docs {
+  Modes:
+
+  - ``everything``                                              — whole inbox
+  - ``time_window`` + ``time_window_days: 30``                  — last N days
+  - ``subscriptions`` + at least one of labels/queries/domains  — filtered
+}

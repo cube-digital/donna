@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "channels",                          # Django Channels — WS transport (see plans/10-realtime-layer.md)
+    "drf_spectacular",                   # OpenAPI schema + Swagger UI
 
     # Donna apps
     "donna.core",
@@ -59,6 +60,9 @@ AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Whitenoise serves static files directly from uvicorn (no nginx needed).
+    # MUST sit right after SecurityMiddleware per Whitenoise docs.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -100,14 +104,14 @@ ASGI_APPLICATION = "donna.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": env.str("DATABASE_NAME", default="narrio"),
-        "USER": env.str("DATABASE_USERNAME", default="narrio"),
-        "PASSWORD": env.str("DATABASE_PASSWORD", default="narrio"),
-        "HOST": env.str("DATABASE_HOST", default="narrio"),
+        "NAME": env.str("DATABASE_NAME", default="donna"),
+        "USER": env.str("DATABASE_USERNAME", default="donna"),
+        "PASSWORD": env.str("DATABASE_PASSWORD", default="donna"),
+        "HOST": env.str("DATABASE_HOST", default="database"),
         "PORT": env.str("DATABASE_PORT", default=5432),
         "CONN_MAX_AGE": env.int("DATABASE_CONN_MAX_AGE", default=25),
         "TEST": {
-            "NAME": env.str("TEST_DATABASE_NAME", default="narrio_test"),
+            "NAME": env.str("TEST_DATABASE_NAME", default="donna_test"),
         },
     }
 }
@@ -137,6 +141,15 @@ REST_FRAMEWORK = {
     ],
     "SEARCH_PARAM": "q",
     "ORDERING_PARAM": "sort",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# ─── drf-spectacular ──────────────────────────────────────────────────────────
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Donna API",
+    "DESCRIPTION": "Multi-tenant chat + integrations + agent platform.",
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 # ─── simplejwt ─────────────────────────────────────────────────────────────────
@@ -233,7 +246,9 @@ def _default_storage_config():
 
 STORAGES = {
     "default":     _default_storage_config(),
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
 }
 
 # ─── Integrations ──────────────────────────────────────────────────────────────
@@ -308,39 +323,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# DRF Spectacular
-SPECTACULAR_SETTINGS = {
-    "TITLE": "narrio-api",
-    "DESCRIPTION": "REST schema for narrio-api. App: knowledge. API version: v1. "
-    "Includes request/response components, HTTP methods, and endpoint descriptions.",
-    "VERSION": "1.0.0",
-    "TAGS": [
-        {"name": "status", "description": "Health check"},
-        {"name": "auth", "description": "Authentication & tokens"},
-        {"name": "buyers", "description": "Buyer management"},
-        {"name": "users", "description": "User management"},
-        {"name": "companies", "description": "Company management"},
-        {"name": "teams", "description": "Team management"},
-        {"name": "invitations", "description": "Team invitations"},
-        {"name": "deals", "description": "Deal management & import"},
-        {"name": "knowledge", "description": "Knowledge base"},
-        {"name": "notifications", "description": "Notifications & tasks"},
-        {"name": "pipelines", "description": "Deal pipeline management"},
-        {"name": "pipeline-stages", "description": "Pipeline stage management"},
-        {"name": "integrations", "description": "HubSpot & CRM integrations"},
-        {"name": "chat", "description": "AI chat sessions per deal"},
-    ],
-    "SERVE_INCLUDE_SCHEMA": True,
-    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
-    "SERVE_AUTHENTICATION": [],
-    "SCHEMA_PATH_PREFIX": r"/api/v1",
-    "COMPONENT_SPLIT_REQUEST": True,
-    "SWAGGER_UI_SETTINGS": {
-        "displayOperationId": False,
-        "docExpansion": "list",
-        "filter": True,
-    },
-}
+# DRF Spectacular — Donna API schema settings live earlier in this file
+# (single canonical SPECTACULAR_SETTINGS block above).
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
@@ -366,25 +350,14 @@ CSRF_TRUSTED_ORIGINS = env.list(
     ],
 )
 
-# Authentication Simple JWT
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    # "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "id",
-    "TOKEN_CLAIMS": {
-        "first_name": "first_name",
-        "last_name": "last_name",
-        "email": "email",
-        "type": "type",
-    },
-}
+# SIMPLE_JWT — single canonical block lives earlier in this file.
 
 # ─── Logging ───────────────────────────────────────────────────────────────────
 # Configure structlog last so it picks up final settings.
 
 from donna.core.logging import configure_logging  # noqa: E402
 
-configure_logging(log_level=env("LOG_LEVEL"), log_format=env("LOG_FORMAT"))
+configure_logging(
+    log_level=env.str("LOG_LEVEL", default="INFO"),
+    log_format=env.str("LOG_FORMAT", default="console"),
+)

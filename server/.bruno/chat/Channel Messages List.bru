@@ -1,0 +1,21 @@
+meta {
+  name: Channel Messages List
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/chat/channels/{{channelId}}/messages/?limit=50
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+params:query {
+  limit: 50
+  ~before:
+  ~after:
+}

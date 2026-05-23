@@ -1,0 +1,20 @@
+meta {
+  name: Subscription Delete
+  type: http
+  seq: 13
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/integrations/{{connectorSlug}}/subscription/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Drops the Connection row only — OAuthToken survives so the user
+  doesn't need to re-consent if they re-enable later.
+}

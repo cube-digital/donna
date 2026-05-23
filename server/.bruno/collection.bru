@@ -1,0 +1,38 @@
+headers {
+  Accept: application/json
+  X-Workspace-Id: {{workspaceId}}
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  # Donna API — Bruno collection
+
+  ## Environments
+
+  Pick **local** for a dev box. Fill the runtime vars yourself:
+
+  - `accessToken`   — JWT access (set after running `auth/signin`)
+  - `refreshToken`  — JWT refresh (set after `auth/signin`)
+  - `workspaceId`   — UUID of the workspace you're testing against
+  - `notificationId`, `channelId`, `messageId`, `connectionSlug`, etc.
+    — request-specific vars used by the request URLs
+
+  ## Flow
+
+  1. Run **auth → Signup** (one-time) to create a test user.
+  2. Run **auth → Signin** — script auto-saves `access` + `refresh`.
+  3. Run **workspaces → List** — script auto-saves the first workspace's
+     id as `workspaceId`. (Or **workspaces → Create** on a fresh DB.)
+  4. From here every request inherits:
+       - `Authorization: Bearer {{accessToken}}` (collection auth)
+       - `X-Workspace-Id: {{workspaceId}}` (collection header)
+     so all workspace-scoped endpoints work without per-request setup.
+     Public endpoints override with `auth: none`.
+}
