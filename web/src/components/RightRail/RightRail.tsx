@@ -1,0 +1,416 @@
+// Right rail — context-aware sections.
+//
+// This module exports the SECTIONS, not a top-level component. Views
+// (Channel, Personal) compose the sections they want and feed them to
+// `useRightRail(<>...</>)` from RightRailSlot. AppShell renders the
+// slot exactly once.
+//
+// Visual chrome is ported from the design's `donnaai/project/rightrail.jsx`
+// onto Tailwind utility classes — every `.rr-section`, `.rr-h`, `.rr-card`,
+// `.connector`, `.doc-list`, `.doc`, `.mem-item` recipe lives inline at
+// the call site as a class string.
+
+import { useEffect, useState } from "react";
+
+import { Ic } from "../Ui/Ic";
+import { apiFetch } from "../../api/client";
+import { getSubscription } from "../../api/integrations";
+import { getNotificationsSse } from "../../lib/sse";
+import { useIntegrations } from "../../state/integrations";
+import { useNotifications } from "../../state/notifications";
+import type {
+  Connection,
+  IntegrationProvider,
+  Notification,
+} from "../../types";
+import IntegrationModal from "./IntegrationModal";
+
+// ── Shared Tailwind fragments ────────────────────────────────────────────────
+
+const SECTION_CLS = "mb-[18px]";
+const HEADER_CLS =
+  "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-text-2 font-semibold";
+const HEADER_AI_CLS =
+  "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-ai font-semibold";
+const CARD_AI_CLS =
+  "mt-1.5 py-2.5 px-3 bg-ai-bg border border-ai-glow rounded-[9px]";
+
+const COMING_SOON_CLS = "mt-1 text-[11px] text-text-3 italic";
+
+// ── DocsSection ──────────────────────────────────────────────────────────────
+// Attempts `GET /chat/channels/<id>/documents/` and renders any returned
+// rows. The endpoint isn't in the backend yet, so any non-2xx (including
+// 404) silently falls back to the empty state — keeps the UI honest
+// without warning users about a missing surface.
+
+interface DocsSectionProps {
+  channelId?: string;
+}
+
+interface DocRow {
+  id?: string;
+  name: string;
+  meta?: string;
+}
+
+export function DocsSection({ channelId }: DocsSectionProps) {
+  const [docs, setDocs] = useState<DocRow[] | null>(null);
+
+  useEffect(() => {
+    if (!channelId) {
+      setDocs([]);
+      return;
+    }
+    let cancelled = false;
+    void apiFetch<DocRow[] | { results: DocRow[] }>(
+      `/api/v1/chat/channels/${channelId}/documents/`,
+    )
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : data.results;
+        setDocs(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (!cancelled) setDocs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [channelId]);
+
+  const list = docs ?? [];
+
+  return (
+    <section className={SECTION_CLS}>
+      <div className={HEADER_CLS}>
+        <Ic.doc />
+        <span>Docs{list.length ? ` · ${list.length}` : ""}</span>
+        <span className="flex-1" />
+        <button
+          type="button"
+          aria-label="New doc"
+          className="grid place-items-center p-0.5 bg-transparent border-0 text-text-3 cursor-pointer hover:text-text-0"
+        >
+          <Ic.plus />
+        </button>
+      </div>
+      <div className="flex flex-col gap-0.5 mt-1">
+        {list.length === 0 ? (
+          <div className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-3">
+            <Ic.doc className="text-text-3" />
+            <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              No docs yet
+            </span>
+            <span className="text-text-3 text-[11px] font-mono">—</span>
+          </div>
+        ) : (
+          list.map((d, i) => (
+            <div
+              key={d.id ?? `${d.name}-${i}`}
+              className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-1 hover:bg-bg-2 hover:text-text-0"
+            >
+              <Ic.doc className="text-text-3" />
+              <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                {d.name}
+              </span>
+              {d.meta ? (
+                <span className="text-text-3 text-[11px] font-mono">
+                  {d.meta}
+                </span>
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ── ContextSection ───────────────────────────────────────────────────────────
+// Lists every connector. Clicking a "not connected" row opens the OAuth
+// modal; clicking a "live" / "read-only" row opens the config modal.
+//
+// Last-sync timestamps are surfaced for `live` providers only. We pull
+// the `Connection` row from `GET /integrations/<slug>/subscription/` on
+// first render, cache per-slug in module state so re-mounts don't
+// re-fetch, and render the result as `Live · 12m ago` in the row.
+
+// Module-scoped cache so unmount/remount of the section doesn't refire
+// the per-provider subscription fetch. Keyed by slug; values are
+// `null` once a fetch has been attempted (success or failure) to mark
+// the lookup as resolved.
+const subscriptionCache = new Map<string, Connection | null>();
+
+export function ContextSection() {
+  const providers = useIntegrations((s) => s.providers);
+  const loaded = useIntegrations((s) => s.loaded);
+  const load = useIntegrations((s) => s.load);
+  const [open, setOpen] = useState<IntegrationProvider | null>(null);
+  // Mirror of `subscriptionCache` into component state so we re-render
+  // when a fetch resolves.
+  const [conns, setConns] = useState<Record<string, Connection | null>>(() => {
+    const init: Record<string, Connection | null> = {};
+    for (const [k, v] of subscriptionCache) init[k] = v;
+    return init;
+  });
+
+  useEffect(() => {
+    if (!loaded) void load();
+  }, [loaded, load]);
+
+  // Fetch `Connection` rows for every `live` provider we haven't
+  // already cached. Errors are swallowed — the row just renders without
+  // a sync timestamp.
+  useEffect(() => {
+    let cancelled = false;
+    const pending = providers.filter(
+      (p) => p.status === "live" && !subscriptionCache.has(p.slug),
+    );
+    for (const p of pending) {
+      subscriptionCache.set(p.slug, null); // mark in-flight to dedupe
+      void getSubscription(p.slug)
+        .then((c) => {
+          subscriptionCache.set(p.slug, c);
+          if (!cancelled) {
+            setConns((prev) => ({ ...prev, [p.slug]: c }));
+          }
+        })
+        .catch(() => {
+          subscriptionCache.set(p.slug, null);
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [providers]);
+
+  return (
+    <section className={SECTION_CLS}>
+      <div className={HEADER_CLS}>
+        <Ic.link />
+        <span>Context</span>
+        <span className="flex-1" />
+      </div>
+
+      {providers.length === 0 && (
+        <div className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] opacity-60">
+          <span className="w-[18px] h-[18px] rounded-sm bg-bg-3 grid place-items-center text-text-1 text-[10px] font-mono">
+            —
+          </span>
+          <span className="flex-1 text-text-0">No connectors</span>
+          <span className="text-[11px] text-text-3">—</span>
+        </div>
+      )}
+
+      {providers.map((p) => {
+        const conn = conns[p.slug];
+        return (
+          <button
+            key={p.slug}
+            type="button"
+            className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] w-full text-left bg-transparent border-0 cursor-pointer hover:bg-bg-2"
+            onClick={() => setOpen(p)}
+          >
+            <span className="w-[18px] h-[18px] rounded-sm bg-bg-3 grid place-items-center text-text-1 text-[10px] font-mono">
+              {p.display_name.slice(0, 2).toUpperCase()}
+            </span>
+            <span className="flex-1 min-w-0 text-text-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              {p.display_name}
+            </span>
+            <ConnectorState
+              status={p.status}
+              lastSyncedAt={conn?.last_synced_at ?? null}
+            />
+          </button>
+        );
+      })}
+
+      {open && (
+        <IntegrationModal provider={open} onClose={() => setOpen(null)} />
+      )}
+    </section>
+  );
+}
+
+function ConnectorState({
+  status,
+  lastSyncedAt,
+}: {
+  status: IntegrationProvider["status"];
+  lastSyncedAt?: string | null;
+}) {
+  switch (status) {
+    case "live": {
+      const suffix = lastSyncedAt ? ` · ${timeAgo(lastSyncedAt)}` : "";
+      return <span className="text-[11px] text-ok">live{suffix}</span>;
+    }
+    case "read-only":
+      return <span className="text-[11px] text-text-3">read-only</span>;
+    case "error":
+      return <span className="text-[11px] text-danger">error</span>;
+    default:
+      return <span className="text-[11px] text-text-2">connect</span>;
+  }
+}
+
+// ── DonnaToday ───────────────────────────────────────────────────────────────
+// Hardcoded "3 things need you" card. Backend isn't wired for v1; the
+// design uses a single `.rr-card.ai` panel.
+
+export function DonnaToday() {
+  return (
+    <section className={SECTION_CLS}>
+      <div className={HEADER_AI_CLS}>
+        <Ic.sparkle />
+        <span>Donna today</span>
+        <span className="flex-1" />
+      </div>
+      <div className={CARD_AI_CLS}>
+        <div className="text-[13px] text-text-0 font-semibold">
+          3 things need you
+        </div>
+        <ul className="list-none p-0 mt-2 flex flex-col gap-1.5">
+          <li className="text-[12.5px] text-text-1 flex items-start gap-1.5 leading-[1.45]">
+            <span className="text-ai mt-px">•</span>
+            Review the Q2 brief draft Donna wrote this morning.
+          </li>
+          <li className="text-[12.5px] text-text-1 flex items-start gap-1.5 leading-[1.45]">
+            <span className="text-ai mt-px">•</span>
+            Approve the customer reply waiting in your inbox.
+          </li>
+          <li className="text-[12.5px] text-text-1 flex items-start gap-1.5 leading-[1.45]">
+            <span className="text-ai mt-px">•</span>
+            Confirm Friday's launch readiness with the team.
+          </li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ── MemoryStub ───────────────────────────────────────────────────────────────
+
+interface MemoryStubProps {
+  scope: "channel" | "personal";
+}
+
+export function MemoryStub({ scope }: MemoryStubProps) {
+  return (
+    <section className={SECTION_CLS}>
+      <div className={HEADER_AI_CLS}>
+        <Ic.brain />
+        <span>Memory</span>
+        <span className="flex-1" />
+      </div>
+      <div className="flex items-start gap-2 py-2 px-2.5 bg-bg-2 border border-border-soft rounded-lg text-[12px]">
+        <span className="font-mono text-[11px] text-ai bg-ai-bg py-px px-1.5 rounded-sm shrink-0">
+          scope
+        </span>
+        <span className="text-text-1">{scope}</span>
+      </div>
+      <div className={COMING_SOON_CLS}>Coming soon</div>
+    </section>
+  );
+}
+
+// ── ProgressStub ─────────────────────────────────────────────────────────────
+
+export function ProgressStub() {
+  return (
+    <section className={SECTION_CLS}>
+      <div className={HEADER_CLS}>
+        <Ic.bolt />
+        <span>Progress</span>
+        <span className="flex-1" />
+      </div>
+      <div className={COMING_SOON_CLS}>Coming soon</div>
+    </section>
+  );
+}
+
+// ── NotificationsBootstrap ──────────────────────────────────────────────────
+// Mount once near AppShell; loads the initial feed and subscribes to SSE.
+// The bell badge consumes `useNotifications.unreadCount` directly.
+
+export function NotificationsBootstrap() {
+  const loadInitial = useNotifications((s) => s.loadInitial);
+  const pushFromSse = useNotifications((s) => s.pushFromSse);
+
+  useEffect(() => {
+    void loadInitial();
+    const sse = getNotificationsSse();
+    const off = sse.on("notification", (payload) => {
+      const n = coerceSseToNotification(payload);
+      if (n) pushFromSse(n);
+    });
+    sse.start();
+    return () => {
+      off();
+      sse.stop();
+    };
+  }, [loadInitial, pushFromSse]);
+
+  return null;
+}
+
+/**
+ * The SSE payload shape (NotificationPayload in
+ * server/donna/notifications/schemas.py) does NOT match the DB-serialized
+ * Notification shape one-to-one. Translate here so the store can stay
+ * single-shape. When the backend lands an ID-bearing alert it also writes
+ * the DB row first — we pick up the canonical row on the next list load.
+ */
+function coerceSseToNotification(payload: unknown): Notification | null {
+  if (!payload || typeof payload !== "object") return null;
+  const p = payload as {
+    id?: string;
+    type?: string;
+    message?: string;
+    timestamp?: string;
+    data?: Record<string, unknown>;
+  };
+  // Status frames (connected / error) — ignore.
+  if (typeof (p as { status?: unknown }).status === "string") return null;
+  if (typeof p.message !== "string") return null;
+
+  const data = p.data ?? {};
+  const dbId = typeof data["id"] === "string" ? (data["id"] as string) : p.id;
+  if (!dbId) return null;
+
+  const title = typeof data["title"] === "string" ? (data["title"] as string) : "";
+  const statusRaw =
+    typeof data["status"] === "string" ? (data["status"] as string) : "info";
+  const status: Notification["status"] =
+    statusRaw === "warning" || statusRaw === "error" || statusRaw === "success"
+      ? statusRaw
+      : "info";
+
+  return {
+    id: dbId,
+    title,
+    message: p.message,
+    status,
+    type: p.type ?? "alert",
+    seen: false,
+    context: (data["context"] as Record<string, unknown>) ?? {},
+    created_at: p.timestamp ?? new Date().toISOString(),
+  };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Short relative time ("12m ago", "2h ago", "3d ago", "Apr 2"). */
+function timeAgo(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const diffMs = Date.now() - d.getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}

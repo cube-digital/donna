@@ -1,0 +1,67 @@
+/* DonnaAI design tokens — OKLCH-based.
+ * Dark mode is the default; `.theme-light` on <body> swaps the variable
+ * values. The `--ai-h` variable is the single hue gated everywhere via
+ * Tailwind's `ai` colour family — change it once and every AI moment
+ * (avatars, agent runs, memory chrome, links) updates in lockstep.
+ */
+
+:root {
+  /* Dark theme (default) */
+  --bg-0: oklch(0.145 0.005 270);
+  --bg-1: oklch(0.175 0.005 270);
+  --bg-2: oklch(0.205 0.006 270);
+  --bg-3: oklch(0.245 0.007 270);
+  --bg-4: oklch(0.295 0.008 270);
+  --border: oklch(0.30 0.008 270 / 0.55);
+  --border-strong: oklch(0.42 0.01 270 / 0.65);
+  --text-0: oklch(0.97 0.003 270);
+  --text-1: oklch(0.86 0.004 270);
+  --text-2: oklch(0.66 0.006 270);
+  --text-3: oklch(0.48 0.007 270);
+  --text-4: oklch(0.36 0.008 270);
+
+  /* AI hue — used only for agent presence, thinking, memory chrome */
+  --ai-h: 282;
+  --ai: oklch(0.74 0.16 var(--ai-h));
+  --ai-dim: oklch(0.55 0.10 var(--ai-h));
+  --ai-deep: oklch(0.32 0.08 var(--ai-h));
+  --ai-bg: oklch(0.74 0.16 var(--ai-h) / 0.08);
+  --ai-glow: oklch(0.74 0.16 var(--ai-h) / 0.18);
+
+  /* Status */
+  --ok: oklch(0.74 0.14 145);
+  --warn: oklch(0.78 0.14 75);
+  --danger: oklch(0.68 0.18 25);
+
+  --shadow-1: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 12px 30px rgb(0 0 0 / 0.35), 0 1px 0 oklch(1 0 0 / 0.04) inset;
+
+  --r-sm: 4px;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+}
+
+.theme-light {
+  --bg-0: oklch(0.985 0.003 270);
+  --bg-1: oklch(0.965 0.003 270);
+  --bg-2: oklch(0.945 0.004 270);
+  --bg-3: oklch(0.915 0.005 270);
+  --bg-4: oklch(0.875 0.006 270);
+  --border: oklch(0.78 0.005 270 / 0.6);
+  --border-strong: oklch(0.62 0.008 270 / 0.6);
+  --text-0: oklch(0.15 0.005 270);
+  --text-1: oklch(0.26 0.006 270);
+  --text-2: oklch(0.44 0.007 270);
+  --text-3: oklch(0.58 0.008 270);
+  --text-4: oklch(0.68 0.008 270);
+
+  --ai: oklch(0.52 0.20 var(--ai-h));
+  --ai-dim: oklch(0.62 0.15 var(--ai-h));
+  --ai-deep: oklch(0.40 0.18 var(--ai-h));
+  --ai-bg: oklch(0.52 0.20 var(--ai-h) / 0.08);
+  --ai-glow: oklch(0.52 0.20 var(--ai-h) / 0.14);
+
+  --shadow-1: 0 1px 0 oklch(1 0 0 / 0.7) inset, 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-2: 0 12px 30px rgb(0 0 0 / 0.08), 0 1px 0 oklch(1 0 0 / 0.7) inset;
+}

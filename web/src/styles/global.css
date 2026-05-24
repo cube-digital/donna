@@ -1,0 +1,124 @@
+/* DonnaAI global entry. Tailwind first, then design tokens (so utilities
+ * can resolve var()-backed colours), then a tiny base layer for body
+ * defaults + a few primitives that aren't easily expressed as utilities
+ * (custom scrollbar styling, OKLCH ::selection, the avatar agent
+ * gradient that needs a per-instance --hue CSS variable). */
+
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    margin: 0;
+    height: 100%;
+    background: var(--bg-0);
+    color: var(--text-1);
+  }
+  body {
+    @apply font-sans antialiased;
+    font: 13px/1.45 "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: default;
+  }
+  input,
+  textarea {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    outline: 0;
+  }
+  ::selection {
+    background: var(--ai-glow);
+    color: var(--text-0);
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--bg-4);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* Agent avatar gradient — needs a per-instance `--hue` CSS variable set
+     inline by <Av kind="agent" agent={{ hue }} />, so Tailwind utilities
+     can't express the full thing. Class only carries the gradient + glow;
+     size/border-radius are utility-applied at the call site. */
+  .av-agent-gradient {
+    background: radial-gradient(
+      at 30% 25%,
+      oklch(0.85 0.18 var(--hue, 282)) 0%,
+      oklch(0.55 0.20 var(--hue, 282)) 60%,
+      oklch(0.35 0.18 var(--hue, 282)) 100%
+    );
+    color: oklch(1 0 0);
+    box-shadow:
+      0 0 0 1px oklch(0.74 0.16 var(--hue, 282) / 0.35),
+      0 0 12px oklch(0.74 0.16 var(--hue, 282) / 0.25);
+  }
+  .av-agent-gradient-lg {
+    box-shadow:
+      0 0 0 1px oklch(0.74 0.16 var(--hue, 282) / 0.35),
+      0 0 20px oklch(0.74 0.16 var(--hue, 282) / 0.3);
+  }
+  .av-agent-gradient-xl {
+    box-shadow:
+      0 0 0 2px oklch(0.74 0.16 var(--hue, 282) / 0.35),
+      0 0 36px oklch(0.74 0.16 var(--hue, 282) / 0.3);
+  }
+  /* Pulse ring around an agent avatar mid-stream. */
+  .av-pulse-ring::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    border: 1px solid oklch(0.74 0.16 var(--hue, 282) / 0.6);
+    animation: pulse-ring 1.6s ease-out infinite;
+  }
+  /* Agent-run gradient body — single hue tint with a fade. */
+  .run-card-bg {
+    background: linear-gradient(
+      180deg,
+      var(--ai-bg) 0%,
+      oklch(0.18 0.012 var(--ai-h) / 0.4) 100%
+    );
+  }
+  .theme-light .run-card-bg {
+    background: linear-gradient(
+      180deg,
+      var(--ai-bg) 0%,
+      oklch(0.96 0.005 var(--ai-h)) 100%
+    );
+  }
+  /* Streaming "thought" 3-dot animation. */
+  .thought-dots::after {
+    content: " ●";
+    animation: dots-pulse 1s steps(3, end) infinite;
+  }
+}

@@ -1,19 +1,20 @@
 {
   "name": "desktop",
   "version": "1.0.0",
-  "description": "",
+  "description": "Electron shell that wraps the shared web/ build.",
   "main": "dist/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "npm run build && electron ."
+    "start": "npm run build && electron .",
+    "start:dev": "concurrently -k -n web,electron -c blue,magenta \"npm --prefix ../web run dev\" \"wait-on http://localhost:5173 && npm run start\"",
+    "build:prod": "npm --prefix ../web run build && npm run build",
+    "start:prod": "DONNA_USE_DEV_SERVER=0 npm run start"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@types/node": "^25.7.0",
+    "concurrently": "^9.1.0",
     "electron": "^42.0.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wait-on": "^8.0.1"
   }
 }

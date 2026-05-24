@@ -1,13 +1,44 @@
-import { app, BrowserWindow } from 'electron'
-import * as path from 'path'
+import { app, BrowserWindow } from "electron";
+import * as path from "path";
+
+// Load the shared web/ build in production, or the Vite dev server when
+// developing. Pass DONNA_WEB_URL to override (useful for staging builds).
+const DEV_URL = process.env.DONNA_WEB_URL ?? "http://localhost:5173";
+const PROD_INDEX = path.join(__dirname, "../../web/dist/index.html");
+
+function createWindow(): BrowserWindow {
+    const win = new BrowserWindow({
+        width: 1440,
+        height: 900,
+        minWidth: 1100,
+        minHeight: 680,
+        titleBarStyle: "hiddenInset",
+        backgroundColor: "#171719", // matches --bg-0 in dark theme so there's no white flash
+        vibrancy: "under-window",
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    });
+
+    const useDev = !app.isPackaged && process.env.DONNA_USE_DEV_SERVER !== "0";
+    if (useDev) {
+        win.loadURL(DEV_URL);
+    } else {
+        win.loadFile(PROD_INDEX);
+    }
+
+    return win;
+}
 
 app.whenReady().then(() => {
-    const win = new BrowserWindow({
-        width: 800,
-        height: 600,
-        titleBarStyle: 'hiddenInset',   // macOS: traffic lights float over content
-        backgroundColor: '#0f172a',      // matches your gradient — no white flash on load
-        vibrancy: 'under-window',        // macOS: real translucency behind the window
-      })
-  win.loadFile(path.join(__dirname, '../src/index.html'))
-})
+    createWindow();
+
+    app.on("activate", () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+});
+
+app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") app.quit();
+});
