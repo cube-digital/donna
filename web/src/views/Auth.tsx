@@ -1,6 +1,6 @@
 // Sign-in / sign-up screen.
 //
-// One centered dark card on a `--bg-0` page. Tab-toggles between the two
+// One sticker-card on the paper-dot background. Tab-toggles between the two
 // modes — no router-nested routes; the App route gate gives us `/auth/*`
 // and we own the inside.
 //
@@ -12,23 +12,27 @@
 // we full-page redirect (no popup) so the cookie scope and CSRF state
 // stays simple. The backend OAuth callback eventually 302s back to
 // /oauth/return?access=…&refresh=… which OAuthReturn.tsx persists.
+//
+// Built entirely from the Goofy kit: `<GCard/>` body, `<GTabs/>` mode
+// toggle, `<GFormField/>` + `<GInput/>` for every input, `<GButton/>`
+// for both the primary submit and the Google fallback.
 
 import { useState, type FormEvent } from "react";
+
 import { ApiError } from "../api/client";
 import { googleStartUrl, signin, signup } from "../api/auth";
 import { useAuth } from "../state/auth";
-import { Sparkle } from "../components/Goofy";
+import {
+  GButton,
+  GCard,
+  GFormField,
+  GInput,
+  GTabs,
+  GoofyTheme,
+  Sparkle,
+} from "../components/Goofy";
 
 type Mode = "signin" | "signup";
-
-// Class fragments reused below — hoisted to keep the JSX readable.
-const TAB_BASE =
-  "h-8 rounded-md text-[13px] font-medium text-text-2 cursor-pointer";
-const TAB_ACTIVE = "bg-bg-4 text-text-0 shadow-soft";
-const INPUT_CLASS =
-  "h-10 w-full bg-bg-2 border border-border-soft rounded-md px-3 text-sm text-text-0";
-const LABEL_CLASS =
-  "text-[11px] tracking-[0.04em] uppercase text-text-3 font-semibold";
 
 export default function Auth() {
   const setSignedIn = useAuth((s) => s.setSignedIn);
@@ -80,134 +84,128 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-0 text-text-1 grid place-items-center p-6">
-      <div className="w-[360px] bg-bg-1 border border-border-strong rounded-2xl p-7 shadow-elevated flex flex-col gap-[18px]">
+    <GoofyTheme paper className="min-h-screen grid place-items-center p-6 text-text-1">
+      <div className="w-[420px] flex flex-col gap-5">
+        {/* Brand mark + tagline — Fredoka name with a sticker sparkle medallion. */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-md grid place-items-center bg-ai-bg text-ai border border-ai-glow">
-            <Sparkle width={18} height={18} />
+          <div className="w-12 h-12 grid place-items-center bg-pop-sun border-2 border-ink rounded-[12px] shadow-ink-2 text-on-bright">
+            <Sparkle width={26} height={26} />
           </div>
           <div>
-            <div className="text-lg font-semibold text-text-0 tracking-[-0.01em] leading-[1.1]">
+            <div className="font-display font-semibold text-[30px] text-text-0 leading-none tracking-[-0.01em]">
               Donna
             </div>
-            <div className="text-[12px] text-text-3 mt-0.5">
-              Team chat with AI teammates
+            <div className="font-hand font-bold text-[19px] text-ai-deep mt-1 leading-none">
+              team chat with AI teammates
             </div>
           </div>
         </div>
 
-        <div
-          className="grid grid-cols-2 gap-0.5 bg-bg-2 border border-border-soft rounded-md p-[3px]"
-          role="tablist"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "signin"}
-            onClick={() => setMode("signin")}
-            className={`${TAB_BASE}${mode === "signin" ? ` ${TAB_ACTIVE}` : ""}`}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "signup"}
-            onClick={() => setMode("signup")}
-            className={`${TAB_BASE}${mode === "signup" ? ` ${TAB_ACTIVE}` : ""}`}
-          >
-            Sign up
-          </button>
-        </div>
+        <GCard className="flex flex-col gap-4">
+          <GTabs<Mode>
+            tabs={[
+              { value: "signin", label: "Sign in" },
+              { value: "signup", label: "Sign up" },
+            ]}
+            value={mode}
+            onChange={setMode}
+            className="self-start"
+          />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
-          {mode === "signup" && (
-            <label className="flex flex-col gap-1.5">
-              <span className={LABEL_CLASS}>Full name</span>
-              <input
-                type="text"
-                autoComplete="name"
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
+            {mode === "signup" && (
+              <GFormField label="Full name">
+                <GInput
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  icon={null}
+                />
+              </GFormField>
+            )}
+
+            <GFormField label="Email">
+              <GInput
+                type="email"
+                autoComplete="email"
                 required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className={INPUT_CLASS}
-                placeholder="Jane Doe"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                icon={null}
               />
-            </label>
-          )}
+            </GFormField>
 
-          <label className="flex flex-col gap-1.5">
-            <span className={LABEL_CLASS}>Email</span>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={INPUT_CLASS}
-              placeholder="you@company.com"
-            />
-          </label>
+            <GFormField label="Password">
+              <GInput
+                type="password"
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                required
+                minLength={mode === "signup" ? 8 : undefined}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "signup" ? "At least 8 characters" : ""}
+                icon={null}
+              />
+            </GFormField>
 
-          <label className="flex flex-col gap-1.5">
-            <span className={LABEL_CLASS}>Password</span>
-            <input
-              type="password"
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              required
-              minLength={mode === "signup" ? 8 : undefined}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={INPUT_CLASS}
-              placeholder={mode === "signup" ? "At least 8 characters" : ""}
-            />
-          </label>
+            {error && (
+              <div className="text-danger text-[12.5px] leading-[1.45]">
+                {error}
+              </div>
+            )}
 
-          {error && (
-            <div className="text-danger text-[12.5px] leading-[1.45]">
-              {error}
-            </div>
-          )}
+            <GButton
+              type="submit"
+              variant="ai"
+              size="lg"
+              disabled={submitting}
+              className="w-full justify-center mt-1"
+            >
+              {submitting
+                ? mode === "signup"
+                  ? "Creating account…"
+                  : "Signing in…"
+                : mode === "signup"
+                  ? "Create account"
+                  : "Sign in"}
+            </GButton>
+          </form>
 
-          <button
-            type="submit"
+          {/* OR divider — dashed ink rule + hand-lettered "or" so the
+              break reads as part of the goofy world, not generic chrome. */}
+          <div className="flex items-center gap-2.5 text-text-3">
+            <span className="flex-1 border-t-2 border-dashed border-ink/40" />
+            <span className="font-hand font-bold text-[18px] text-text-2 leading-none">
+              or
+            </span>
+            <span className="flex-1 border-t-2 border-dashed border-ink/40" />
+          </div>
+
+          <GButton
+            type="button"
+            variant="default"
+            size="lg"
+            onClick={handleGoogle}
             disabled={submitting}
-            className="mt-0.5 h-10 rounded-md bg-text-0 text-bg-0 font-semibold text-[13px] cursor-pointer border border-text-0 disabled:opacity-70"
+            className="w-full justify-center"
           >
-            {submitting
-              ? mode === "signup"
-                ? "Creating account…"
-                : "Signing in…"
-              : mode === "signup"
-                ? "Create account"
-                : "Sign in"}
-          </button>
-        </form>
+            <GoogleGlyph />
+            <span>Continue with Google</span>
+          </GButton>
+        </GCard>
 
-        <div className="flex items-center gap-2.5 text-text-3 text-[11px]">
-          <span className="flex-1 h-px bg-border-soft" />
-          <span className="tracking-[0.05em] uppercase">or</span>
-          <span className="flex-1 h-px bg-border-soft" />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={submitting}
-          className="h-10 rounded-md bg-bg-2 text-text-0 text-[13px] font-medium border border-border-strong flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-70"
-        >
-          <GoogleGlyph />
-          <span>Continue with Google</span>
-        </button>
-
-        <div className="text-center text-[12.5px] text-text-3 mt-0.5">
+        <div className="text-center text-[12.5px] text-text-2">
           {mode === "signin" ? (
             <>
               New to Donna?{" "}
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className="text-ai font-medium text-[12.5px] cursor-pointer"
+                className="text-ai font-semibold underline-offset-2 hover:underline cursor-pointer"
               >
                 Create an account
               </button>
@@ -218,7 +216,7 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setMode("signin")}
-                className="text-ai font-medium text-[12.5px] cursor-pointer"
+                className="text-ai font-semibold underline-offset-2 hover:underline cursor-pointer"
               >
                 Sign in
               </button>
@@ -226,7 +224,7 @@ export default function Auth() {
           )}
         </div>
       </div>
-    </div>
+    </GoofyTheme>
   );
 }
 

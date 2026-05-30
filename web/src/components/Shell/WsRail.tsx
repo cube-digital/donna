@@ -1,5 +1,8 @@
 // Far-left 56px column — workspace pills + global nav + theme/user pill.
-// Ported from donnaai/project/sidebar.jsx:144-180.
+// Ported from donnaai/project/sidebar.jsx:144-180, then re-skinned onto
+// the Goofy library: workspace + user pills are chunky sun-yellow ink
+// stickers, nav buttons are square `<GIconButton/>` stickers, the
+// separator is a dashed ink rule.
 //
 // One-pill-per-workspace is the *design intent* but we only show the
 // active workspace here for v1 (no inter-workspace switcher inside the
@@ -9,9 +12,10 @@
 
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { cn } from "../../lib/cn";
 import { useAuth } from "../../state/auth";
 import { useWorkspace } from "../../state/workspace";
-import { GlyphSlot, type IconName } from "../Goofy";
+import { GIconButton, type IconName } from "../Goofy";
 
 type NavKey = "workspace" | "dms" | "personal" | "search" | "files";
 
@@ -62,26 +66,24 @@ function userInitials(activeWorkspaceName?: string): string {
   return workspaceGlyph(activeWorkspaceName ?? "");
 }
 
-// Tailwind class fragments for the rail pill / icon variants. Kept as
-// constants so the JSX stays readable.
-//
-// The active workspace pill carries a 3px vertical indicator bar 10px
-// outside its left edge — expressed entirely as `before:` utilities below
-// so we don't need a child element or a custom @layer rule.
-const PILL_BASE =
-  "w-9 h-9 rounded-md grid place-items-center text-[13px] font-semibold text-text-1 bg-bg-2 border border-border-soft relative";
-const PILL_ACTIVE =
-  "before:content-[''] before:absolute before:-left-[10px] before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-sm before:bg-text-0";
-const ICON_BASE =
-  "w-9 h-9 rounded-md grid place-items-center text-text-2 hover:bg-bg-2 hover:text-text-0";
-const ICON_ACTIVE = "bg-bg-3 text-text-0";
-const ICON_AI = "text-ai hover:text-ai";
-const ICON_AI_ACTIVE =
-  "bg-ai-bg text-ai shadow-[inset_0_0_0_1px_var(--ai-glow)] hover:bg-ai-bg hover:text-ai";
+// Square sticker sizing override — `<GIconButton/>` defaults to 34 × 34
+// rounded-9; in the rail we want a chunkier 40 × 40 rounded-12 so the
+// pills line up with the workspace + user stickers above/below.
+const SQUARE_PILL = "!w-10 !h-10 !rounded-[12px]";
 
-function cls(...parts: (string | false | null | undefined)[]): string {
-  return parts.filter(Boolean).join(" ");
-}
+// Workspace + user sticker — sun-yellow fill, chunky ink border, hard
+// offset shadow, Fredoka heavy weight. The active workspace also wears
+// a 3 px ink "rail" pseudo-element 10 px outside its left edge.
+const STICKER_PILL =
+  "w-10 h-10 grid place-items-center border-2 border-ink rounded-[12px] " +
+  "shadow-ink-2 bg-pop-sun text-on-bright font-display font-bold text-[15px] " +
+  "transition-[transform,box-shadow] duration-[120ms] ease-spring " +
+  "hover:-translate-x-px hover:-translate-y-px hover:-rotate-2 hover:shadow-ink-3 " +
+  "active:translate-x-0.5 active:translate-y-0.5 active:rotate-0 active:shadow-none";
+
+const STICKER_ACTIVE_RAIL =
+  "relative before:content-[''] before:absolute before:-left-[10px] " +
+  "before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-ink";
 
 export default function WsRail() {
   const navigate = useNavigate();
@@ -98,36 +100,40 @@ export default function WsRail() {
     >
       <button
         type="button"
-        className={cls(PILL_BASE, PILL_ACTIVE)}
+        className={cn(STICKER_PILL, STICKER_ACTIVE_RAIL)}
         title={active?.name ?? "Workspace"}
         aria-label={active?.name ?? "Workspace"}
       >
         {workspaceGlyph(active?.name ?? "C")}
       </button>
-      <button
-        type="button"
-        className={cls(PILL_BASE, "opacity-65")}
+      <GIconButton
+        icon="plus"
+        outlined
+        className={SQUARE_PILL}
         title="Add workspace"
         aria-label="Add workspace"
-      >
-        <GlyphSlot name="plus" />
-      </button>
+      />
 
-      <div className="w-6 h-px bg-border-soft my-1" />
+      <div
+        className="w-7 border-t-2 border-dashed border-ink/40 my-1"
+        aria-hidden="true"
+      />
 
       {NAV.map((item) => {
         const isActive = item.matcher ? item.matcher(pathname) : false;
         const isAi = !!item.ai;
-        const className = cls(
-          ICON_BASE,
-          isAi && ICON_AI,
-          isActive && !isAi && ICON_ACTIVE,
-          isActive && isAi && ICON_AI_ACTIVE,
+        const className = cn(
+          SQUARE_PILL,
+          // AI Personal — coloured AI grape when idle, sticker-ringed when active.
+          isAi && "text-ai hover:text-ai",
+          isAi && isActive && "!bg-ai-bg !text-ai shadow-[inset_0_0_0_2px_var(--ai-glow)]",
+          // Non-AI items get a paper-warm "active" state so they read as picked.
+          !isAi && isActive && "!bg-bg-3 !text-text-0",
         );
         return (
-          <button
+          <GIconButton
             key={item.key}
-            type="button"
+            icon={item.icon}
             className={className}
             title={item.label}
             aria-label={item.label}
@@ -135,25 +141,21 @@ export default function WsRail() {
             onClick={() => {
               if (item.href) navigate(item.href);
             }}
-          >
-            <GlyphSlot name={item.icon} />
-          </button>
+          />
         );
       })}
 
       <div className="flex-1" />
 
-      <button
-        type="button"
-        className={ICON_BASE}
+      <GIconButton
+        icon="sun"
+        className={SQUARE_PILL}
         title="Toggle theme"
         aria-label="Toggle theme"
-      >
-        <GlyphSlot name="sun" />
-      </button>
+      />
       <button
         type="button"
-        className={cls(PILL_BASE, "text-[11px]")}
+        className={cn(STICKER_PILL, "!text-[12px]")}
         title="Sign out"
         aria-label="Sign out"
         onClick={() => signOut()}

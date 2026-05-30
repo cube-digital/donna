@@ -2,13 +2,21 @@
 //
 // Three render branches keyed by `msg.kind`:
 //   - "system"     → light divider with text only
-//   - "agent-run"  → standard header + an `<AgentRunCard/>` instead of
-//                    the body text (see AgentRunCard.tsx)
+//   - "agent-run"  → standard header + a Goofy `<GRun/>` sticker card
 //   - "msg"        → default human / agent prose row with avatar +
-//                    head (author + agent chip + time) + body text
+//                    head (author + agent chip + time) + body bubble
 //
 // `kind` is computed client-side by the messages store; the wire
 // shape doesn't include it. See state/messages.ts.
+//
+// Goofy rendering
+// ───────────────
+// Messages now render as sticker bubbles via `<GBubble/>`. The head
+// row (author name + agent chip + time) sits ABOVE the bubble, not
+// inside it. For agent messages the avatar lives inside `<GBubble/>`
+// (its `avatar` slot); for user messages the bubble is right-aligned
+// with no inline avatar. For agent-runs we pass the metadata directly
+// into `<GRun/>` and drop the old `AgentRunCard`.
 //
 // Avatar pulsing
 // ──────────────
@@ -22,12 +30,18 @@
 // In Tailwind we put `group` on the row and `hidden group-hover:flex`
 // on the actions so they appear on row hover. All but the "thread" and
 // "ai" buttons are no-ops in v1; we keep them in markup for design
-// fidelity.
+// fidelity. The toolbar wears the sticker chrome (border-ink + shadow).
 
-import { GAvatar, GlyphSlot } from "../Goofy";
-import type { Message as MessageT } from "../../types";
-
-import AgentRunCard from "./AgentRunCard";
+import {
+  GAvatar,
+  GBubble,
+  GIconButton,
+  GRoleChip,
+  GRun,
+  type GRunStepData,
+  type IconName,
+} from "../Goofy";
+import type { AgentRunStep, Message as MessageT } from "../../types";
 
 interface MessageProps {
   msg: MessageT;
@@ -52,11 +66,22 @@ function hueForAgent(id: string | undefined): number {
   return 260 + (h % 60); // 260..319 — purple → indigo
 }
 
-// Hover-action buttons (the row that fades in above a message on hover).
-const HB =
-  "w-6 h-6 rounded-sm grid place-items-center text-text-2 hover:bg-bg-3 hover:text-text-0";
-const HB_AI =
-  "w-6 h-6 rounded-sm grid place-items-center text-text-2 hover:text-ai hover:bg-ai-bg";
+// Map an AgentRunStep kind to a Goofy icon name. The Goofy `GRun`
+// step shape takes an icon by name — same set of icons as the old
+// AgentRunCard, just funneled through the central glyph slot.
+function stepIconName(kind: AgentRunStep["kind"]): IconName {
+  switch (kind) {
+    case "read":
+      return "doc";
+    case "write":
+      return "edit";
+    case "think":
+      return "brain";
+    case "tool":
+    default:
+      return "bolt";
+  }
+}
 
 export default function Message({ msg }: MessageProps) {
   if (msg.kind === "system") {
@@ -79,99 +104,141 @@ export default function Message({ msg }: MessageProps) {
   const isRunningAgentRun =
     msg.kind === "agent-run" && (msg.metadata?.status ?? "done") === "running";
 
+  // Agent-run shape mapping. We pull all the metadata onto the
+  // GRun props — when a real AgentRun model lands server-side, lift
+  // this off `msg.metadata` and onto a typed serializer field.
+  const meta = msg.metadata ?? {};
+  const agentName = msg.author_agent?.name ?? "agent";
+  const runSteps: GRunStepData[] = (meta.steps ?? []).map((s) => ({
+    icon: stepIconName(s.kind),
+    label: s.label,
+    meta: s.meta,
+    state: s.state,
+  }));
+  // GRun takes a single memory chip; join multiple touched-memory
+  // strings into one comma-separated chip so we don't drop data.
+  const memoryChip =
+    meta.memoryTouched && meta.memoryTouched.length
+      ? meta.memoryTouched.join(", ")
+      : undefined;
+
+  // For agent rows we hand the avatar into `<GBubble/>` as the slot;
+  // for user rows the bubble is right-aligned with no inline avatar,
+  // and the head row sits above the bubble in the same direction.
+  const agentAvatar = isAgent ? (
+    <GAvatar
+      kind="agent"
+      pulsing={isRunningAgentRun}
+      name={msg.author_agent?.name ?? "A"}
+      hue={hueForAgent(msg.author_agent?.id)}
+    />
+  ) : null;
+
   return (
-    <div className="group relative flex gap-2.5 px-[18px] py-1 hover:bg-[oklch(1_0_0_/0.018)]">
-      <div className="w-8 pt-0.5">
-        {isAgent ? (
-          <GAvatar
-            kind="agent"
-            pulsing={isRunningAgentRun}
-            name={msg.author_agent?.name ?? "A"}
-            hue={hueForAgent(msg.author_agent?.id)}
-          />
-        ) : (
-          <GAvatar
-            name={displayName}
-          />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-text-0 text-[13px] tracking-[-0.005em]">
-            {displayName}
-          </span>
-          {isAgent ? (
-            <span className="text-[9.5px] tracking-[0.06em] uppercase font-semibold px-1.5 py-px rounded-sm bg-ai-bg text-ai border border-ai-glow">
-              Agent
+    <div className="group relative px-[18px] py-1 hover:bg-bg-2">
+      {/* For agent-run we render the sticker card directly, prefixed
+          by the standard head row with name + agent chip + time. */}
+      {msg.kind === "agent-run" ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline gap-2 pl-[42px]">
+            <span className="font-semibold text-text-0 text-[13px] tracking-[-0.005em]">
+              {displayName}
             </span>
-          ) : null}
-          <span className="text-[11px] text-text-3">{time}</span>
-        </div>
-
-        {msg.kind === "agent-run" ? (
-          <AgentRunCard msg={msg} />
-        ) : (
-          <div className="text-text-1 text-[13px] leading-[1.55] mt-px [&>p]:m-0 [&>p]:mb-1">
-            {msg.body.split("\n").map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
+            {isAgent ? <GRoleChip>Agent</GRoleChip> : null}
+            <span className="text-[11px] text-text-3">{time}</span>
           </div>
-        )}
-      </div>
+          <div className="pl-[42px]">
+            <GRun
+              label="Agent run"
+              summary={meta.summary}
+              status={isRunningAgentRun ? "thinking" : "done"}
+              running={isRunningAgentRun}
+              thought={meta.streaming ? meta.currentThought : undefined}
+              steps={runSteps}
+              output={meta.output}
+              memory={memoryChip}
+              footer={{ approveLabel: `Continue with ${agentName}` }}
+              onDismiss={() => alert("Add to context coming soon")}
+              onApprove={() => alert(`Continue with ${agentName} coming soon`)}
+            />
+          </div>
+        </div>
+      ) : (
+        <div
+          className={
+            isAgent
+              ? "flex flex-col gap-1 items-start"
+              : "flex flex-col gap-1 items-end"
+          }
+        >
+          <div
+            className={
+              isAgent
+                ? "flex items-baseline gap-2 pl-[42px]"
+                : "flex items-baseline gap-2"
+            }
+          >
+            <span className="font-semibold text-text-0 text-[13px] tracking-[-0.005em]">
+              {displayName}
+            </span>
+            {isAgent ? <GRoleChip>Agent</GRoleChip> : null}
+            <span className="text-[11px] text-text-3">{time}</span>
+          </div>
+          <GBubble
+            from={isAgent ? "agent" : "user"}
+            avatar={agentAvatar ?? undefined}
+          >
+            {msg.body.split("\n").map((line, i) => (
+              <p key={i} className="m-0 mb-1 last:mb-0">
+                {line}
+              </p>
+            ))}
+          </GBubble>
+        </div>
+      )}
 
-      <div className="absolute -top-2.5 right-6 hidden group-hover:flex gap-px bg-bg-2 border border-border-strong rounded-md shadow-soft p-px">
-        <button
-          type="button"
-          className={HB}
+      <div className="absolute -top-2.5 right-6 hidden group-hover:flex gap-0.5 p-0.5 border-2 border-ink rounded-[10px] shadow-ink-1 bg-bg-1">
+        <GIconButton
+          icon="smile"
           title="React"
           aria-label="React"
+          className="!w-7 !h-7"
           onClick={() => {
             /* v1: reactions not wired */
           }}
-        >
-          <GlyphSlot name="smile" />
-        </button>
-        <button
-          type="button"
-          className={HB}
+        />
+        <GIconButton
+          icon="thread"
           title="Reply in thread"
           aria-label="Reply in thread"
+          className="!w-7 !h-7"
           onClick={() => alert("Threads coming soon")}
-        >
-          <GlyphSlot name="thread" />
-        </button>
-        <button
-          type="button"
-          className={HB}
+        />
+        <GIconButton
+          icon="share"
           title="Share"
           aria-label="Share"
+          className="!w-7 !h-7"
           onClick={() => {
             /* v1: no-op */
           }}
-        >
-          <GlyphSlot name="share" />
-        </button>
-        <button
-          type="button"
-          className={HB_AI}
+        />
+        <GIconButton
+          icon="sparkle"
           title="Ask an agent"
           aria-label="Ask an agent"
+          className="!w-7 !h-7 hover:!text-ai hover:!bg-ai-bg"
           onClick={() => alert("Ask-an-agent coming soon")}
-        >
-          <GlyphSlot name="sparkle" />
-        </button>
-        <button
-          type="button"
-          className={HB}
+        />
+        <GIconButton
+          icon="more"
           title="More"
           aria-label="More actions"
+          className="!w-7 !h-7"
           onClick={() => {
             /* v1: no-op */
           }}
-        >
-          <GlyphSlot name="more" />
-        </button>
+        />
       </div>
     </div>
   );

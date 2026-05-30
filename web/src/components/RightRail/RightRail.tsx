@@ -28,14 +28,17 @@ import type {
 // ── Shared Tailwind fragments ────────────────────────────────────────────────
 
 const SECTION_CLS = "mb-[18px]";
+// Section headers were uppercase tracking-wide chrome from the legacy
+// design. Goofy headers stay Fredoka, sentence-case, with the same
+// rhythm so the right rail reads as a sibling of the sidebar.
 const HEADER_CLS =
-  "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-text-2 font-semibold";
+  "flex items-center gap-1.5 py-1 px-0.5 font-display font-semibold text-[12.5px] text-text-2";
 const HEADER_AI_CLS =
-  "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-ai font-semibold";
+  "flex items-center gap-1.5 py-1 px-0.5 font-display font-semibold text-[12.5px] text-ai";
 const CARD_AI_CLS =
-  "mt-1.5 py-2.5 px-3 bg-ai-bg border border-ai-glow rounded-lg";
+  "mt-1.5 py-2.5 px-3 bg-ai-bg border-2 border-ai rounded-[12px] shadow-[2px_2px_0_var(--ai)]";
 
-const COMING_SOON_CLS = "mt-1 text-[11px] text-text-3 italic";
+const COMING_SOON_CLS = "mt-1 font-hand font-bold text-[15px] text-text-3 leading-none";
 
 // ── DocsSection ──────────────────────────────────────────────────────────────
 // Attempts `GET /chat/channels/<id>/documents/` and renders any returned

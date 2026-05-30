@@ -20,6 +20,15 @@
 // shortcuts aren't wired in v1. They're kept in the DOM with proper
 // tabindex so keyboard users can still tab through them and so the
 // design layout reads correctly.
+//
+// Goofy chrome
+// ────────────
+// The composer is split into two sticker surfaces:
+//   - the format toolbar (its own border-ink + shadow strip)
+//   - the `<GField/>` note-card holding the textarea + footer slot
+// This mirrors the design source's channel composer (see Showcase).
+// When `ai` is true (Personal chat), the GField switches to the
+// grape-tinted variant.
 
 import {
   useCallback,
@@ -31,13 +40,20 @@ import {
 
 import { getChatWs } from "../../lib/ws";
 import { useMessages } from "../../state/messages";
-import { GlyphSlot } from "../Goofy";
+import {
+  GChip,
+  GField,
+  GIconButton,
+  GlyphSlot,
+} from "../Goofy";
 import type { Message } from "../../types";
 
 interface ComposerProps {
   channelId: string;
   /** Optional placeholder override (e.g. "Message Donna…" in Personal). */
   placeholder?: string;
+  /** Switch to the AI-tinted GField variant (Personal chat). */
+  ai?: boolean;
 }
 
 // Rate-limit `typing` emits so we don't send one frame per keystroke.
@@ -68,12 +84,17 @@ function isTypingInsideField(el: Element | null): boolean {
   return false;
 }
 
-const FMT_BTN =
-  "w-6 h-6 grid place-items-center rounded-sm hover:bg-bg-2 hover:text-text-1";
-const FOOT_BTN =
-  "w-6 h-6 grid place-items-center rounded-md text-text-2 hover:bg-bg-2 hover:text-text-0";
+// Typography-style format button (B / I / S). Kept as small ink-bordered
+// stickers so they read as part of the same toolbar family as the icon
+// buttons, but with the actual letter glyph instead of an SVG.
+const FMT_TYPO_BTN =
+  "border-2 border-ink rounded-[6px] w-7 h-7 grid place-items-center hover:bg-bg-3 font-bold text-text-1 transition-colors";
 
-export default function Composer({ channelId, placeholder }: ComposerProps) {
+export default function Composer({
+  channelId,
+  placeholder,
+  ai = false,
+}: ComposerProps) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastTypingEmitRef = useRef(0);
@@ -142,11 +163,14 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
   const lineCount = text ? text.split("\n").length : 0;
 
   return (
-    <div className="mx-[18px] mt-2 mb-3.5 border border-border-strong rounded-xl bg-bg-1 shadow-soft">
-      <div className="flex items-center gap-0.5 px-2.5 py-1.5 border-b border-border-soft text-text-3 text-[12px]">
+    <div className="mx-[18px] mt-2 mb-3.5 flex flex-col gap-2">
+      {/* Format toolbar — sticker strip above the note-card. Each
+          button is its own small sticker; the typography buttons (B/I/S)
+          carry the glyph as text instead of an icon. */}
+      <div className="inline-flex items-center gap-1 p-1.5 border-2 border-ink rounded-[10px] shadow-ink-1 bg-bg-1 w-fit">
         <button
           type="button"
-          className={FMT_BTN}
+          className={FMT_TYPO_BTN}
           aria-label="Bold"
           tabIndex={0}
           title="Bold"
@@ -155,7 +179,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
         </button>
         <button
           type="button"
-          className={FMT_BTN}
+          className={FMT_TYPO_BTN}
           aria-label="Italic"
           tabIndex={0}
           title="Italic"
@@ -164,130 +188,115 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
         </button>
         <button
           type="button"
-          className={FMT_BTN}
+          className={FMT_TYPO_BTN}
           aria-label="Strikethrough"
           tabIndex={0}
           title="Strikethrough"
         >
           <s>S</s>
         </button>
-        <div className="w-px h-4 bg-border-soft mx-1" />
-        <button
-          type="button"
-          className={FMT_BTN}
+        <span className="w-px h-5 bg-border-soft mx-1" />
+        <GIconButton
+          icon="bolt"
+          outlined
           aria-label="Code"
-          tabIndex={0}
           title="Code"
-        >
-          <span className="font-mono text-[11px]">{"</>"}</span>
-        </button>
-        <button
-          type="button"
-          className={FMT_BTN}
-          aria-label="Quote"
-          tabIndex={0}
-          title="Quote"
-        >
-          &raquo;
-        </button>
-        <button
-          type="button"
-          className={FMT_BTN}
-          aria-label="Link"
-          tabIndex={0}
-          title="Link"
-        >
-          <GlyphSlot name="link" />
-        </button>
-        <div className="w-px h-4 bg-border-soft mx-1" />
-        <button
-          type="button"
-          className={FMT_BTN}
-          aria-label="List"
-          tabIndex={0}
-          title="List"
-        >
-          ≣
-        </button>
-      </div>
-
-      <div className="px-3.5 py-3 min-h-[44px] text-text-0 text-[13px]">
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => {
-            const next = e.target.value;
-            setText(next);
-            // Throttle typing emits — see TYPING_EMIT_MS comment above.
-            const now = Date.now();
-            if (next.length > 0 && now - lastTypingEmitRef.current > TYPING_EMIT_MS) {
-              lastTypingEmitRef.current = now;
-              getChatWs().send("typing", { channel_id: channelId });
-            }
-          }}
-          onKeyDown={onKeyDown}
-          placeholder={ph}
-          rows={2}
-          className="block w-full resize-none bg-transparent text-text-0 text-[13px] leading-[1.55] min-h-[28px] placeholder:text-text-3"
+          className="!w-7 !h-7"
         />
-        {charCount > 0 ? (
-          <div className="mt-1 text-[11px] text-text-3 flex gap-2 tabular-nums">
-            <span>
-              {charCount} char{charCount === 1 ? "" : "s"}
-            </span>
-            {lineCount > 1 ? <span>· {lineCount} lines</span> : null}
-          </div>
-        ) : null}
+        <GIconButton
+          icon="reply"
+          outlined
+          aria-label="Quote"
+          title="Quote"
+          className="!w-7 !h-7"
+        />
+        <GIconButton
+          icon="link"
+          outlined
+          aria-label="Link"
+          title="Link"
+          className="!w-7 !h-7"
+        />
+        <span className="w-px h-5 bg-border-soft mx-1" />
+        <GIconButton
+          icon="doc"
+          outlined
+          aria-label="List"
+          title="List"
+          className="!w-7 !h-7"
+        />
       </div>
 
-      <div className="flex items-center gap-1 px-2 pt-1.5 pb-2">
-        <button
-          type="button"
-          className={FOOT_BTN}
-          title="Attach file"
-          aria-label="Attach file"
-          onClick={() => alert("Attachments coming soon")}
-        >
-          <GlyphSlot name="plus" />
-        </button>
-        <button
-          type="button"
-          className={FOOT_BTN}
-          title="Mention agent"
-          aria-label="Mention agent"
-          onClick={() => alert("Agent mention coming soon")}
-        >
-          <GlyphSlot name="at" />
-        </button>
-        <button
-          type="button"
-          className={FOOT_BTN}
-          title="Emoji"
-          aria-label="Emoji"
-          onClick={() => alert("Emoji picker coming soon")}
-        >
-          <GlyphSlot name="smile" />
-        </button>
-        <div className="flex items-center gap-1.5 ml-1 px-2 h-6 rounded-md text-[11.5px] text-ai bg-ai-bg border border-ai-glow">
-          <GlyphSlot name="sparkle" size={12} />
-          Agents on standby
-        </div>
-        <div className="flex-1" />
-        <button
-          type="button"
-          className={
-            ready
-              ? "w-7 h-7 rounded-md grid place-items-center bg-text-0 text-bg-0"
-              : "w-7 h-7 rounded-md grid place-items-center bg-bg-3 text-text-1"
+      <GField
+        ref={textareaRef}
+        ai={ai}
+        value={text}
+        onChange={(e) => {
+          const next = e.target.value;
+          setText(next);
+          // Throttle typing emits — see TYPING_EMIT_MS comment above.
+          const now = Date.now();
+          if (
+            next.length > 0 &&
+            now - lastTypingEmitRef.current > TYPING_EMIT_MS
+          ) {
+            lastTypingEmitRef.current = now;
+            getChatWs().send("typing", { channel_id: channelId });
           }
-          onClick={send}
-          disabled={!ready}
-          aria-label="Send message"
-          title="Send"
-        >
-          <GlyphSlot name="send" size={14} />
-        </button>
-      </div>
+        }}
+        onKeyDown={onKeyDown}
+        placeholder={ph}
+        rows={2}
+        trailing={
+          <>
+            {charCount > 0 ? (
+              <div className="mt-1 text-[11px] text-text-3 flex gap-2 tabular-nums">
+                <span>
+                  {charCount} char{charCount === 1 ? "" : "s"}
+                </span>
+                {lineCount > 1 ? <span>· {lineCount} lines</span> : null}
+              </div>
+            ) : null}
+            <div className="flex items-center gap-1 mt-2">
+              <GIconButton
+                icon="plus"
+                title="Attach file"
+                aria-label="Attach file"
+                className="!w-7 !h-7"
+                onClick={() => alert("Attachments coming soon")}
+              />
+              <GIconButton
+                icon="at"
+                title="Mention agent"
+                aria-label="Mention agent"
+                className="!w-7 !h-7"
+                onClick={() => alert("Agent mention coming soon")}
+              />
+              <GIconButton
+                icon="smile"
+                title="Emoji"
+                aria-label="Emoji"
+                className="!w-7 !h-7"
+                onClick={() => alert("Emoji picker coming soon")}
+              />
+              <GChip variant="ai" className="!h-[26px]">
+                <GlyphSlot name="sparkle" size={12} className="text-white" />
+                Agents on standby
+              </GChip>
+              <span className="flex-1" />
+              <GIconButton
+                icon="send"
+                outlined
+                onClick={send}
+                disabled={!ready}
+                aria-label="Send message"
+                title="Send"
+                className={ready ? "!bg-ai !text-white" : ""}
+              />
+            </div>
+          </>
+        }
+      />
     </div>
   );
 }
