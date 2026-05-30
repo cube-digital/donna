@@ -178,47 +178,29 @@ export default function Sidebar() {
           active={isSearchActive}
           aria-label="Search"
           onClick={() => navigate("/search")}
+          icon={<GlyphSlot name="search" />}
           badge={
             <kbd className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
               ⌘K
             </kbd>
           }
         >
-          <span className="inline-flex items-center gap-2 min-w-0">
-            <span className="w-3.5 grid place-items-center text-text-3">
-              <GlyphSlot name="search" />
-            </span>
-            <span className="truncate">Search</span>
-          </span>
+          Search
         </GListItem>
         <GListItem
           active={isPersonalActive}
           aria-label="Personal AI"
           onClick={() => navigate("/personal")}
+          icon={<GlyphSlot name="sparkle" className="text-ai" />}
           badge={<TrailDot kind="ai" />}
         >
-          <span className="inline-flex items-center gap-2 min-w-0">
-            <span className="w-3.5 grid place-items-center text-ai">
-              <GlyphSlot name="sparkle" />
-            </span>
-            <span className="truncate">Personal · Donna</span>
-          </span>
+          Personal · Donna
         </GListItem>
-        <GListItem aria-label="Activity">
-          <span className="inline-flex items-center gap-2 min-w-0">
-            <span className="w-3.5 grid place-items-center text-text-3">
-              <GlyphSlot name="bell" />
-            </span>
-            <span className="truncate">Activity</span>
-          </span>
+        <GListItem aria-label="Activity" icon={<GlyphSlot name="bell" />}>
+          Activity
         </GListItem>
-        <GListItem aria-label="Threads">
-          <span className="inline-flex items-center gap-2 min-w-0">
-            <span className="w-3.5 grid place-items-center text-text-3">
-              <GlyphSlot name="thread" />
-            </span>
-            <span className="truncate">Threads</span>
-          </span>
+        <GListItem aria-label="Threads" icon={<GlyphSlot name="thread" />}>
+          Threads
         </GListItem>
       </div>
 
@@ -236,11 +218,9 @@ export default function Sidebar() {
               active={activeChannelId === c.id}
               aria-label={c.name}
               onClick={() => navigate(`/channels/${c.id}`)}
+              icon={<GAvatar size="sm" name={c.name} />}
             >
-              <span className="inline-flex items-center gap-2 min-w-0">
-                <GAvatar size="sm" name={c.name} />
-                <span className="truncate">{c.name}</span>
-              </span>
+              {c.name}
             </GListItem>
           ))
         )}
@@ -251,11 +231,12 @@ export default function Sidebar() {
       <div>
         <GroupHeader label="ai teammates" ai />
         {teammates.length === 0 ? (
-          <GListItem aria-label="Donna" badge={<TrailDot kind="ai" />}>
-            <span className="inline-flex items-center gap-2 min-w-0">
-              <GAvatar kind="agent" size="sm" name="Donna" hue={282} />
-              <span className="truncate">Donna</span>
-            </span>
+          <GListItem
+            aria-label="Donna"
+            icon={<GAvatar kind="agent" size="sm" name="Donna" hue={282} />}
+            badge={<TrailDot kind="ai" />}
+          >
+            Donna
           </GListItem>
         ) : (
           teammates.map((a) => (
@@ -264,17 +245,17 @@ export default function Sidebar() {
               active={activeAgentId === a.id}
               aria-label={a.name}
               onClick={() => navigate(`/agents/${a.id}`)}
-              badge={<TrailDot kind="ai" />}
-            >
-              <span className="inline-flex items-center gap-2 min-w-0">
+              icon={
                 <GAvatar
                   kind="agent"
                   size="sm"
                   name={a.name}
                   hue={hueForAgent(a.id)}
                 />
-                <span className="truncate">{a.name}</span>
-              </span>
+              }
+              badge={<TrailDot kind="ai" />}
+            >
+              {a.name}
             </GListItem>
           ))
         )}
@@ -320,13 +301,9 @@ export default function Sidebar() {
         <GListItem
           aria-disabled={true}
           className="opacity-60 cursor-not-allowed"
+          icon={<GlyphSlot name="bolt" />}
         >
-          <span className="inline-flex items-center gap-2 min-w-0">
-            <span className="w-3.5 grid place-items-center text-text-3">
-              <GlyphSlot name="bolt" />
-            </span>
-            <span className="truncate">Workflows</span>
-          </span>
+          Workflows
         </GListItem>
       </div>
     </aside>
@@ -373,14 +350,10 @@ function ConnectionRow({ provider }: { provider: IntegrationProvider }) {
       active={active}
       aria-label={`${provider.display_name} integration settings`}
       onClick={() => navigate(`/integrations/${provider.slug}`)}
+      icon={<GConnectorIcon slug={provider.slug} label={provider.display_name} />}
       badge={<TrailDot kind={statusToDot(provider.status)} />}
     >
-      <span className="inline-flex items-center gap-2 min-w-0">
-        <span className="w-[18px] h-[18px] flex items-center justify-center shrink-0">
-          <GConnectorIcon slug={provider.slug} label={provider.display_name} />
-        </span>
-        <span className="truncate">{provider.display_name}</span>
-      </span>
+      {provider.display_name}
     </GListItem>
   );
 }

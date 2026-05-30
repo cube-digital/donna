@@ -36,8 +36,15 @@ export const GList = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 // `motion-safe:hover:animate-mini-wiggle` — single-shot ±1.5° tilt on
 // hover-enter, gated by OS-level prefers-reduced-motion. Same affordance
 // as `GMenuItem` so list rows and menu items feel like one family.
+//
+// `leading-4` pins the text line-height to 16 px so it matches the
+// 16 × 16 icon slot. Without that, browser-default line-height (~1.5)
+// makes the text box ~19.5 px tall, larger than the icon box, and
+// `items-center` then centres the icon on a baseline that's optically
+// above the text mid-line — the rows look 1-2 px off. Matching the
+// flex children's heights keeps everything optically square.
 const ITEM_BASE =
-  "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[13px] cursor-pointer " +
+  "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[13px] leading-4 cursor-pointer " +
   "transition-colors duration-[100ms] hover:bg-bg-3 motion-safe:hover:animate-mini-wiggle " +
   "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
 
@@ -52,6 +59,16 @@ const ITEM_ACTIVE =
 
 export interface GListItemProps extends HTMLAttributes<HTMLDivElement> {
   active?: boolean;
+  /**
+   * Leading content slot — typically an icon (`<GlyphSlot/>`) or a small
+   * avatar. Rendered in a 16 × 16 flex cell with `place-items-center`,
+   * so the icon's optical centre lines up with the text's centre when
+   * the row uses the default `leading-4` text height. Use this instead
+   * of nesting an inline-flex inside `children` so every row's icon
+   * column sits at the same x-position regardless of which side slots
+   * (hash / dot / badge) are present.
+   */
+  icon?: ReactNode;
   /** Leading hash character — typically `#` for channels. */
   hash?: ReactNode;
   /** Leading status dot. */
@@ -62,7 +79,7 @@ export interface GListItemProps extends HTMLAttributes<HTMLDivElement> {
 
 export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
   function GListItem(
-    { active = false, hash, dot, badge, className, children, ...rest },
+    { active = false, icon, hash, dot, badge, className, children, ...rest },
     ref,
   ) {
     return (
@@ -74,6 +91,16 @@ export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
         className={cn(ITEM_BASE, active && ITEM_ACTIVE, className)}
         {...rest}
       >
+        {icon ? (
+          <span
+            className={cn(
+              "w-4 h-4 grid place-items-center shrink-0",
+              active ? "text-on-bright" : "text-text-3",
+            )}
+          >
+            {icon}
+          </span>
+        ) : null}
         {hash ? (
           <span
             className={cn(
