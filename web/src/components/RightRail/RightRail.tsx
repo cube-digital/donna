@@ -285,31 +285,6 @@ export function DonnaToday() {
   );
 }
 
-// ── MemoryStub ───────────────────────────────────────────────────────────────
-
-interface MemoryStubProps {
-  scope: "channel" | "personal";
-}
-
-export function MemoryStub({ scope }: MemoryStubProps) {
-  return (
-    <section className={SECTION_CLS}>
-      <div className={HEADER_AI_CLS}>
-        <GlyphSlot name="brain" />
-        <span>Memory</span>
-        <span className="flex-1" />
-      </div>
-      <div className="flex items-start gap-2 py-2 px-2.5 bg-bg-2 border border-border-soft rounded-lg text-[12px]">
-        <span className="font-mono text-[11px] text-ai bg-ai-bg py-px px-1.5 rounded-sm shrink-0">
-          scope
-        </span>
-        <span className="text-text-1">{scope}</span>
-      </div>
-      <div className={COMING_SOON_CLS}>Coming soon</div>
-    </section>
-  );
-}
-
 // ── ProgressStub ─────────────────────────────────────────────────────────────
 
 export function ProgressStub() {

@@ -32,10 +32,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import Composer from "../components/Channel/Composer";
 import MessageRow from "../components/Channel/Message";
-import {
-  DonnaToday,
-  MemoryStub,
-} from "../components/RightRail/RightRail";
+import { DonnaToday } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
 import {
   GAvatar,
@@ -80,7 +77,6 @@ export default function Personal() {
     () => (
       <>
         <DonnaToday />
-        <MemoryStub scope="personal" />
       </>
     ),
     [],
@@ -91,9 +87,7 @@ export default function Personal() {
   const messages = useMessages((s) =>
     active ? s.byChannel[active.id] : undefined,
   );
-  const loading = useMessages((s) =>
-    active ? !!s.loading[active.id] : false,
-  );
+  const loading = useMessages((s) => (active ? !!s.loading[active.id] : false));
   const loadInitial = useMessages((s) => s.loadInitial);
   const appendFromEvent = useMessages((s) => s.appendFromEvent);
   const updateFromEvent = useMessages((s) => s.updateFromEvent);
@@ -185,8 +179,8 @@ export default function Personal() {
 
         {directChannels.length === 0 ? (
           <div className="py-5 px-3 text-[12px] text-text-3 leading-[1.55]">
-            No personal chats yet. Direct messages will appear here when
-            you start one from the workspace sidebar.
+            No personal chats yet. Direct messages will appear here when you
+            start one from the workspace sidebar.
           </div>
         ) : (
           <>
