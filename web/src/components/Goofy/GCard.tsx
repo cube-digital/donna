@@ -73,6 +73,12 @@ export interface GStatProps extends HTMLAttributes<HTMLDivElement> {
 /**
  * Stat card built on top of GCard with two stacked spans. Numbers
  * render in Fredoka so they read as display type, not body copy.
+ *
+ * Stat cards don't share `GCard`'s -translate-y press-down (their job
+ * is to be glanced at, not pressed), so they're free to wear a
+ * single-shot ±1.5° wiggle on hover for the goofy "I'm a sticker"
+ * cue without fighting any other transform. `motion-safe:` gates the
+ * tilt behind OS-level prefers-reduced-motion.
  */
 export const GStat = forwardRef<HTMLDivElement, GStatProps>(function GStat(
   { value, label, className, ...rest },
@@ -81,7 +87,11 @@ export const GStat = forwardRef<HTMLDivElement, GStatProps>(function GStat(
   return (
     <div
       ref={ref}
-      className={cn(CARD_BASE, "flex flex-col gap-0.5", className)}
+      className={cn(
+        CARD_BASE,
+        "flex flex-col gap-0.5 motion-safe:hover:animate-mini-wiggle",
+        className,
+      )}
       {...rest}
     >
       <span className="font-display font-semibold text-[22px] text-text-0 leading-none">

@@ -91,6 +91,16 @@ const config: Config = {
           "0%, 100%": { transform: "rotate(-3deg)" },
           "50%": { transform: "rotate(3deg)" },
         },
+        // Smaller, single-shot tilt for row-shaped molecules (menu items,
+        // list rows, docs, stat cards). Starts and ends at 0° so the
+        // element snaps cleanly back to neutral when the animation
+        // finishes — unlike `gx-wiggle` which loops between ±3°.
+        "gx-mini-wiggle": {
+          "0%": { transform: "rotate(0deg)" },
+          "25%": { transform: "rotate(-1.5deg)" },
+          "75%": { transform: "rotate(1.5deg)" },
+          "100%": { transform: "rotate(0deg)" },
+        },
         "gx-bob": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-5px)" },
@@ -106,6 +116,9 @@ const config: Config = {
         "led-blink": "gx-blink 1.2s ease-in-out infinite",
         "dots-pulse": "gx-dots 1s steps(3, end) infinite",
         wiggle: "gx-wiggle 0.9s ease-in-out infinite",
+        // Single-shot for hover affordances. Don't make this `infinite`
+        // — the whole point is one polite "hello" tilt on hover-enter.
+        "mini-wiggle": "gx-mini-wiggle 0.35s ease-in-out",
         bob: "gx-bob 1.6s ease-in-out infinite",
         "pop-in": "gx-pop-in 0.4s cubic-bezier(.34,1.56,.64,1) both",
         "spin-360": "gx-spin 1.2s linear infinite",

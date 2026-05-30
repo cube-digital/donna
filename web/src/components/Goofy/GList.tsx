@@ -33,9 +33,12 @@ export const GList = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 
 // ── List item ──────────────────────────────────────────────────────────
 
+// `motion-safe:hover:animate-mini-wiggle` — single-shot ±1.5° tilt on
+// hover-enter, gated by OS-level prefers-reduced-motion. Same affordance
+// as `GMenuItem` so list rows and menu items feel like one family.
 const ITEM_BASE =
   "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[13px] cursor-pointer " +
-  "transition-colors duration-[100ms] hover:bg-bg-3 " +
+  "transition-colors duration-[100ms] hover:bg-bg-3 motion-safe:hover:animate-mini-wiggle " +
   "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
 
 const ITEM_ACTIVE =
@@ -94,9 +97,11 @@ export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
 // item reads as the same family. Hover changes only the background —
 // the previous `translate-x-0.5` looked juddery when scanning a list.
 // Focus outline is replaced with a goofy AI-grape ring at the same 9 px corner.
+// `motion-safe:hover:animate-mini-wiggle` adds the same single-shot tilt
+// affordance as `GListItem` / `GMenuItem`.
 const DOC_BASE =
   "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[12.5px] cursor-pointer " +
-  "transition-colors duration-[100ms] hover:bg-bg-3 " +
+  "transition-colors duration-[100ms] hover:bg-bg-3 motion-safe:hover:animate-mini-wiggle " +
   "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
 
 export interface GDocProps extends HTMLAttributes<HTMLDivElement> {

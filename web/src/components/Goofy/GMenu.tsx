@@ -36,9 +36,13 @@ export const GPopover = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement
 // read as one family. Hover changes only the background — `translate-x`
 // was removed because it read as a juddery sideways nudge when scanning
 // a popover. Focus-visible ring uses the same AI grape token.
+//
+// `motion-safe:hover:animate-mini-wiggle` adds a single-shot ±1.5° tilt
+// on hover-enter for that goofy "this is clickable" cue. The variant
+// honours OS-level prefers-reduced-motion automatically.
 const MENU_ITEM_BASE =
   "flex items-center gap-[9px] py-1.5 px-2.5 rounded-[9px] text-text-1 text-[13px] cursor-pointer " +
-  "transition-colors duration-[100ms] hover:bg-bg-3 " +
+  "transition-colors duration-[100ms] hover:bg-bg-3 motion-safe:hover:animate-mini-wiggle " +
   "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
 
 const MENU_ITEM_AI = "hover:bg-ai-bg hover:text-ai-deep [&_.gx-icon]:hover:text-ai";
