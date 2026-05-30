@@ -63,13 +63,19 @@ export function useRightRail(node: ReactNode | null): void {
 }
 
 /**
- * Renders the currently-registered right-rail node, or an empty
- * `<aside/>` so the grid cell still occupies its 320px column.
+ * Renders the currently-registered right-rail node — always inside the
+ * `[grid-area:rightrail]` aside so the grid cell occupies its 320 px
+ * column on every route. The previous shape returned the registered
+ * node as a bare fragment, which dropped it out of the grid placement
+ * and made the column collapse (e.g. on `/personal` the topbar would
+ * still be 4 columns wide but the right-rail content rendered outside
+ * the dedicated cell).
  */
 export function RightRailOutlet() {
   const ctx = useContext(RightRailContext);
-  if (ctx?.node) return <>{ctx.node}</>;
   return (
-    <aside className="[grid-area:rightrail] bg-bg-1 border-l border-border-soft overflow-y-auto px-3.5 py-3" />
+    <aside className="[grid-area:rightrail] bg-bg-1 border-l border-border-soft overflow-y-auto px-3.5 py-3">
+      {ctx?.node ?? null}
+    </aside>
   );
 }

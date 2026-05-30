@@ -83,27 +83,39 @@ export default function TopBar() {
 
   return (
     <div
-      className="[grid-area:topbar] flex items-center gap-2.5 px-3 bg-bg-0 border-b border-border-soft"
+      // 3-column grid (1fr / auto / 1fr) — guarantees the centre column
+      // (search) is centred on the topbar regardless of how wide the
+      // crumb on the left is. A naive flex layout would let a variable-
+      // width crumb push the search off-centre across routes (which is
+      // what the previous `flex-1 + mx-auto` arrangement did — the search
+      // bar drifted ~80 px between e.g. `/channels` and `/personal`).
+      className="[grid-area:topbar] grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 px-3 bg-bg-0 border-b border-border-soft"
       style={dragStyle}
     >
-      {/* pl-20 reserves space for macOS traffic-light controls under hiddenInset */}
-      <div className="flex items-center gap-2 pl-20 font-display font-medium text-text-0 text-[14px]">
+      {/* Left — crumb. `min-w-0` lets the inner span truncate cleanly when
+          the crumb is longer than the 1fr column. `pl-20` reserves the
+          macOS traffic-light controls under hiddenInset. */}
+      <div className="min-w-0 flex items-center gap-2 pl-20 font-display font-medium text-text-0 text-[14px]">
         <GlyphSlot name={crumb.icon} size={16} />
         {crumb.hashed ? (
-          <span className="flex items-baseline gap-1.5">
-            <span className="text-text-3">#</span>
-            <b className="font-display font-semibold text-text-0">{crumb.label}</b>
+          <span className="flex items-baseline gap-1.5 min-w-0">
+            <span className="text-text-3 shrink-0">#</span>
+            <b className="font-display font-semibold text-text-0 truncate">
+              {crumb.label}
+            </b>
             {crumb.subtitle ? (
-              <span className="font-hand font-bold text-[15px] text-ai-deep leading-none">
+              <span className="font-hand font-bold text-[15px] text-ai-deep leading-none shrink-0">
                 {crumb.subtitle}
               </span>
             ) : null}
           </span>
         ) : (
-          <span className="flex items-baseline gap-1.5">
-            <b className="font-display font-semibold text-text-0">{crumb.label}</b>
+          <span className="flex items-baseline gap-1.5 min-w-0">
+            <b className="font-display font-semibold text-text-0 truncate">
+              {crumb.label}
+            </b>
             {crumb.subtitle ? (
-              <span className="font-hand font-bold text-[15px] text-ai-deep leading-none">
+              <span className="font-hand font-bold text-[15px] text-ai-deep leading-none shrink-0">
                 {crumb.subtitle}
               </span>
             ) : null}
@@ -111,9 +123,12 @@ export default function TopBar() {
         )}
       </div>
 
+      {/* Centre — search. `auto` column width hugs the input at its
+          natural 560 px max, so it sits dead-centre between the two 1fr
+          flanks. */}
       <form
         style={noDragStyle}
-        className="flex-1 flex items-center justify-center"
+        className="w-[560px] max-w-[40vw]"
         onSubmit={(e) => {
           e.preventDefault();
           navigate("/search");
@@ -127,11 +142,13 @@ export default function TopBar() {
           readOnly
           placeholder="Search messages, files, agents, or ask Donna…"
           onFocus={() => navigate("/search")}
-          shellClassName="max-w-[560px] mx-auto w-full h-[34px]"
+          shellClassName="w-full h-[34px]"
         />
       </form>
 
-      <div style={noDragStyle} className="flex gap-1 items-center">
+      {/* Right — bell + more. `justify-end` pins the cluster flush right
+          regardless of crumb width. */}
+      <div style={noDragStyle} className="flex gap-1 items-center justify-end">
         <span className="relative inline-block">
           <GIconButton
             icon="bell"
