@@ -3,8 +3,7 @@
 // `enumLabels` is optional. When supplied, used to render human-friendly text
 // in lieu of the raw enum value. Falls back to a humanize() of the value.
 
-import { Field } from "../../Ui/Field";
-import { Select } from "../../Ui/Select";
+import { GFormField, GSelect } from "../../Goofy";
 
 function humanize(s: string): string {
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -25,14 +24,14 @@ interface SelectFieldProps {
 
 export function SelectField(p: SelectFieldProps) {
   return (
-    <Field
+    <GFormField
       label={p.label}
       hint={p.hint}
       error={p.error}
       required={p.required}
       htmlFor={p.name}
     >
-      <Select
+      <GSelect
         id={p.name}
         name={p.name}
         value={p.value ?? ""}
@@ -44,7 +43,7 @@ export function SelectField(p: SelectFieldProps) {
             {p.enumLabels?.[opt] ?? humanize(opt)}
           </option>
         ))}
-      </Select>
-    </Field>
+      </GSelect>
+    </GFormField>
   );
 }

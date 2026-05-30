@@ -50,7 +50,6 @@ import Message from "../components/Channel/Message";
 import {
   ContextSection,
   DocsSection,
-  MemoryStub,
   ProgressStub,
 } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
@@ -351,7 +350,6 @@ export default function Channel() {
         <ProgressStub />
         <DocsSection channelId={channelId} />
         <ContextSection />
-        <MemoryStub scope="channel" />
       </>
     ),
     [channelId],

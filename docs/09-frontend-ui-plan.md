@@ -16,19 +16,22 @@ connectors.
 This plan implements the **backend-backed surfaces** of the design (channel
 view, personal chat, sidebar, composer, integrations, notifications) in a
 new shared `web/` React app, then wires the Electron `desktop/` shell to
-wrap that build. Vault, Profile, Search, Workspace overview, and
-Empty-channel views are stubbed as "Coming soon" placeholders reachable
-from the nav so the design language is preserved without scope-creeping the
-backend. Agent runs render as messages with a `kind:"agent-run"` metadata
-shape — no backend schema change.
+wrap that build. Profile, Search, Workspace overview, and Empty-channel
+views are stubbed as "Coming soon" placeholders reachable from the nav so
+the design language is preserved without scope-creeping the backend.
+Agent runs render as messages with a `kind:"agent-run"` metadata shape —
+no backend schema change. The design's Vault concept (archival surface +
+bottom dock) was removed entirely from this build — the underlying
+backend model isn't built and Vault isn't on the near roadmap, so keeping
+the placeholder caused more confusion than it preserved fidelity.
 
 Pixel fidelity comes from **Tailwind CSS** with the design's OKLCH tokens
 wired in as CSS variables and exposed under named Tailwind colour utilities.
 Every component is authored with Tailwind utility classes inline in JSX —
 no per-component CSS files. Exact pixel sizes that don't fit the default
-scale (the 56 / 252 / 1fr / 320 columns, the 44 / 36 header/dock rows,
-specific radii like 7 px and 10 px) are expressed via Tailwind's arbitrary
-value syntax (e.g. `grid-cols-[56px_252px_1fr_320px]`, `rounded-[10px]`).
+scale (the 56 / 252 / 1fr / 320 columns, the 44 px top-bar row, specific
+radii like 7 px and 10 px) are expressed via Tailwind's arbitrary value
+syntax (e.g. `grid-cols-[56px_252px_1fr_320px]`, `rounded-[10px]`).
 A handful of effects that can't be cleanly expressed as utility chains
 (the agent-avatar radial gradient that needs a per-instance `--hue`, the
 animated pulse ring, the streaming `...` dots, the agent-run card
@@ -47,7 +50,7 @@ donna/
 │   │   ├── lib/               # ws.ts, sse.ts, auth-storage.ts, hueForAgent.ts
 │   │   ├── state/             # zustand stores: auth, workspace, channels, messages, presence, notifications, integrations
 │   │   ├── components/
-│   │   │   ├── Shell/         # AppShell, WsRail, TopBar, Sidebar, RightRailSlot, ArchiveDock
+│   │   │   ├── Shell/         # AppShell, WsRail, TopBar, Sidebar, RightRailSlot
 │   │   │   ├── Ui/            # Ic (26 icons, namespaced + named), Av (human/agent avatar)
 │   │   │   ├── Channel/       # Channel view internals: ChannelHeader, Message, AgentRunCard, Composer
 │   │   │   └── RightRail/     # Sections + IntegrationModal
@@ -76,7 +79,7 @@ order.
 | 1. Scaffold | Vite + React + TS + Tailwind (with PostCSS + Autoprefixer), Geist fonts inlined, OKLCH tokens, Tailwind theme mapping every design colour | `vite.config.ts`, `tsconfig.json`, `tailwind.config.ts`, `postcss.config.js`, `src/styles/*` |
 | 2. UI primitives | 26-icon set + Avatar with `--hue` CSS-var trick for the AI gradient | `src/components/Ui/Ic.tsx`, `Av.tsx`, `src/lib/hueForAgent.ts` |
 | 3. Auth shell | Tabbed sign-in / sign-up + Google button, sign-up auto-signin, JWT persistence + refresh interceptor in `client.ts` | `src/views/Auth.tsx`, `src/api/auth.ts`, `src/lib/auth-storage.ts` |
-| 4. App shell + workspace | 4-col grid (`AppShell`), `WsRail`, `TopBar`, `Sidebar`, `ArchiveDock`, `RightRailSlot` context + outlet, workspace picker with create form | `src/components/Shell/*`, `src/views/WorkspacePicker.tsx`, `src/state/workspace.ts` |
+| 4. App shell + workspace | 4-col × 2-row grid (`AppShell`), `WsRail`, `TopBar`, `Sidebar`, `RightRailSlot` context + outlet, workspace picker with create form | `src/components/Shell/*`, `src/views/WorkspacePicker.tsx`, `src/state/workspace.ts` |
 | 5. Channel view | WS subscribe per channel, day-divider grouping, near-bottom auto-scroll, load-older on scroll-up with anchor restore, debounced `mark_read`, typing indicators via dedicated `presence` store | `src/views/Channel.tsx`, `src/components/Channel/*`, `src/lib/ws.ts`, `src/state/{messages,presence}.ts` |
 | 6. Composer | Optimistic insert with `client_msg_id` dedupe through WS echo, `/` global focus shortcut, throttled `typing` emit | `src/components/Channel/Composer.tsx` |
 | 7. Agent runs | Client-side classification of agent-authored messages whose body parses as JSON `{kind:"agent-run",…}` (no schema change required) | `src/state/messages.ts`, `src/components/Channel/AgentRunCard.tsx` |
@@ -281,8 +284,9 @@ cd .. && cd web && npm run build && cd ../desktop && npm run start:prod
    without a refresh.
 5. **Integrations** — open Context section in the right rail; click
    Connect on a provider; complete OAuth in popup; row flips to `live`.
-6. **Stub routes** — click the Vault icon in `WsRail`; `ComingSoon`
-   renders inside the existing 4-column shell (no broken layout).
+6. **Stub routes** — click the Files icon in `WsRail` (or any other
+   placeholder); `ComingSoon` renders inside the existing 4-column shell
+   (no broken layout).
 7. **Hard refresh** — F5 on a channel route; you stay signed in, the
    workspace name resolves correctly, the channel re-subscribes.
 8. **Electron wrap** — `cd desktop && npm run start:dev`; the Electron
@@ -306,7 +310,7 @@ cd .. && cd web && npm run build && cd ../desktop && npm run start:prod
   has an animated-dots row for messages mid-stream; deferred until the
   backend emits incremental `agent.token` events to the messages
   subscriber.
-- **Vault, Profile, Search, Workspace overview, Empty channel** — all
+- **Profile, Search, Workspace overview, Empty channel** — all
   stubbed as `ComingSoon`. The right rail registration pattern via
   `useRightRail` is already in place so each view drops in cleanly when
   built.

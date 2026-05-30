@@ -12,11 +12,13 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getPicker } from "../../../api/integrations";
-import { Button } from "../../Ui/Button";
-import { Field } from "../../Ui/Field";
-import { Ic } from "../../Ui/Ic";
-import { Select } from "../../Ui/Select";
-import { Toggle } from "../../Ui/Toggle";
+import {
+  GButton,
+  GFormField,
+  GlyphSlot,
+  GSelect,
+  GSwitch,
+} from "../../Goofy";
 import type { PickerProps } from "./registry";
 
 interface SelectedFolder {
@@ -118,7 +120,7 @@ export function DriveFoldersPicker(p: PickerProps) {
   }
 
   return (
-    <Field
+    <GFormField
       label={p.label}
       hint={err ?? p.hint ?? "Pick folders Donna should ingest from."}
     >
@@ -126,7 +128,7 @@ export function DriveFoldersPicker(p: PickerProps) {
         {/* Drive switcher */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] uppercase tracking-[0.04em] text-text-3">Drive</span>
-          <Select
+          <GSelect
             value={driveId}
             onChange={(e) => setDriveId(e.target.value)}
             disabled={drives.length === 0}
@@ -136,7 +138,7 @@ export function DriveFoldersPicker(p: PickerProps) {
                 {d.name}
               </option>
             ))}
-          </Select>
+          </GSelect>
         </div>
 
         {/* Folder browser */}
@@ -173,7 +175,7 @@ export function DriveFoldersPicker(p: PickerProps) {
                       </svg>
                     )}
                   </span>
-                  <Ic.folder />
+                  <GlyphSlot name="folder" />
                   <span className="flex-1 truncate text-text-0">{f.name}</span>
                 </button>
               );
@@ -193,15 +195,15 @@ export function DriveFoldersPicker(p: PickerProps) {
                   key={f.id}
                   className="flex items-center gap-2 px-2 py-1 bg-bg-2 border border-border-soft rounded-md"
                 >
-                  <Ic.folder />
+                  <GlyphSlot name="folder" />
                   <span className="flex-1 truncate text-[13px] text-text-0">{f.name}</span>
                   <span className="text-[11px] text-text-3">Recursive</span>
-                  <Toggle
-                    checked={f.recursive}
+                  <GSwitch
+                    on={f.recursive}
                     onChange={(v) => setRecursive(f.id, v)}
                     aria-label={`Recursive ${f.name}`}
                   />
-                  <Button
+                  <GButton
                     type="button"
                     size="sm"
                     variant="ghost"
@@ -209,13 +211,13 @@ export function DriveFoldersPicker(p: PickerProps) {
                     aria-label={`Remove ${f.name}`}
                   >
                     Remove
-                  </Button>
+                  </GButton>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
-    </Field>
+    </GFormField>
   );
 }

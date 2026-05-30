@@ -1,18 +1,22 @@
-// DonnaAI — Tailwind theme.
+// DonnaAI · Goofy theme — Tailwind config.
 //
 // Every colour is an OKLCH CSS variable defined in `src/styles/tokens.css`.
-// The single `--ai-h` variable controls the AI hue; the rest cascade from it.
-// Theme switching is class-based: `.theme-light` on <body> swaps the var
-// values. Tailwind's `dark:*` prefix is NOT used — light is the named
-// variant so the dark default reads as the design's primary mode.
+// The single `--ai-h` variable controls the AI hue (grape, 288°); the rest
+// cascade. Theme switching is class-based via `body.theme-dark` (or
+// `.gx.dark` on a Goofy subtree).
 //
 // Naming convention:
-//   bg-bg-0 … bg-bg-4         layered backgrounds (darkest → lightest in dark mode)
-//   text-text-0 … text-text-4 layered text (most prominent → most muted)
-//   border-border-soft        default border
-//   border-border-strong      emphasis border
-//   bg-ai / text-ai / etc.    AI hue family
-//   text-ok / warn / danger   semantic statuses
+//   bg-bg-0..bg-bg-4                       layered paper surfaces
+//   text-text-0..text-text-4               layered text
+//   border-ink                             chunky 2 px sticker border (ink)
+//   border-border-soft / -strong           softer borders for split rules
+//   bg-ai / text-ai / border-ai            AI grape family
+//   bg-pop-blue / -coral / -sun / -mint    crayon-box accents
+//   text-on-bright                         body colour to lay on bright fills
+//   text-ok / warn / danger                semantic statuses
+//   font-display / font-hand / font-mono   Fredoka, Caveat, Geist Mono
+//   shadow-ink-1 / shadow-ink-2            hard offset sticker shadows
+//   shadow-ai-stamp                        offset shadow in AI grape
 
 import type { Config } from "tailwindcss";
 
@@ -21,47 +25,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Surfaces
         "bg-0": "var(--bg-0)",
         "bg-1": "var(--bg-1)",
         "bg-2": "var(--bg-2)",
         "bg-3": "var(--bg-3)",
         "bg-4": "var(--bg-4)",
-        // Text
         "text-0": "var(--text-0)",
         "text-1": "var(--text-1)",
         "text-2": "var(--text-2)",
         "text-3": "var(--text-3)",
         "text-4": "var(--text-4)",
-        // Borders
+        ink: "var(--ink)",
         "border-soft": "var(--border)",
         "border-strong": "var(--border-strong)",
-        // AI hue family — single hue gated by --ai-h, reserved exclusively
-        // for agent presence, thinking states, memory chrome.
         ai: "var(--ai)",
         "ai-dim": "var(--ai-dim)",
         "ai-deep": "var(--ai-deep)",
         "ai-bg": "var(--ai-bg)",
         "ai-glow": "var(--ai-glow)",
-        // Status
+        // Crayon accents — used in buttons, chips, tags, list states, etc.
+        "pop-blue": "var(--pop-blue)",
+        "pop-coral": "var(--pop-coral)",
+        "pop-sun": "var(--pop-sun)",
+        "pop-mint": "var(--pop-mint)",
+        "on-bright": "var(--on-bright)",
         ok: "var(--ok)",
         warn: "var(--warn)",
         danger: "var(--danger)",
       },
       fontFamily: {
-        sans: [
-          "Geist",
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "sans-serif",
-        ],
-        mono: [
-          '"Geist Mono"',
-          "ui-monospace",
-          "SFMono-Regular",
-          "monospace",
-        ],
+        sans: ["Geist", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        mono: ['"Geist Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["Fredoka", "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        hand: ["Caveat", "cursive"],
       },
       borderRadius: {
         DEFAULT: "var(--r)",
@@ -69,32 +65,66 @@ const config: Config = {
         lg: "var(--r-lg)",
         xl: "var(--r-xl)",
       },
+      borderWidth: {
+        ink: "2px",
+      },
       boxShadow: {
-        soft: "var(--shadow-1)",
-        elevated: "var(--shadow-2)",
+        "ink-1": "var(--shadow-1)",
+        "ink-2": "var(--shadow-2)",
+        "ai-stamp": "var(--shadow-ai)",
+        // press-down sticker hover state
+        "ink-3": "3px 3px 0 var(--ink)",
+        "ink-4": "4px 4px 0 var(--ink)",
       },
       keyframes: {
-        "pulse-ring": {
+        "gx-pulse-ring": {
           "0%": { transform: "scale(0.95)", opacity: "0.7" },
-          "100%": { transform: "scale(1.25)", opacity: "0" },
+          "100%": { transform: "scale(1.3)", opacity: "0" },
         },
-        "led-blink": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.35" },
-        },
-        "dots-pulse": {
+        "gx-spin": { to: { transform: "rotate(360deg)" } },
+        "gx-blink": { "0%, 100%": { opacity: "1" }, "50%": { opacity: "0.35" } },
+        "gx-dots": {
           "0%, 100%": { opacity: "0.3" },
           "50%": { opacity: "1" },
         },
-        "spin-360": {
-          to: { transform: "rotate(360deg)" },
+        "gx-wiggle": {
+          "0%, 100%": { transform: "rotate(-3deg)" },
+          "50%": { transform: "rotate(3deg)" },
+        },
+        // Smaller, single-shot tilt for row-shaped molecules (menu items,
+        // list rows, docs, stat cards). Starts and ends at 0° so the
+        // element snaps cleanly back to neutral when the animation
+        // finishes — unlike `gx-wiggle` which loops between ±3°.
+        "gx-mini-wiggle": {
+          "0%": { transform: "rotate(0deg)" },
+          "25%": { transform: "rotate(-1.5deg)" },
+          "75%": { transform: "rotate(1.5deg)" },
+          "100%": { transform: "rotate(0deg)" },
+        },
+        "gx-bob": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        "gx-pop-in": {
+          "0%": { transform: "scale(0.6) rotate(-8deg)", opacity: "0" },
+          "70%": { transform: "scale(1.08) rotate(2deg)" },
+          "100%": { transform: "scale(1) rotate(0)", opacity: "1" },
         },
       },
       animation: {
-        "pulse-ring": "pulse-ring 1.6s ease-out infinite",
-        "led-blink": "led-blink 1.2s ease-in-out infinite",
-        "dots-pulse": "dots-pulse 1s steps(3, end) infinite",
-        "spin-360": "spin-360 1s linear infinite",
+        "pulse-ring": "gx-pulse-ring 1.6s ease-out infinite",
+        "led-blink": "gx-blink 1.2s ease-in-out infinite",
+        "dots-pulse": "gx-dots 1s steps(3, end) infinite",
+        wiggle: "gx-wiggle 0.9s ease-in-out infinite",
+        // Single-shot for hover affordances. Don't make this `infinite`
+        // — the whole point is one polite "hello" tilt on hover-enter.
+        "mini-wiggle": "gx-mini-wiggle 0.35s ease-in-out",
+        bob: "gx-bob 1.6s ease-in-out infinite",
+        "pop-in": "gx-pop-in 0.4s cubic-bezier(.34,1.56,.64,1) both",
+        "spin-360": "gx-spin 1.2s linear infinite",
+      },
+      transitionTimingFunction: {
+        spring: "cubic-bezier(.34, 1.56, .64, 1)",
       },
     },
   },

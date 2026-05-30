@@ -1,15 +1,14 @@
 // JSON Schema `array<string>` → MultiSelect. Free-text by default; pass
 // `options` for constrained selection (used by Gmail labels picker).
 
-import { Field } from "../../Ui/Field";
-import { MultiSelect, type MultiSelectOption } from "../../Ui/MultiSelect";
+import { GFormField, GMultiSelect, type GMultiSelectOption } from "../../Goofy";
 
 interface MultiSelectFieldProps {
   name: string;
   label?: string;
   value: string[];
   onChange: (v: string[]) => void;
-  options?: MultiSelectOption[];
+  options?: GMultiSelectOption[];
   placeholder?: string;
   hint?: string;
   error?: string | null;
@@ -19,8 +18,8 @@ interface MultiSelectFieldProps {
 
 export function MultiSelectField(p: MultiSelectFieldProps) {
   return (
-    <Field label={p.label} hint={p.hint} error={p.error}>
-      <MultiSelect
+    <GFormField label={p.label} hint={p.hint} error={p.error}>
+      <GMultiSelect
         value={p.value ?? []}
         onChange={p.onChange}
         options={p.options}
@@ -28,6 +27,6 @@ export function MultiSelectField(p: MultiSelectFieldProps) {
         disabled={p.disabled}
         allowCustom={p.allowCustom}
       />
-    </Field>
+    </GFormField>
   );
 }

@@ -1,10 +1,14 @@
-// Brand glyphs for connected integrations. Inline SVG so they stay sharp at
-// 18-20px sidebar sizes and inherit our color tokens where useful.
+// Brand glyphs for connected integrations. Inline SVG so the marks stay
+// sharp at 18-20 px sidebar sizes and inherit our colour tokens where
+// useful. Logos are intentionally simplified (recognisable but not
+// pixel-perfect vendor marks) — swap with official brand assets when a
+// design pass lands.
 //
-// Logos kept intentionally simplified (recognizable but not pixel-perfect
-// vendor marks) — swap with official brand assets when a design pass lands.
+// This lives under Goofy/ because the Goofy aesthetic is the entire
+// design system; the simplified logos read as crayon-flat stickers
+// against the cream paper background, which fits the rest of the kit.
 
-import { SVGProps } from "react";
+import type { SVGProps } from "react";
 
 type Props = SVGProps<SVGSVGElement>;
 
@@ -45,7 +49,7 @@ export function FathomIc(props: Props) {
   );
 }
 
-// Generic fallback for any unknown slug — first two letters in a square.
+/** Generic fallback for any unknown slug — first two letters in a square. */
 export function InitialsIc({ label, ...props }: Props & { label: string }) {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" {...props}>
@@ -65,12 +69,16 @@ export function InitialsIc({ label, ...props }: Props & { label: string }) {
   );
 }
 
-// Single dispatcher by connector slug — keeps callers free of brand lookups.
-export function ConnectorIcon({ slug, label }: { slug: string; label: string }) {
+/** Single dispatcher by connector slug — keeps callers free of brand lookups. */
+export function GConnectorIcon({ slug, label }: { slug: string; label: string }) {
   switch (slug) {
-    case "gmail":  return <GmailIc />;
-    case "drive":  return <DriveIc />;
-    case "fathom": return <FathomIc />;
-    default:       return <InitialsIc label={label} />;
+    case "gmail":
+      return <GmailIc />;
+    case "drive":
+      return <DriveIc />;
+    case "fathom":
+      return <FathomIc />;
+    default:
+      return <InitialsIc label={label} />;
   }
 }

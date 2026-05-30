@@ -1,5 +1,5 @@
-// Used by Vault, Profile, Search, Workspace, Empty-channel routes —
-// surfaces we haven't built yet but want reachable from the design's nav.
+// Used by Profile, Search, Workspace, Empty-channel routes — surfaces
+// we haven't built yet but want reachable from the design's nav.
 // Re-creates the design's empty-state chrome (icon, title, sub) with
 // Tailwind utilities so the page still reads as intentional, not broken.
 

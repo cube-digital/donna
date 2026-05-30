@@ -1,5 +1,8 @@
 // 252px channel/DM/agents list — middle-left column.
-// Ported from donnaai/project/sidebar.jsx:1-141.
+// Ported from donnaai/project/sidebar.jsx:1-141, then re-skinned onto the
+// Goofy sticker library: list rows become `<GListItem/>` (sun-yellow ink
+// border when active, mini-wiggle on hover), section headers use Fredoka,
+// the workspace edit + add buttons are `<GIconButton/>` stickers.
 //
 // Sections, top to bottom:
 //   1. Workspace header — active workspace name + edit affordance.
@@ -7,7 +10,8 @@
 //   3. Direct messages — channels where kind === "direct".
 //   4. AI Teammates    — hardcoded single Donna row in v1 (no /agents endpoint).
 //   5. Channels        — channels where kind === "channel", sorted by name.
-//   6. Apps            — single stubbed Workflows row.
+//   6. Connections     — connected integrations (Gmail, Drive, Fathom, …).
+//   7. Apps            — single stubbed Workflows row.
 //
 // Project grouping is intentionally not implemented: the backend has
 // no Project model yet, so we render channels flat under one "Channels"
@@ -15,78 +19,28 @@
 // project name onto a `.project-h` row above the channel cluster.
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
+import { useLocation, useMatch, useNavigate } from "react-router-dom";
 
+import { cn } from "../../lib/cn";
 import { hueForAgent } from "../../lib/hueForAgent";
 import { useChannels } from "../../state/channels";
 import { useIntegrations } from "../../state/integrations";
 import { useMessages } from "../../state/messages";
 import { useWorkspace } from "../../state/workspace";
 import type { AgentRef, Channel, IntegrationProvider } from "../../types";
-import { ConnectorIcon } from "../Ui/BrandIc";
-import { Av } from "../Ui/Av";
-import { Ic } from "../Ui/Ic";
+import {
+  GAvatar,
+  GConnectorIcon,
+  GIconButton,
+  GListItem,
+  GlyphSlot,
+  type GListDot,
+} from "../Goofy";
 import { CreateChannelDialog } from "../Channel/CreateChannelDialog";
 
-// Tailwind class fragments for the sidebar row variants. Hoisted so
-// the JSX below stays scannable.
-const ROW_BASE =
-  "relative flex items-center gap-2 px-2.5 py-1 my-px rounded-md text-text-1 text-[13px] hover:bg-bg-2 hover:text-text-0";
-const ROW_ACTIVE = "bg-bg-3 text-text-0";
-const ROW_UNREAD = "text-text-0 font-medium";
-const ROW_DISABLED = "text-text-3 cursor-default hover:bg-transparent hover:text-text-3";
-
-const HASH_SLOT = "text-text-3 w-3.5 text-center flex-shrink-0";
-const NAME_SLOT =
-  "flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap";
-
-function cls(...parts: (string | false | null | undefined)[]): string {
-  return parts.filter(Boolean).join(" ");
-}
-
-interface NavRowProps {
-  active?: boolean;
-  unread?: boolean;
-  to?: string;
-  ariaLabel?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}
-
-function NavRow({
-  active,
-  unread,
-  to,
-  ariaLabel,
-  onClick,
-  children,
-}: NavRowProps) {
-  const className = cls(ROW_BASE, active && ROW_ACTIVE, unread && ROW_UNREAD);
-
-  if (to) {
-    return (
-      <Link
-        to={to}
-        className={className}
-        aria-label={ariaLabel}
-        aria-current={active ? "page" : undefined}
-      >
-        {children}
-      </Link>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className={cls(className, "w-full text-left")}
-      aria-label={ariaLabel}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
+// Section header — small Fredoka label on the left, optional sticker
+// `+` icon on the right. The AI Teammates header recolours the label
+// to AI grape so the section still reads as the "AI" cluster.
 function GroupHeader({
   label,
   ai,
@@ -98,23 +52,50 @@ function GroupHeader({
 }) {
   return (
     <div
-      className={cls(
-        "flex items-center justify-between px-2.5 py-1 text-[11px] tracking-[0.04em] uppercase font-medium",
-        ai ? "text-ai" : "text-text-3",
+      className={cn(
+        "font-display font-semibold text-[12.5px] px-2.5 pt-3 pb-1.5 flex items-center justify-between",
+        ai ? "text-ai" : "text-text-2",
       )}
     >
       <span>{label}</span>
       {onAdd ? (
-        <button
-          type="button"
-          className="w-[18px] h-[18px] rounded-sm grid place-items-center text-text-3 hover:bg-bg-2 hover:text-text-0"
+        <GIconButton
+          icon="plus"
+          size="xs"
           aria-label={`Add ${label}`}
           onClick={onAdd}
-        >
-          <Ic.plus />
-        </button>
+        />
       ) : null}
     </div>
+  );
+}
+
+// Map a connector status to the dot-colour shown in the trailing badge
+// slot. Only "live" and "error" providers reach the sidebar (filtered
+// upstream), but the fallback keeps the type narrowed if that changes.
+function statusToDot(status: IntegrationProvider["status"]): GListDot {
+  if (status === "live") return "online";
+  if (status === "error") return "ai"; // treat as warning — AI dot is the loudest
+  return "muted";
+}
+
+// Standalone dot used in the trailing `badge` slot — same colour map
+// as `<GListItem dot=…/>` but rendered manually so we don't shift
+// every row's leading icon column when a status dot exists.
+const TRAIL_DOT_CLS: Record<GListDot, string> = {
+  online: "bg-ok",
+  ai: "bg-ai shadow-[0_0_0_2px_var(--ai-glow)]",
+  muted: "bg-text-3",
+};
+function TrailDot({ kind }: { kind: GListDot }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "w-[7px] h-[7px] rounded-full shrink-0",
+        TRAIL_DOT_CLS[kind],
+      )}
+    />
   );
 }
 
@@ -164,6 +145,9 @@ export default function Sidebar() {
     );
   }, [byChannel]);
 
+  const isSearchActive = location.pathname.startsWith("/search");
+  const isPersonalActive = location.pathname.startsWith("/personal");
+
   return (
     <aside
       className="[grid-area:sidebar] bg-bg-1 border-r border-border-soft overflow-y-auto pt-2 px-1.5 pb-4"
@@ -171,147 +155,130 @@ export default function Sidebar() {
     >
       <header className="flex items-center justify-between px-2.5 pt-1.5 pb-2.5">
         <div>
-          <div className="font-semibold text-text-0 text-sm tracking-[-0.005em]">
+          <div className="font-display font-semibold text-text-0 text-[14px] tracking-[-0.005em]">
             {activeWorkspace?.name ?? "Workspace"}
           </div>
           {activeWorkspace?.slug ? (
-            <div className="text-[11px] text-text-3">
+            <div className="font-mono text-[10.5px] text-text-3">
               {activeWorkspace.slug}
             </div>
           ) : null}
         </div>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            className="w-6 h-6 rounded-md grid place-items-center text-text-2 hover:bg-bg-2 hover:text-text-0"
-            title="Workspace settings"
-            aria-label="Workspace settings"
-          >
-            <Ic.edit />
-          </button>
-        </div>
+        <GIconButton
+          icon="edit"
+          size="xs"
+          title="Workspace settings"
+          aria-label="Workspace settings"
+        />
       </header>
 
       {/* Top-level nav */}
-      <div className="mt-3">
-        <NavRow
-          to="/search"
-          active={location.pathname.startsWith("/search")}
-          ariaLabel="Search"
+      <div className="mt-2">
+        <GListItem
+          active={isSearchActive}
+          aria-label="Search"
+          onClick={() => navigate("/search")}
+          icon={<GlyphSlot name="search" />}
+          badge={
+            <kbd className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
+              ⌘&nbsp;K
+            </kbd>
+          }
         >
-          <span className={HASH_SLOT}>
-            <Ic.search />
-          </span>
-          <span className={NAME_SLOT}>Search</span>
-          <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-sm bg-bg-2 border border-border-soft">
-            ⌘K
-          </kbd>
-        </NavRow>
-        <NavRow
-          to="/personal"
-          active={location.pathname.startsWith("/personal")}
-          ariaLabel="Personal AI"
+          Search
+        </GListItem>
+        <GListItem
+          active={isPersonalActive}
+          aria-label="Personal AI"
+          onClick={() => navigate("/personal")}
+          icon={<GlyphSlot name="sparkle" className="text-ai" />}
+          badge={<TrailDot kind="ai" />}
         >
-          <span className={HASH_SLOT}>
-            <Ic.sparkle />
-          </span>
-          <span className={cls(NAME_SLOT, "text-text-0")}>
-            Personal · Donna
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-ai shadow-[0_0_6px_var(--ai-glow)]" />
-        </NavRow>
-        <NavRow ariaLabel="Activity">
-          <span className={HASH_SLOT}>
-            <Ic.bell />
-          </span>
-          <span className={NAME_SLOT}>Activity</span>
-        </NavRow>
-        <NavRow ariaLabel="Threads">
-          <span className={HASH_SLOT}>
-            <Ic.thread />
-          </span>
-          <span className={NAME_SLOT}>Threads</span>
-        </NavRow>
+          Personal · Donna
+        </GListItem>
+        <GListItem aria-label="Activity" icon={<GlyphSlot name="bell" />}>
+          Activity
+        </GListItem>
+        <GListItem aria-label="Threads" icon={<GlyphSlot name="thread" />}>
+          Threads
+        </GListItem>
       </div>
 
       {/* Direct messages */}
-      <div className="mt-3">
-        <GroupHeader label="Direct messages" />
+      <div>
+        <GroupHeader label="direct messages" />
         {directs.length === 0 ? (
-          <div className={cls(ROW_BASE, ROW_DISABLED)}>
-            <span className={cls(NAME_SLOT, "text-[12px]")}>
-              No direct messages yet
-            </span>
-          </div>
+          <GListItem className="text-text-3 italic">
+            No direct messages yet
+          </GListItem>
         ) : (
           directs.map((c) => (
-            <NavRow
+            <GListItem
               key={c.id}
-              to={`/channels/${c.id}`}
               active={activeChannelId === c.id}
-              ariaLabel={c.name}
+              aria-label={c.name}
+              onClick={() => navigate(`/channels/${c.id}`)}
+              icon={<GAvatar size="sm" name={c.name} />}
             >
-              <Av
-                kind="human"
-                size="sm"
-                who={{ name: c.name, initials: c.name.slice(0, 2).toUpperCase() }}
-              />
-              <span className={NAME_SLOT}>{c.name}</span>
-            </NavRow>
+              {c.name}
+            </GListItem>
           ))
         )}
       </div>
 
       {/* AI teammates — derived from observed message authorship; falls
           back to a single Donna placeholder when no agent has spoken yet. */}
-      <div className="mt-3">
-        <GroupHeader label="AI Teammates" ai />
+      <div>
+        <GroupHeader label="ai teammates" ai />
         {teammates.length === 0 ? (
-          <NavRow ariaLabel="Donna">
-            <Av kind="agent" size="sm" agent={{ name: "Donna", hue: 282 }} />
-            <span className={cls(NAME_SLOT, "text-text-0")}>Donna</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-ai shadow-[0_0_6px_var(--ai-glow)]" />
-          </NavRow>
+          <GListItem
+            aria-label="Donna"
+            icon={<GAvatar kind="agent" size="sm" name="Donna" hue={282} />}
+            badge={<TrailDot kind="ai" />}
+          >
+            Donna
+          </GListItem>
         ) : (
           teammates.map((a) => (
-            <NavRow
+            <GListItem
               key={a.id}
-              to={`/agents/${a.id}`}
               active={activeAgentId === a.id}
-              ariaLabel={a.name}
+              aria-label={a.name}
+              onClick={() => navigate(`/agents/${a.id}`)}
+              icon={
+                <GAvatar
+                  kind="agent"
+                  size="sm"
+                  name={a.name}
+                  hue={hueForAgent(a.id)}
+                />
+              }
+              badge={<TrailDot kind="ai" />}
             >
-              <Av
-                kind="agent"
-                size="sm"
-                agent={{ name: a.name, hue: hueForAgent(a.id) }}
-              />
-              <span className={cls(NAME_SLOT, "text-text-0")}>{a.name}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-ai shadow-[0_0_6px_var(--ai-glow)]" />
-            </NavRow>
+              {a.name}
+            </GListItem>
           ))
         )}
       </div>
 
       {/* Channels — flat list (no project grouping in v1; backend has no Project model) */}
-      <div className="mt-3">
-        <GroupHeader label="Channels" onAdd={() => setCreateOpen(true)} />
+      <div>
+        <GroupHeader label="channels" onAdd={() => setCreateOpen(true)} />
         {publicChannels.length === 0 ? (
-          <div className={cls(ROW_BASE, ROW_DISABLED)}>
-            <span className={cls(NAME_SLOT, "text-[12px]")}>
-              No channels yet
-            </span>
-          </div>
+          <GListItem className="text-text-3 italic">
+            No channels yet
+          </GListItem>
         ) : (
           publicChannels.map((c) => (
-            <NavRow
+            <GListItem
               key={c.id}
-              to={`/channels/${c.id}`}
+              hash="#"
               active={activeChannelId === c.id}
-              ariaLabel={`# ${c.name}`}
+              aria-label={`# ${c.name}`}
+              onClick={() => navigate(`/channels/${c.id}`)}
             >
-              <span className={HASH_SLOT}>#</span>
-              <span className={NAME_SLOT}>{c.name}</span>
-            </NavRow>
+              {c.name}
+            </GListItem>
           ))
         )}
       </div>
@@ -329,16 +296,19 @@ export default function Sidebar() {
       <ConnectionsGroup />
 
       {/* Apps — placeholder kept for v1 parity with the design source. */}
-      <div className="mt-3">
-        <GroupHeader label="Apps" />
-        <div
-          className={cls(ROW_BASE, "text-text-2 cursor-default hover:bg-transparent hover:text-text-2")}
+      <div>
+        <GroupHeader label="apps" />
+        <GListItem
+          aria-disabled={true}
+          // Disabled rows should be skipped during Tab navigation;
+          // they're not actionable yet (Workflows stub) so taking them
+          // out of the focus order keeps the keyboard tour purposeful.
+          tabIndex={-1}
+          className="opacity-60 cursor-not-allowed"
+          icon={<GlyphSlot name="bolt" />}
         >
-          <span className={HASH_SLOT}>
-            <Ic.bolt />
-          </span>
-          <span className={NAME_SLOT}>Workflows</span>
-        </div>
+          Workflows
+        </GListItem>
       </div>
     </aside>
   );
@@ -361,15 +331,13 @@ function ConnectionsGroup() {
   );
 
   return (
-    <div className="mt-3">
-      <GroupHeader label="Connections" onAdd={() => navigate("/integrations")} />
+    <div>
+      <GroupHeader label="connections" onAdd={() => navigate("/integrations")} />
 
       {connected.length === 0 ? (
-        <div className={cls(ROW_BASE, ROW_DISABLED)}>
-          <span className={cls(NAME_SLOT, "text-[12px]")}>
-            No connections yet
-          </span>
-        </div>
+        <GListItem className="text-text-3 italic">
+          No connections yet
+        </GListItem>
       ) : (
         connected.map((p) => <ConnectionRow key={p.slug} provider={p} />)
       )}
@@ -379,33 +347,17 @@ function ConnectionsGroup() {
 
 function ConnectionRow({ provider }: { provider: IntegrationProvider }) {
   const active = !!useMatch(`/integrations/${provider.slug}`);
-  const dotClass =
-    provider.status === "live"
-      ? "bg-ok shadow-[0_0_6px_var(--ok)]"
-      : provider.status === "error"
-      ? "bg-danger"
-      : "bg-bg-3";
+  const navigate = useNavigate();
 
   return (
-    <Link
-      to={`/integrations/${provider.slug}`}
+    <GListItem
+      active={active}
       aria-label={`${provider.display_name} integration settings`}
-      aria-current={active ? "page" : undefined}
-      className={cls(ROW_BASE, active && ROW_ACTIVE)}
+      onClick={() => navigate(`/integrations/${provider.slug}`)}
+      icon={<GConnectorIcon slug={provider.slug} label={provider.display_name} />}
+      badge={<TrailDot kind={statusToDot(provider.status)} />}
     >
-      <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
-        <ConnectorIcon slug={provider.slug} label={provider.display_name} />
-      </span>
-      <span className={cls(NAME_SLOT, "text-text-0")}>
-        {provider.display_name}
-      </span>
-      <span
-        className={cls(
-          "w-1.5 h-1.5 rounded-full flex-shrink-0",
-          dotClass,
-        )}
-        aria-hidden="true"
-      />
-    </Link>
+      {provider.display_name}
+    </GListItem>
   );
 }

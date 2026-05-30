@@ -2,8 +2,7 @@
 //
 // Empty string parses to undefined so optional ints can be cleared cleanly.
 
-import { Field } from "../../Ui/Field";
-import { Input } from "../../Ui/Input";
+import { GFormField, GInput } from "../../Goofy";
 
 interface NumberFieldProps {
   name: string;
@@ -21,17 +20,18 @@ interface NumberFieldProps {
 
 export function NumberField(p: NumberFieldProps) {
   return (
-    <Field
+    <GFormField
       label={p.label}
       hint={p.hint}
       error={p.error}
       required={p.required}
       htmlFor={p.name}
     >
-      <Input
+      <GInput
         id={p.name}
         name={p.name}
         type="number"
+        icon={null}
         value={p.value === undefined || Number.isNaN(p.value) ? "" : p.value}
         min={p.min}
         max={p.max}
@@ -45,6 +45,6 @@ export function NumberField(p: NumberFieldProps) {
         }}
         className="max-w-[180px]"
       />
-    </Field>
+    </GFormField>
   );
 }

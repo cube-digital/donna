@@ -1,16 +1,19 @@
 // The signed-in shell — every authenticated route renders inside this.
-// Grid mirrors donnaai/project/styles.css:96-110 exactly:
+// Two-row grid (top bar + body); the columns are the design's
+// 56 / 252 / 1fr / 320 split.
 //
 //     56px | 252px | 1fr | 320px       (columns)
-//     44px |  1fr  |  36px             (rows)
+//     44px |  1fr                       (rows)
 //
 //     ┌──────────────────────────────┐
 //     │ rail │       topbar          │
 //     │      ├──────────────────────┤
 //     │      │sidebar│ main │ rrail │
-//     │      ├──────────────────────┤
-//     │      │       archive        │
 //     └──────────────────────────────┘
+//
+// The original design carried a third 36px archive-dock row at the
+// bottom, but the Vault surface was removed from this build; the dock
+// went with it.
 //
 // Right-rail content is published per-view via `useRightRail` (see
 // RightRailSlot.tsx). On mount we kick off `useChannels.loadChannels`
@@ -26,7 +29,6 @@ import { listWorkspaces } from "../../api/workspaces";
 import { useChannels } from "../../state/channels";
 import { useWorkspace } from "../../state/workspace";
 import { NotificationsBootstrap } from "../RightRail/RightRail";
-import ArchiveDock from "./ArchiveDock";
 import {
   RightRailOutlet,
   RightRailProvider,
@@ -96,10 +98,10 @@ export default function AppShell() {
       <WorkspaceBootstrap />
       <NotificationsBootstrap />
       <div
-        className="grid h-screen w-screen bg-bg-0
+        className="app-shell-root grid h-screen w-screen bg-bg-0
           grid-cols-[56px_252px_1fr_320px]
-          grid-rows-[44px_1fr_36px]
-          [grid-template-areas:'rail_topbar_topbar_topbar'_'rail_sidebar_main_rightrail'_'rail_archive_archive_archive']"
+          grid-rows-[56px_1fr]
+          [grid-template-areas:'rail_topbar_topbar_topbar'_'rail_sidebar_main_rightrail']"
       >
         <WsRail />
         <TopBar />
@@ -108,7 +110,6 @@ export default function AppShell() {
           <Outlet />
         </main>
         <RightRailOutlet />
-        <ArchiveDock />
       </div>
     </RightRailProvider>
   );

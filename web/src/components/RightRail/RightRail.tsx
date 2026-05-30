@@ -13,8 +13,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Ic } from "../Ui/Ic";
-import { ConnectorIcon } from "../Ui/BrandIc";
+import { GlyphSlot, GConnectorIcon } from "../Goofy";
 import { apiFetch } from "../../api/client";
 import { getSubscription } from "../../api/integrations";
 import { getNotificationsSse } from "../../lib/sse";
@@ -29,14 +28,17 @@ import type {
 // ── Shared Tailwind fragments ────────────────────────────────────────────────
 
 const SECTION_CLS = "mb-[18px]";
+// Section headers were uppercase tracking-wide chrome from the legacy
+// design. Goofy headers stay Fredoka, sentence-case, with the same
+// rhythm so the right rail reads as a sibling of the sidebar.
 const HEADER_CLS =
-  "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-text-2 font-semibold";
+  "flex items-center gap-1.5 py-1 px-0.5 font-display font-semibold text-[12.5px] text-text-2";
 const HEADER_AI_CLS =
-  "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-ai font-semibold";
+  "flex items-center gap-1.5 py-1 px-0.5 font-display font-semibold text-[12.5px] text-ai";
 const CARD_AI_CLS =
-  "mt-1.5 py-2.5 px-3 bg-ai-bg border border-ai-glow rounded-lg";
+  "mt-1.5 py-2.5 px-3 bg-ai-bg border-2 border-ai rounded-[12px] shadow-[2px_2px_0_var(--ai)]";
 
-const COMING_SOON_CLS = "mt-1 text-[11px] text-text-3 italic";
+const COMING_SOON_CLS = "mt-1 font-hand font-bold text-[15px] text-text-3 leading-none";
 
 // ── DocsSection ──────────────────────────────────────────────────────────────
 // Attempts `GET /chat/channels/<id>/documents/` and renders any returned
@@ -84,7 +86,7 @@ export function DocsSection({ channelId }: DocsSectionProps) {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <Ic.doc />
+        <GlyphSlot name="doc" />
         <span>Docs{list.length ? ` · ${list.length}` : ""}</span>
         <span className="flex-1" />
         <button
@@ -92,13 +94,13 @@ export function DocsSection({ channelId }: DocsSectionProps) {
           aria-label="New doc"
           className="grid place-items-center p-0.5 bg-transparent border-0 text-text-3 cursor-pointer hover:text-text-0"
         >
-          <Ic.plus />
+          <GlyphSlot name="plus" />
         </button>
       </div>
       <div className="flex flex-col gap-0.5 mt-1">
         {list.length === 0 ? (
           <div className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-3">
-            <Ic.doc className="text-text-3" />
+            <GlyphSlot name="doc" className="text-text-3" />
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               No docs yet
             </span>
@@ -110,7 +112,7 @@ export function DocsSection({ channelId }: DocsSectionProps) {
               key={d.id ?? `${d.name}-${i}`}
               className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-1 hover:bg-bg-2 hover:text-text-0"
             >
-              <Ic.doc className="text-text-3" />
+              <GlyphSlot name="doc" className="text-text-3" />
               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                 {d.name}
               </span>
@@ -187,7 +189,7 @@ export function ContextSection() {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <Ic.link />
+        <GlyphSlot name="link" />
         <span>Context</span>
         <span className="flex-1" />
       </div>
@@ -211,7 +213,7 @@ export function ContextSection() {
             className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] w-full hover:bg-bg-2"
           >
             <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
-              <ConnectorIcon slug={p.slug} label={p.display_name} />
+              <GConnectorIcon slug={p.slug} label={p.display_name} />
             </span>
             <span className="flex-1 min-w-0 text-text-0 overflow-hidden text-ellipsis whitespace-nowrap">
               {p.display_name}
@@ -256,7 +258,7 @@ export function DonnaToday() {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_AI_CLS}>
-        <Ic.sparkle />
+        <GlyphSlot name="sparkle" />
         <span>Donna today</span>
         <span className="flex-1" />
       </div>
@@ -283,38 +285,13 @@ export function DonnaToday() {
   );
 }
 
-// ── MemoryStub ───────────────────────────────────────────────────────────────
-
-interface MemoryStubProps {
-  scope: "channel" | "personal";
-}
-
-export function MemoryStub({ scope }: MemoryStubProps) {
-  return (
-    <section className={SECTION_CLS}>
-      <div className={HEADER_AI_CLS}>
-        <Ic.brain />
-        <span>Memory</span>
-        <span className="flex-1" />
-      </div>
-      <div className="flex items-start gap-2 py-2 px-2.5 bg-bg-2 border border-border-soft rounded-lg text-[12px]">
-        <span className="font-mono text-[11px] text-ai bg-ai-bg py-px px-1.5 rounded-sm shrink-0">
-          scope
-        </span>
-        <span className="text-text-1">{scope}</span>
-      </div>
-      <div className={COMING_SOON_CLS}>Coming soon</div>
-    </section>
-  );
-}
-
 // ── ProgressStub ─────────────────────────────────────────────────────────────
 
 export function ProgressStub() {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <Ic.bolt />
+        <GlyphSlot name="bolt" />
         <span>Progress</span>
         <span className="flex-1" />
       </div>

@@ -18,36 +18,36 @@
 // Publishes `<DonnaToday/>` + `<MemoryStub scope="personal"/>` into
 // the shell's right-rail slot via `useRightRail`. The slot clears on
 // unmount.
+//
+// Goofy chrome
+// ────────────
+// The history sidebar uses `<GListItem/>` rows (with a dot bullet) and
+// the "New chat" CTA is a `<GButton variant="ai">`. The composer is
+// passed `ai` so its inner `<GField/>` switches to the grape-tinted
+// variant. Messages render through the shared `<Message/>` component
+// which already wraps in `<GBubble/>` / `<GRun/>`.
 
 import { useEffect, useMemo, useRef, useLayoutEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Composer from "../components/Channel/Composer";
 import MessageRow from "../components/Channel/Message";
-import {
-  DonnaToday,
-  MemoryStub,
-} from "../components/RightRail/RightRail";
+import { DonnaToday } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
-import { Av } from "../components/Ui/Av";
-import { Ic } from "../components/Ui/Ic";
+import { comingSoonToast, toast } from "../state/toasts";
+import {
+  GAvatar,
+  GButton,
+  GChip,
+  GListItem,
+  GlyphSlot,
+} from "../components/Goofy";
 import { hueForAgent } from "../lib/hueForAgent";
 import { getChatWs } from "../lib/ws";
 import { useChannels } from "../state/channels";
 import { useMessages } from "../state/messages";
 
 const NEAR_BOTTOM_PX = 80;
-
-// Reusable Tailwind fragments — kept as constants so the JSX stays terse.
-const HIST_ITEM_BASE =
-  "block w-full text-left bg-transparent border-0 cursor-pointer py-2 px-2.5 rounded-md mx-0.5 my-px hover:bg-bg-2";
-const HIST_ITEM_ACTIVE = "bg-bg-3";
-
-// Chat-head pill (Memory · N, Switch agent) — disclosure-style chip.
-// The design's `.channel-header .pill` rule isn't scoped to `.personal`,
-// so we replicate the matching look with utilities.
-const PILL_CLS =
-  "flex items-center gap-1.5 h-7 px-3 rounded-md border border-border-soft bg-bg-2 text-[12px] text-text-1 cursor-pointer hover:bg-bg-3";
 
 export default function Personal() {
   const navigate = useNavigate();
@@ -78,7 +78,6 @@ export default function Personal() {
     () => (
       <>
         <DonnaToday />
-        <MemoryStub scope="personal" />
       </>
     ),
     [],
@@ -89,9 +88,7 @@ export default function Personal() {
   const messages = useMessages((s) =>
     active ? s.byChannel[active.id] : undefined,
   );
-  const loading = useMessages((s) =>
-    active ? !!s.loading[active.id] : false,
-  );
+  const loading = useMessages((s) => (active ? !!s.loading[active.id] : false));
   const loadInitial = useMessages((s) => s.loadInitial);
   const appendFromEvent = useMessages((s) => s.appendFromEvent);
   const updateFromEvent = useMessages((s) => s.updateFromEvent);
@@ -165,50 +162,45 @@ export default function Personal() {
 
   return (
     <div className="grid grid-cols-[240px_1fr] h-full min-h-0">
-      <aside className="border-r border-border-soft overflow-y-auto py-2 px-1.5">
-        <button
-          type="button"
-          className="flex items-center gap-2 py-2 px-2.5 bg-ai-bg border border-ai-glow rounded-lg text-ai text-[12.5px] font-medium mt-1 mb-2.5 mx-1 cursor-pointer hover:bg-ai-glow"
-          onClick={() =>
-            alert(
-              "Personal chats with Donna will get their own backing model soon. For now, open any direct-message channel from the sidebar.",
-            )
-          }
-        >
-          <Ic.plus />
-          <span>New chat with Donna</span>
-        </button>
+      <aside className="border-r border-border-soft overflow-y-auto py-3 px-2">
+        <div className="px-1 mb-3">
+          <GButton
+            variant="ai"
+            icon="plus"
+            className="w-full justify-center"
+            onClick={() =>
+              toast({
+                tone: "ai",
+                title: "Personal chats coming soon",
+                sub: "For now, open any direct-message channel from the sidebar.",
+              })
+            }
+          >
+            New chat
+          </GButton>
+        </div>
 
         {directChannels.length === 0 ? (
           <div className="py-5 px-3 text-[12px] text-text-3 leading-[1.55]">
-            No personal chats yet. Direct messages will appear here when
-            you start one from the workspace sidebar.
+            No personal chats yet. Direct messages will appear here when you
+            start one from the workspace sidebar.
           </div>
         ) : (
           <>
-            <div className="text-[10.5px] tracking-[0.06em] uppercase text-text-3 pt-1.5 pb-1 px-2.5 font-semibold">
+            <div className="font-hand font-bold text-[13px] text-ai-deep pt-1.5 pb-1.5 px-2.5">
               Recent
             </div>
             {directChannels.map((c) => {
               const isActive = active?.id === c.id;
               return (
-                <button
+                <GListItem
                   key={c.id}
-                  type="button"
-                  className={`${HIST_ITEM_BASE}${isActive ? ` ${HIST_ITEM_ACTIVE}` : ""}`}
+                  hash="·"
+                  active={isActive}
                   onClick={() => navigate(`/personal/${c.id}`)}
                 >
-                  <div className="text-[12.5px] text-text-0 font-medium">
-                    {c.name || "Direct message"}
-                  </div>
-                  <div className="text-[11.5px] text-text-2 mt-px overflow-hidden text-ellipsis whitespace-nowrap">
-                    {c.topic || "—"}
-                  </div>
-                  <div className="text-[10.5px] text-text-3 mt-0.5 flex gap-1.5 items-center">
-                    <Av kind="agent" agent={agentIdentity} size="sm" />
-                    <span>{agentIdentity.name}</span>
-                  </div>
-                </button>
+                  {c.name || "Direct message"}
+                </GListItem>
               );
             })}
           </>
@@ -219,33 +211,37 @@ export default function Personal() {
         {active ? (
           <>
             <header className="flex items-center gap-3 px-[22px] py-3 border-b border-border-soft">
-              <Av kind="agent" agent={agentIdentity} pulsing />
+              <GAvatar
+                kind="agent"
+                name={agentIdentity.name}
+                hue={agentIdentity.hue}
+                pulsing
+              />
               <div>
-                <div className="font-semibold text-text-0 text-[14px]">
+                <div className="font-display font-semibold text-text-0 text-[16px]">
                   {agentIdentity.name}
                 </div>
-                <div className="text-text-3 text-[12px]">
+                <div className="font-hand font-bold text-[14px] text-ai-deep leading-none">
                   Personal AI · {active.name}
                 </div>
               </div>
               <div className="flex-1" />
-              <button
-                type="button"
-                className={PILL_CLS}
+              <GChip
+                variant="ai"
                 title="Coming soon"
-                onClick={() => alert("Memory inspector coming soon.")}
+                onClick={() => comingSoonToast("Memory inspector")}
               >
-                <Ic.brain />
+                <GlyphSlot name="brain" size={12} />
                 <span>Memory · 0 items</span>
-              </button>
-              <button
-                type="button"
-                className={PILL_CLS}
-                onClick={() => alert("Agent switcher coming soon.")}
+              </GChip>
+              <GButton
+                variant="default"
+                size="sm"
+                iconRight="caret"
+                onClick={() => comingSoonToast("Agent switcher")}
               >
-                <span>Switch agent</span>
-                <Ic.caret />
-              </button>
+                Switch agent
+              </GButton>
             </header>
 
             <div
@@ -265,12 +261,13 @@ export default function Personal() {
             <Composer
               channelId={active.id}
               placeholder="Ask Donna anything · drop a file · /command"
+              ai
             />
           </>
         ) : (
           <div className="flex-1 grid place-items-center p-10 text-text-2 text-center">
             <div className="max-w-[360px]">
-              <div className="text-[15px] text-text-0 font-medium mb-1.5">
+              <div className="font-display font-semibold text-[16px] text-text-0 mb-1.5">
                 No personal chat yet
               </div>
               <div className="text-[13px] leading-[1.55]">

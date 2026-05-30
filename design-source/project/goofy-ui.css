@@ -1,0 +1,592 @@
+/* ════════════════════════════════════════════════════════════════
+   GOOFY UI  🦔  — a portable component library extracted from the
+   DonnaAI "goofy" reskin. Everything is namespaced under .gx so it
+   can drop into any page without fighting app CSS.
+
+   Cream paper / midnight slate · chunky ink borders · hard offset
+   sticker shadows · bouncy corners · rounded display type · cheeky
+   tilts · springy press-down hovers.
+
+   THEMES:  .gx           → Cream goofy (light)
+            .gx.dark      → Midnight goofy (dark)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Shared tokens (palette-independent) ─────────────────────── */
+.gx {
+  --on-bright: oklch(0.22 0.04 285);     /* text on bright sticker fills */
+  --shadow-1: 2px 2px 0 var(--ink);
+  --shadow-2: 5px 5px 0 var(--ink);
+  --r-sm: 7px;
+  --r: 11px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --ai-h: 288;
+
+  font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-1);
+  background: var(--bg-0);
+  background-image: radial-gradient(var(--paper-dot) 1.3px, transparent 1.3px);
+  background-size: 22px 22px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── CREAM GOOFY (light, default) ────────────────────────────── */
+.gx {
+  --bg-0: oklch(0.962 0.022 92);
+  --bg-1: oklch(0.995 0.006 92);
+  --bg-2: oklch(0.945 0.026 92);
+  --bg-3: oklch(0.905 0.045 92);
+  --bg-4: oklch(0.86 0.06 92);
+
+  --ink: oklch(0.26 0.03 285);
+  --border: oklch(0.26 0.03 285 / 0.92);
+  --border-strong: oklch(0.20 0.03 285);
+  --paper-dot: oklch(0.26 0.03 285 / 0.05);
+
+  --text-0: oklch(0.24 0.035 285);
+  --text-1: oklch(0.34 0.03 285);
+  --text-2: oklch(0.46 0.028 285);
+  --text-3: oklch(0.56 0.026 285);
+  --text-4: oklch(0.66 0.024 285);
+
+  --ai: oklch(0.55 0.23 var(--ai-h));
+  --ai-dim: oklch(0.62 0.17 var(--ai-h));
+  --ai-deep: oklch(0.42 0.20 var(--ai-h));
+  --ai-bg: oklch(0.55 0.23 var(--ai-h) / 0.12);
+  --ai-glow: oklch(0.55 0.23 var(--ai-h) / 0.45);
+
+  --pop-blue: oklch(0.58 0.20 255);
+  --pop-coral: oklch(0.66 0.20 33);
+  --pop-sun: oklch(0.84 0.16 92);
+  --pop-mint: oklch(0.74 0.16 158);
+
+  --ok: oklch(0.66 0.18 150);
+  --warn: oklch(0.78 0.16 78);
+  --danger: oklch(0.62 0.22 28);
+}
+
+/* ── MIDNIGHT GOOFY (dark) ───────────────────────────────────── */
+.gx.dark {
+  --bg-0: oklch(0.305 0.020 285);
+  --bg-1: oklch(0.350 0.022 285);
+  --bg-2: oklch(0.395 0.024 285);
+  --bg-3: oklch(0.450 0.028 285);
+  --bg-4: oklch(0.510 0.030 285);
+
+  --ink: oklch(0.80 0.028 92);
+  --border: oklch(0.80 0.028 92 / 0.62);
+  --border-strong: oklch(0.86 0.025 92);
+  --paper-dot: oklch(0.90 0.03 92 / 0.045);
+
+  --text-0: oklch(0.94 0.012 285);
+  --text-1: oklch(0.86 0.015 285);
+  --text-2: oklch(0.73 0.017 285);
+  --text-3: oklch(0.63 0.018 285);
+  --text-4: oklch(0.55 0.02 285);
+
+  --ai: oklch(0.74 0.18 var(--ai-h));
+  --ai-dim: oklch(0.66 0.15 var(--ai-h));
+  --ai-deep: oklch(0.84 0.14 var(--ai-h));
+  --ai-bg: oklch(0.74 0.18 var(--ai-h) / 0.18);
+  --ai-glow: oklch(0.74 0.18 var(--ai-h) / 0.45);
+
+  --pop-blue: oklch(0.68 0.17 255);
+  --pop-coral: oklch(0.72 0.19 33);
+  --pop-sun: oklch(0.85 0.15 92);
+  --pop-mint: oklch(0.79 0.15 158);
+
+  --ok: oklch(0.76 0.16 150);
+  --warn: oklch(0.83 0.14 78);
+  --danger: oklch(0.70 0.20 28);
+}
+
+.gx *, .gx *::before, .gx *::after { box-sizing: border-box; }
+/* :where() keeps the reset at element-only specificity so component classes always win */
+:where(.gx) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:where(.gx) input, :where(.gx) textarea { font: inherit; color: inherit; background: transparent; border: 0; outline: 0; }
+.gx ::selection { background: var(--pop-sun); color: var(--on-bright); }
+
+/* Chunky scrollbars */
+.gx ::-webkit-scrollbar { width: 13px; height: 13px; }
+.gx ::-webkit-scrollbar-thumb {
+  background: var(--ink); border-radius: 8px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+.gx ::-webkit-scrollbar-thumb:hover { background: var(--ai); background-clip: content-box; }
+
+/* ════════════════════════════════════════════════════════════════
+   TYPE
+   ════════════════════════════════════════════════════════════════ */
+.gx-display { font-family: "Fredoka", "Geist", sans-serif; font-weight: 600; color: var(--text-0); letter-spacing: 0; line-height: 1.1; }
+.gx-hand    { font-family: "Caveat", cursive; font-weight: 700; color: var(--ai-deep); letter-spacing: 0.01em; line-height: 1.1; }
+.gx-mono    { font-family: "Geist Mono", ui-monospace, monospace; }
+
+/* Hand-lettered section label */
+.gx-label {
+  font-family: "Caveat", cursive; font-weight: 700;
+  font-size: 16px; color: var(--ai-deep);
+  letter-spacing: 0.01em; text-transform: none;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BUTTONS  — every button presses down & tilts on hover
+   ════════════════════════════════════════════════════════════════ */
+.gx-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 16px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--shadow-1);
+  background: var(--bg-1); color: var(--text-0);
+  font-weight: 600; font-size: 13px;
+  white-space: nowrap;
+  transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease;
+}
+.gx-btn:hover { transform: translate(-1px,-1px) rotate(-2deg); box-shadow: 3px 3px 0 var(--ink); }
+.gx-btn:active { transform: translate(2px,2px) rotate(0); box-shadow: 0 0 0 var(--ink); }
+
+.gx-btn--coral { background: var(--pop-coral); color: #fff; }
+.gx-btn--sun   { background: var(--pop-sun);   color: var(--on-bright); }
+.gx-btn--mint  { background: var(--pop-mint);  color: var(--on-bright); }
+.gx-btn--blue  { background: var(--pop-blue);  color: #fff; }
+.gx-btn--ai    { background: var(--ai);        color: #fff; }
+.gx-btn--ghost { background: transparent; box-shadow: none; border-color: var(--border); }
+.gx-btn--ghost:hover { background: var(--bg-3); box-shadow: var(--shadow-1); }
+
+.gx-btn--sm { height: 27px; padding: 0 11px; font-size: 12px; }
+.gx-btn--lg { height: 42px; padding: 0 22px; font-size: 15px; }
+.gx-btn[disabled] { opacity: 0.5; pointer-events: none; }
+
+.gx-btn svg { width: 15px; height: 15px; }
+
+/* Icon button — spins a touch on hover */
+.gx-btn-icon {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  color: var(--text-2);
+  transition: transform .14s ease, background .12s ease, color .12s ease;
+}
+.gx-btn-icon:hover { background: var(--bg-3); color: var(--text-0); transform: rotate(8deg); }
+.gx-btn-icon--outlined { border: 2px solid var(--ink); box-shadow: var(--shadow-1); color: var(--text-0); }
+.gx-btn-icon--outlined:hover { transform: translate(-1px,-1px) rotate(6deg); box-shadow: 3px 3px 0 var(--ink); }
+.gx-btn-icon svg { width: 17px; height: 17px; }
+
+/* ════════════════════════════════════════════════════════════════
+   INPUTS
+   ════════════════════════════════════════════════════════════════ */
+.gx-input {
+  display: flex; align-items: center; gap: 9px;
+  height: 38px; padding: 0 14px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--shadow-1);
+  background: var(--bg-1);
+  color: var(--text-2);
+}
+.gx-input:focus-within { box-shadow: 3px 3px 0 var(--ai); border-color: var(--ai); }
+.gx-input input { flex: 1; min-width: 0; color: var(--text-0); font-size: 13.5px; }
+.gx-input input::placeholder { color: var(--text-3); }
+.gx-input svg { width: 16px; height: 16px; color: var(--text-3); flex-shrink: 0; }
+.gx-input kbd {
+  font-family: "Geist Mono", monospace; font-size: 10.5px; font-weight: 600;
+  padding: 2px 6px; border-radius: 5px;
+  border: 1.5px solid var(--ink);
+  background: var(--pop-sun); color: var(--on-bright);
+}
+
+/* Big rounded note-card textarea */
+.gx-field {
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--bg-1);
+  padding: 12px 14px;
+}
+.gx-field:focus-within { box-shadow: 3px 3px 0 var(--ai); border-color: var(--ai); }
+.gx-field textarea { width: 100%; resize: none; color: var(--text-0); font-size: 13.5px; line-height: 1.55; display: block; }
+.gx-field textarea::placeholder { color: var(--text-3); }
+
+/* AI-flavoured field */
+.gx-field--ai { background: var(--ai-bg); border-color: var(--ai); box-shadow: 3px 3px 0 var(--ai); }
+
+/* ════════════════════════════════════════════════════════════════
+   CHIPS / TAGS
+   ════════════════════════════════════════════════════════════════ */
+.gx-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--shadow-1);
+  background: var(--bg-1); color: var(--text-1);
+  font-size: 12.5px; font-weight: 500;
+  transition: transform .12s cubic-bezier(.34,1.56,.64,1), box-shadow .12s ease;
+}
+.gx-chip:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+.gx-chip.is-active { background: var(--pop-sun); color: var(--on-bright); }
+.gx-chip .gx-chip-x { display: grid; place-items: center; width: 14px; height: 14px; opacity: 0.7; }
+.gx-chip .gx-chip-x:hover { opacity: 1; }
+
+/* Flat little tag (no shadow) */
+.gx-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg-2); color: var(--text-2);
+  font-size: 11.5px; font-weight: 500;
+}
+.gx-tag--mint { background: var(--pop-mint); color: var(--on-bright); }
+.gx-tag--sun  { background: var(--pop-sun);  color: var(--on-bright); }
+.gx-tag .count { font-family: "Geist Mono", monospace; opacity: 0.7; }
+
+/* ════════════════════════════════════════════════════════════════
+   BADGES
+   ════════════════════════════════════════════════════════════════ */
+.gx-badge {
+  display: inline-grid; place-items: center;
+  min-width: 18px; height: 18px; padding: 0 6px;
+  border-radius: 999px;
+  background: var(--ink); color: var(--bg-1);
+  font-size: 10px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.gx-badge--mention {
+  background: var(--pop-coral); color: #fff;
+  border: 1.5px solid var(--ink);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  transform: rotate(-6deg);
+}
+.gx-role-chip {
+  display: inline-block; padding: 2px 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  background: var(--ai); color: #fff;
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  transform: rotate(-4deg);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AVATARS  — every face gets an ink outline
+   ════════════════════════════════════════════════════════════════ */
+.gx-av {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  display: grid; place-items: center;
+  font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 12px;
+  color: #fff; position: relative;
+}
+.gx-av.sm { width: 22px; height: 22px; border-width: 1.5px; border-radius: 6px; font-size: 10px; }
+.gx-av.lg { width: 46px; height: 46px; border-radius: 13px; font-size: 17px; }
+.gx-av.xl { width: 72px; height: 72px; border-radius: 20px; border-width: 2.5px; font-size: 26px; }
+.gx-av.agent {
+  color: #fff;
+  background: radial-gradient(at 30% 25%, oklch(0.85 0.18 var(--ai-h)) 0%, oklch(0.55 0.22 var(--ai-h)) 60%, oklch(0.40 0.18 var(--ai-h)) 100%);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.gx-av.agent.pulsing::after {
+  content: ""; position: absolute; inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--ai);
+  animation: gx-pulse-ring 1.6s ease-out infinite;
+}
+/* Stacked avatar group */
+.gx-av-stack { display: flex; }
+.gx-av-stack .gx-av { margin-left: -8px; box-shadow: 0 0 0 2px var(--bg-0); }
+.gx-av-stack .gx-av:first-child { margin-left: 0; }
+
+/* ════════════════════════════════════════════════════════════════
+   CARDS
+   ════════════════════════════════════════════════════════════════ */
+.gx-card {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: var(--shadow-1);
+  background: var(--bg-1);
+  padding: 14px 16px;
+  transition: transform .14s cubic-bezier(.34,1.56,.64,1), box-shadow .14s ease;
+}
+.gx-card--hover:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--ink); }
+.gx-card--ai { background: var(--ai-bg); border-color: var(--ai); box-shadow: 2px 2px 0 var(--ai); }
+.gx-card .gx-card-title { font-family: "Fredoka", sans-serif; font-weight: 600; color: var(--text-0); font-size: 15px; }
+.gx-card .gx-card-sub { color: var(--text-2); font-size: 12.5px; margin-top: 3px; line-height: 1.5; }
+
+/* Stat card */
+.gx-stat { display: flex; flex-direction: column; gap: 2px; }
+.gx-stat .v { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 22px; color: var(--text-0); }
+.gx-stat .l { font-size: 11px; color: var(--text-3); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* ════════════════════════════════════════════════════════════════
+   LISTS
+   ════════════════════════════════════════════════════════════════ */
+.gx-list { display: flex; flex-direction: column; gap: 2px; }
+.gx-list-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 9px; border-radius: 9px;
+  color: var(--text-1); font-size: 13px;
+  cursor: pointer;
+  transition: background .1s ease;
+}
+.gx-list-item:hover { background: var(--bg-3); }
+.gx-list-item.is-active {
+  background: var(--pop-sun); color: var(--on-bright);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-1);
+  font-weight: 600; padding: 4px 7px;
+}
+.gx-list-item .hash { color: var(--text-3); width: 14px; text-align: center; flex-shrink: 0; }
+.gx-list-item.is-active .hash { color: var(--on-bright); }
+.gx-list-item .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gx-list-item .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
+.gx-list-item .dot.online { background: var(--ok); }
+.gx-list-item .dot.ai { background: var(--ai); box-shadow: 0 0 0 2px var(--ai-glow); }
+
+/* Document row (icon + name + meta) */
+.gx-doc {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 9px; border-radius: 8px;
+  color: var(--text-1); font-size: 12.5px; cursor: pointer;
+  transition: background .1s, transform .1s;
+}
+.gx-doc:hover { background: var(--bg-3); transform: translateX(2px); }
+.gx-doc .icon { color: var(--text-3); display: grid; place-items: center; }
+.gx-doc .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gx-doc .meta { color: var(--text-3); font-size: 11px; font-family: "Geist Mono", monospace; }
+
+/* ════════════════════════════════════════════════════════════════
+   TOGGLES — checkbox, task-check (spinner), switch
+   ════════════════════════════════════════════════════════════════ */
+.gx-check {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  display: grid; place-items: center;
+  color: transparent; cursor: pointer;
+  background: var(--bg-1);
+  transition: transform .12s cubic-bezier(.34,1.56,.64,1);
+}
+.gx-check:hover { transform: rotate(-6deg) scale(1.05); }
+.gx-check.is-checked { background: var(--ok); color: #fff; }
+.gx-check svg { width: 12px; height: 12px; }
+
+/* Round task check + running spinner */
+.gx-task-check {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  color: transparent; position: relative; background: var(--bg-1);
+}
+.gx-task-check.is-done { background: var(--ok); color: #fff; }
+.gx-task-check.is-running { border-color: var(--ink); }
+.gx-task-check.is-running::after {
+  content: ""; position: absolute; inset: 1px; border-radius: 50%;
+  border: 2px solid transparent; border-top-color: var(--ai); border-right-color: var(--ai);
+  animation: gx-spin 0.9s linear infinite;
+}
+.gx-task-check svg { width: 11px; height: 11px; }
+
+/* Switch */
+.gx-switch {
+  width: 44px; height: 26px; flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg-2);
+  box-shadow: var(--shadow-1);
+  position: relative; cursor: pointer;
+  transition: background .15s ease;
+}
+.gx-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--ink); background: var(--bg-1);
+  transition: left .18s cubic-bezier(.34,1.56,.64,1);
+}
+.gx-switch.is-on { background: var(--pop-mint); }
+.gx-switch.is-on::after { left: 20px; }
+
+/* ════════════════════════════════════════════════════════════════
+   POPOVERS / MENUS / HOVER TOOLBAR
+   ════════════════════════════════════════════════════════════════ */
+.gx-popover {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2);
+  background: var(--bg-1);
+  padding: 6px;
+  min-width: 190px;
+}
+.gx-menu-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 10px; border-radius: 8px;
+  color: var(--text-1); font-size: 13px; cursor: pointer;
+  transition: background .1s, transform .1s;
+}
+.gx-menu-item:hover { background: var(--bg-3); transform: translateX(2px); }
+.gx-menu-item.is-ai:hover { background: var(--ai-bg); color: var(--ai-deep); }
+.gx-menu-item.is-danger { color: var(--danger); }
+.gx-menu-item .icon { width: 16px; display: grid; place-items: center; color: var(--text-3); }
+.gx-menu-item.is-ai:hover .icon { color: var(--ai); }
+.gx-menu-item .grow { flex: 1; }
+.gx-menu-item kbd { font-family: "Geist Mono", monospace; font-size: 10px; color: var(--text-3); }
+.gx-menu-sep { height: 0; border-top: 2px dashed var(--border); margin: 5px 4px; }
+
+/* Floating hover-action toolbar (like message actions) */
+.gx-toolbar {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--shadow-1);
+  background: var(--bg-1);
+}
+.gx-toolbar .tb {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: grid; place-items: center; color: var(--text-2);
+  transition: background .1s, color .1s, transform .1s;
+}
+.gx-toolbar .tb:hover { background: var(--bg-3); color: var(--text-0); transform: rotate(6deg); }
+.gx-toolbar .tb.ai:hover { background: var(--ai-bg); color: var(--ai); }
+.gx-toolbar .tb svg { width: 15px; height: 15px; }
+
+/* Tooltip / sticker note */
+.gx-tooltip {
+  display: inline-block; padding: 5px 11px;
+  border: 2px solid var(--ink); border-radius: 9px;
+  box-shadow: var(--shadow-1);
+  background: var(--ink); color: var(--bg-1);
+  font-size: 12px; font-weight: 600;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TABS  — segmented sticker
+   ════════════════════════════════════════════════════════════════ */
+.gx-tabs {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border: 2px solid var(--ink); border-radius: 12px;
+  box-shadow: var(--shadow-1); background: var(--bg-1);
+}
+.gx-tab {
+  padding: 5px 13px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 500; color: var(--text-2);
+  cursor: pointer; transition: background .12s, color .12s;
+}
+.gx-tab:hover { color: var(--text-0); }
+.gx-tab.is-active { background: var(--pop-sun); color: var(--on-bright); border: 1.5px solid var(--ink); font-weight: 600; }
+
+/* ════════════════════════════════════════════════════════════════
+   CHAT BUBBLES
+   ════════════════════════════════════════════════════════════════ */
+.gx-bubble { max-width: 460px; font-size: 14px; line-height: 1.5; }
+.gx-bubble.user {
+  margin-left: auto;
+  background: var(--pop-blue); color: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 16px 16px 5px 16px;
+  box-shadow: var(--shadow-1);
+  padding: 10px 14px;
+  font-family: "Fredoka", sans-serif; font-weight: 500;
+}
+.gx-bubble.agent { display: flex; gap: 10px; align-items: flex-start; }
+.gx-bubble.agent .text {
+  background: var(--bg-1); color: var(--text-1);
+  border: 2px solid var(--ink);
+  border-radius: 16px 16px 16px 5px;
+  box-shadow: var(--shadow-1);
+  padding: 10px 14px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AGENT RUN CARD  — the showpiece sticker
+   ════════════════════════════════════════════════════════════════ */
+.gx-run {
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 5px 5px 0 var(--ai);
+  background: linear-gradient(180deg, var(--ai-bg) 0%, var(--bg-1) 60%);
+  overflow: hidden;
+}
+.gx-run-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 14px;
+  border-bottom: 2px dashed var(--ink);
+}
+.gx-run-head .label { font-family: "Caveat", cursive; font-weight: 700; font-size: 16px; color: var(--ai-deep); }
+.gx-run-head .summary { font-size: 12.5px; color: var(--text-1); }
+.gx-run-head .grow { flex: 1; }
+.gx-run-head .status { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-2); }
+.gx-led { width: 8px; height: 8px; border-radius: 50%; }
+.gx-led.done { background: var(--ok); }
+.gx-led.running { background: var(--ai); animation: gx-blink 1.2s ease-in-out infinite; }
+
+.gx-run-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+.gx-run-step { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-1); }
+.gx-run-step .step-icon {
+  width: 24px; height: 24px; flex-shrink: 0;
+  border: 1.5px solid var(--ink); border-radius: 7px;
+  display: grid; place-items: center;
+  background: var(--pop-mint); color: var(--on-bright);
+}
+.gx-run-step .step-icon svg { width: 13px; height: 13px; }
+.gx-run-step .label { color: var(--text-0); }
+.gx-run-step .meta { color: var(--text-3); font-family: "Geist Mono", monospace; font-size: 11px; }
+.gx-run-step .state { margin-left: auto; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+.gx-run-step .state.running { color: var(--ai); }
+
+.gx-run-thought {
+  display: flex; align-items: flex-start; gap: 8px;
+  color: var(--text-2); font-style: italic; font-size: 12.5px;
+}
+.gx-run-thought::before { content: ""; width: 3px; align-self: stretch; border-radius: 2px; background: var(--ai); }
+.gx-run-thought .dots::after { content: " ●"; animation: gx-dots 1s steps(3,end) infinite; }
+
+.gx-run-output {
+  border: 2px solid var(--ink); border-radius: 11px;
+  box-shadow: var(--shadow-1);
+  background: var(--bg-1);
+  padding: 10px 12px; color: var(--text-0); font-size: 13px; line-height: 1.55;
+}
+.gx-run-foot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-top: 2px dashed var(--ink);
+}
+.gx-run-foot .mem {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1.5px solid var(--ink); background: var(--bg-1);
+  font-family: "Geist Mono", monospace; font-size: 11px; color: var(--text-2);
+}
+.gx-run-foot .grow { flex: 1; }
+.gx-run-foot .act { font-size: 11.5px; color: var(--text-2); padding: 4px 9px; border-radius: 7px; cursor: pointer; }
+.gx-run-foot .act:hover { background: var(--bg-2); color: var(--text-0); }
+.gx-run-foot .act.primary {
+  background: var(--ai); color: #fff;
+  border: 1.5px solid var(--ink);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════════════════════════════ */
+@keyframes gx-pulse-ring { 0% { transform: scale(0.95); opacity: 0.7; } 100% { transform: scale(1.3); opacity: 0; } }
+@keyframes gx-spin { to { transform: rotate(360deg); } }
+@keyframes gx-blink { 50% { opacity: 0.35; } }
+@keyframes gx-dots { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+@keyframes gx-wiggle { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes gx-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes gx-pop-in { 0% { transform: scale(0.6) rotate(-8deg); opacity: 0; } 70% { transform: scale(1.08) rotate(2deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+
+.gx-anim-wiggle { animation: gx-wiggle 0.9s ease-in-out infinite; }
+.gx-anim-bob    { animation: gx-bob 1.6s ease-in-out infinite; }
+.gx-anim-pop    { animation: gx-pop-in 0.4s cubic-bezier(.34,1.56,.64,1) both; }
+.gx-anim-spin   { animation: gx-spin 1.2s linear infinite; }
+
+/* Global wiggle mode — gives every sticker a tiny restless tilt */
+.gx.wiggly .gx-btn:hover { animation: gx-wiggle 0.5s ease-in-out infinite; }

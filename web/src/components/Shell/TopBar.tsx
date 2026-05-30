@@ -1,22 +1,43 @@
 // 44px header across the main + rightrail columns.
-// Ported from donnaai/project/sidebar.jsx:183-225.
+// Ported from donnaai/project/sidebar.jsx:183-225, then re-skinned onto
+// the Goofy library: search bar is `<GInput kbd="⌘K"/>`, bell + more are
+// `<GIconButton/>` stickers, the unread badge is `<GBadge mention/>`.
 //
 // The crumb on the left reads the route + channels store to pick a
-// label ("# general", "Personal · Donna", "Search…"). The search box
-// is decorative for now (focus + ⌘K kbd hint), wired to navigate to
-// /search on submit. Bell routes to /search for v1 since /notifications
-// isn't a real route yet.
+// label ("# general", "Personal · Donna", "Search…"); a hand-lettered
+// Caveat subtitle sits underneath. The search box is decorative for now
+// (focus + ⌘K kbd hint), wired to navigate to /search on submit. Bell
+// routes to /search for v1 since /notifications isn't a real route yet.
 
 import { useMemo } from "react";
-import { useLocation, useMatch, useNavigate } from "react-router-dom";
+import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { useChannels } from "../../state/channels";
 import { useNotifications } from "../../state/notifications";
-import { Ic } from "../Ui/Ic";
+import {
+  GBadge,
+  GIconButton,
+  GlyphSlot,
+  type IconName,
+} from "../Goofy";
+
+// Build once at module scope — `Intl.PluralRules` allocates a small
+// internal collator; cheap, but no reason to re-instantiate per render.
+const PLURAL_EN = new Intl.PluralRules("en-US");
+function notificationCount(n: number): string {
+  // English-only fallback for the v1 string; swap the locale + branches
+  // when full i18n lands. Uses the proper CLDR `one`/`other` keys
+  // instead of `n === 1 ? "" : "s"` so localisation can plug in later.
+  const form = PLURAL_EN.select(n);
+  return form === "one" ? `${n} unread notification` : `${n} unread notifications`;
+}
 
 interface Crumb {
-  icon: keyof typeof Ic;
+  icon: IconName;
   label: string;
+  /** Optional hand-lettered subtitle (Caveat). */
+  subtitle?: string;
+  /** Channel rows prefix the label with a `#` glyph in muted ink. */
   hashed?: boolean;
 }
 
@@ -35,19 +56,21 @@ export default function TopBar() {
         return {
           icon: ch.kind === "direct" ? "at" : "hash",
           label: ch.name,
+          subtitle: "let's talk",
           hashed: ch.kind === "channel",
         };
       }
-      return { icon: "hash", label: "Channel" };
+      return { icon: "hash", label: "Channel", subtitle: "let's talk" };
     }
     if (personalMatch || location.pathname.startsWith("/personal")) {
-      return { icon: "sparkle", label: "Personal · Donna" };
+      return {
+        icon: "sparkle",
+        label: "Personal · Donna",
+        subtitle: "your trusty teammate",
+      };
     }
     if (location.pathname.startsWith("/search")) {
-      return { icon: "search", label: "Search" };
-    }
-    if (location.pathname.startsWith("/vault")) {
-      return { icon: "archive", label: "Vault" };
+      return { icon: "search", label: "Search", subtitle: "find anything" };
     }
     if (location.pathname.startsWith("/agents")) {
       return { icon: "sparkle", label: "Agent profile" };
@@ -63,8 +86,6 @@ export default function TopBar() {
     channelsById,
   ]);
 
-  const CrumbIcon = Ic[crumb.icon];
-
   // Electron window drag — the whole top bar acts as the OS title bar.
   // Interactive children opt out via `no-drag`. No-ops in normal browsers.
   const dragStyle = { WebkitAppRegion: "drag" } as React.CSSProperties;
@@ -72,79 +93,94 @@ export default function TopBar() {
 
   return (
     <div
-      className="[grid-area:topbar] flex items-center gap-2.5 px-3 bg-bg-0 border-b border-border-soft"
+      // 3-column grid (1fr / auto / 1fr) — guarantees the centre column
+      // (search) is centred on the topbar regardless of how wide the
+      // crumb on the left is. A naive flex layout would let a variable-
+      // width crumb push the search off-centre across routes (which is
+      // what the previous `flex-1 + mx-auto` arrangement did — the search
+      // bar drifted ~80 px between e.g. `/channels` and `/personal`).
+      className="[grid-area:topbar] grid grid-cols-[1fr_auto_1fr] items-center gap-2.5 px-3 bg-bg-0 border-b border-border-soft"
       style={dragStyle}
     >
-      {/* pl-20 reserves space for macOS traffic-light controls under hiddenInset */}
-      <div className="flex items-center gap-2 text-text-2 text-[12.5px] pl-20">
-        <CrumbIcon />
+      {/* Left — crumb. `min-w-0` lets the inner span truncate cleanly when
+          the crumb is longer than the 1fr column. `pl-20` reserves the
+          macOS traffic-light controls under hiddenInset. */}
+      <div className="min-w-0 flex items-center gap-2 pl-20 font-display font-medium text-text-0 text-[14px]">
+        <GlyphSlot name={crumb.icon} size={16} />
         {crumb.hashed ? (
-          <>
-            <span className="text-text-3">#</span>
-            <b className="text-text-0 font-medium">{crumb.label}</b>
-          </>
+          <span className="flex items-baseline gap-1.5 min-w-0">
+            <span className="text-text-3 shrink-0">#</span>
+            <b className="font-display font-semibold text-text-0 truncate">
+              {crumb.label}
+            </b>
+            {crumb.subtitle ? (
+              <span className="font-hand font-bold text-[15px] text-ai-deep leading-none shrink-0">
+                {crumb.subtitle}
+              </span>
+            ) : null}
+          </span>
         ) : (
-          <b className="text-text-0 font-medium">{crumb.label}</b>
+          <span className="flex items-baseline gap-1.5 min-w-0">
+            <b className="font-display font-semibold text-text-0 truncate">
+              {crumb.label}
+            </b>
+            {crumb.subtitle ? (
+              <span className="font-hand font-bold text-[15px] text-ai-deep leading-none shrink-0">
+                {crumb.subtitle}
+              </span>
+            ) : null}
+          </span>
         )}
       </div>
 
-      <form
-        style={noDragStyle}
-        className="flex-1 max-w-[560px] mx-auto flex items-center gap-2 h-7 px-2.5 bg-bg-2 border border-border-soft rounded text-text-2 text-[12.5px]"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate("/search");
-        }}
-        role="search"
-        aria-label="Search"
-      >
-        <Ic.search />
-        <input
-          type="text"
-          className="flex-1"
-          placeholder="Search messages, files, agents, or ask Donna…"
-          onFocus={() => navigate("/search")}
-          readOnly
-        />
-        <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-sm bg-bg-1 border border-border-soft">
-          ⌘K
-        </kbd>
-      </form>
-
-      <div style={noDragStyle} className="flex gap-1">
-        <button
-          type="button"
-          className="relative w-7 h-7 grid place-items-center rounded-md text-text-2 hover:bg-bg-2 hover:text-text-0"
-          title={
-            unreadCount > 0
-              ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
-              : "Notifications"
-          }
-          aria-label={
-            unreadCount > 0
-              ? `Notifications (${unreadCount} unread)`
-              : "Notifications"
-          }
-          onClick={() => navigate("/search")}
+      {/* Centre — search trigger.
+          Previously a readonly `<input>` that navigated on focus, which
+          breaks Cmd-click + middle-click and is semantically a button
+          masquerading as text. Render a real `<Link/>` styled like the
+          GInput pill so keyboard, screen-reader, and pointer affordances
+          all agree on what's happening. */}
+      <div style={noDragStyle} className="w-[560px] max-w-[40vw]">
+        <Link
+          to="/search"
+          aria-label="Search messages, files, agents, or ask Donna"
+          className="flex items-center gap-[9px] h-[34px] px-[14px] w-full border-2 border-ink rounded-full shadow-ink-1 bg-bg-1 text-text-3 transition-[box-shadow,border-color] duration-[120ms] hover:border-ai hover:shadow-[3px_3px_0_var(--ai)] outline-none focus-visible:border-ai focus-visible:shadow-[3px_3px_0_var(--ai)]"
         >
-          <Ic.bell />
+          <GlyphSlot name="search" />
+          <span className="flex-1 min-w-0 truncate text-[13.5px]">
+            Search messages, files, agents, or ask&nbsp;Donna…
+          </span>
+          <kbd className="font-mono text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
+            ⌘&nbsp;K
+          </kbd>
+        </Link>
+      </div>
+
+      {/* Right — bell + more. `justify-end` pins the cluster flush right
+          regardless of crumb width. */}
+      <div style={noDragStyle} className="flex gap-1 items-center justify-end">
+        <span className="relative inline-block">
+          <GIconButton
+            icon="bell"
+            title={
+              unreadCount > 0 ? notificationCount(unreadCount) : "Notifications"
+            }
+            aria-label={
+              unreadCount > 0
+                ? `Notifications (${notificationCount(unreadCount)})`
+                : "Notifications"
+            }
+            onClick={() => navigate("/search")}
+          />
           {unreadCount > 0 && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-sm bg-ai text-bg-0 text-[9px] font-bold leading-[14px] text-center"
+              className="pointer-events-none absolute -top-0.5 -right-0.5"
             >
-              {unreadCount > 9 ? "9+" : unreadCount}
+              <GBadge mention>{unreadCount > 9 ? "9+" : unreadCount}</GBadge>
             </span>
           )}
-        </button>
-        <button
-          type="button"
-          className="w-7 h-7 grid place-items-center rounded-md text-text-2 hover:bg-bg-2 hover:text-text-0"
-          title="More"
-          aria-label="More options"
-        >
-          <Ic.more />
-        </button>
+        </span>
+        <GIconButton icon="more" title="More" aria-label="More options" />
       </div>
     </div>
   );

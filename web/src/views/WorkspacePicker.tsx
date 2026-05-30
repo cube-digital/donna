@@ -2,13 +2,17 @@
 //
 // On mount we fetch the user's workspaces and populate the store. The
 // view branches:
-//   - has workspaces  → show list of cards + an inline "Create" form
+//   - has workspaces  → list of `<GListItem/>` cards + an inline create form
 //   - empty list      → hide the picker, show only the create form (so
 //                       new users go straight to onboarding rather than
 //                       staring at an empty section)
 //
 // Picking a workspace calls `setActive(id)`; App.tsx re-evaluates the
-// gate on the next render and swaps in <AppShell/>.
+// gate on the next render and swaps in `<AppShell/>`.
+//
+// Whole surface is rendered inside `<GoofyTheme paper>` + a single
+// `<GCard/>` so the picker reads as a sticker-book page rather than
+// generic SaaS chrome.
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -17,6 +21,14 @@ import { createWorkspace, listWorkspaces } from "../api/workspaces";
 import { useAuth } from "../state/auth";
 import { useWorkspace } from "../state/workspace";
 import type { Workspace } from "../types";
+import {
+  GAvatar,
+  GButton,
+  GCard,
+  GFormField,
+  GInput,
+  GoofyTheme,
+} from "../components/Goofy";
 
 function slugify(name: string): string {
   return name
@@ -26,8 +38,14 @@ function slugify(name: string): string {
     .slice(0, 50);
 }
 
-function glyph(name: string): string {
-  return (name?.trim()?.[0] ?? "?").toUpperCase();
+function workspaceHue(id: string): number {
+  // Deterministic crayon hue per workspace id so adjacent workspace
+  // avatars don't all look identical. Bias toward the warm/cool poles
+  // of the goofy palette (yellow/sun, coral, blue, mint) by sampling a
+  // wide spread of degrees.
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h % 360;
 }
 
 export default function WorkspacePicker() {
@@ -106,127 +124,151 @@ export default function WorkspacePicker() {
   }
 
   const showList = workspaces.length > 0;
-  const showCreate = bootstrapped; // create form once we know the list is real
+  const showCreate = bootstrapped;
 
   return (
-    <div className="min-h-screen bg-bg-0 text-text-1 grid place-items-center px-5 py-10">
-      <div className="w-full max-w-[520px] bg-bg-1 border border-border-soft rounded-lg p-7 shadow-elevated">
-        <h1 className="m-0 text-text-0 text-[22px] font-semibold tracking-[-0.01em]">
-          Pick a workspace
-        </h1>
-        <p className="mt-1.5 mb-[18px] text-text-2 text-[13px] leading-[1.55]">
-          Your workspaces show up here. Create one if you don&apos;t see anything.
-        </p>
+    <GoofyTheme paper className="min-h-screen grid place-items-center px-5 py-10 text-text-1">
+      <div className="w-full max-w-[520px] flex flex-col gap-4">
+        <header className="text-center">
+          <h1 className="m-0 font-display font-semibold text-[30px] text-text-0 leading-none tracking-[-0.01em]">
+            Pick a workspace
+          </h1>
+          <p className="font-hand font-bold text-[20px] text-ai-deep mt-2 mb-0 leading-none">
+            your workspaces live as stickers on this page
+          </p>
+        </header>
 
-        {loading && !bootstrapped ? (
-          <div className="text-text-3 text-[12px] py-3">
-            Loading workspaces…
-          </div>
-        ) : null}
-
-        {loadError ? (
-          <div className="text-danger text-[12px] px-3 py-2.5 border border-danger rounded mb-3.5">
-            {loadError}
-          </div>
-        ) : null}
-
-        {showList ? (
-          <div className="flex flex-col gap-1.5 mb-[22px]">
-            {workspaces.map((w: Workspace) => (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() => setActive(w.id)}
-                className="flex items-center gap-3 px-3.5 py-3 bg-bg-2 border border-border-soft rounded text-left w-full cursor-pointer hover:bg-bg-3"
-              >
-                <span className="w-9 h-9 rounded-md bg-bg-3 text-text-0 grid place-items-center font-bold text-sm flex-shrink-0">
-                  {glyph(w.name)}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-medium text-text-0">
-                    {w.name}
-                  </span>
-                  <span className="block text-[11.5px] text-text-3 font-mono">
-                    {w.slug}
-                  </span>
-                </span>
-                <span className="text-text-3 text-[12px]">Open →</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {showCreate ? (
-          <form
-            onSubmit={handleCreate}
-            className={
-              showList
-                ? "flex flex-col gap-2.5 pt-2 mt-2 border-t border-border-soft"
-                : "flex flex-col gap-2.5"
-            }
-          >
-            <div
-              className={`text-text-2 text-[11px] tracking-[0.04em] uppercase font-semibold${
-                showList ? " mt-2" : ""
-              }`}
-            >
-              {showList ? "Or create a new one" : "Create your first workspace"}
+        <GCard className="flex flex-col gap-4">
+          {loading && !bootstrapped ? (
+            <div className="text-text-3 text-[13px] py-3">
+              Loading workspaces…
             </div>
-            <label className="flex flex-col gap-1">
-              <span className="text-[11.5px] text-text-2">Name</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Acme Inc."
-                autoFocus
-                className="h-9 px-3 bg-bg-2 border border-border-strong rounded text-text-0 text-[13px]"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-[11.5px] text-text-2">Slug</span>
-              <input
-                type="text"
-                value={liveSlug}
-                onChange={(e) => {
-                  setSlug(slugify(e.target.value));
-                  setSlugDirty(true);
-                }}
-                placeholder="acme"
-                className="h-9 px-3 bg-bg-2 border border-border-strong rounded text-text-0 text-[13px] font-mono"
-              />
-            </label>
+          ) : null}
 
-            {createError ? (
-              <div className="text-danger text-[12px] py-1.5">
-                {createError}
-              </div>
-            ) : null}
+          {loadError ? (
+            <div className="text-danger text-[12.5px] py-2 px-3 border-2 border-danger rounded-[9px]">
+              {loadError}
+            </div>
+          ) : null}
 
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className={
-                canSubmit
-                  ? "mt-1 h-9 px-3.5 bg-text-0 text-bg-0 border border-text-0 rounded text-[13px] font-medium cursor-pointer"
-                  : "mt-1 h-9 px-3.5 bg-bg-3 text-text-3 border border-border-soft rounded text-[13px] font-medium cursor-not-allowed"
-              }
-            >
-              {creating ? "Creating…" : "Create workspace"}
-            </button>
-          </form>
-        ) : null}
+          {showList ? (
+            <div className="flex flex-col gap-1.5">
+              {workspaces.map((w: Workspace) => (
+                // Manual sticker row — `GListItem` truncates its children to
+                // a single nowrap line which can't accommodate an avatar +
+                // two-line label + trailing affordance. The classes below
+                // mirror `GListItem`'s sticker chrome (rounded-[11px], ink
+                // border, mini-wiggle on hover) so the visual family stays
+                // consistent.
+                <button
+                  key={w.id}
+                  type="button"
+                  onClick={() => setActive(w.id)}
+                  aria-label={`Open ${w.name}`}
+                  className="flex items-center gap-3 w-full text-left p-2.5 rounded-[11px] border-2 border-ink shadow-ink-1 bg-bg-1 cursor-pointer transition-[transform,box-shadow,background] duration-[120ms] ease-spring hover:bg-bg-2 hover:-translate-y-px hover:shadow-ink-3 motion-safe:hover:animate-mini-wiggle outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1"
+                >
+                  <GAvatar
+                    name={w.name}
+                    color={`oklch(0.78 0.15 ${workspaceHue(w.id)})`}
+                    size="md"
+                  />
+                  <span className="flex-1 min-w-0 flex flex-col leading-tight gap-0.5">
+                    <span className="font-display font-semibold text-[14px] text-text-0 truncate">
+                      {w.name}
+                    </span>
+                    <span className="font-mono text-[11.5px] text-text-3 truncate">
+                      {w.slug}
+                    </span>
+                  </span>
+                  <span className="text-text-3 text-[12px] font-medium shrink-0">
+                    Open →
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
 
-        <div className="mt-[22px] pt-3.5 border-t border-border-soft text-center">
+          {showList && showCreate ? (
+            <div className="flex items-center gap-2.5">
+              <span className="flex-1 border-t-2 border-dashed border-ink/40" />
+              <span className="font-hand font-bold text-[18px] text-text-2 leading-none">
+                or make a new one
+              </span>
+              <span className="flex-1 border-t-2 border-dashed border-ink/40" />
+            </div>
+          ) : null}
+
+          {showCreate ? (
+            <form onSubmit={handleCreate} className="flex flex-col gap-3">
+              {!showList ? (
+                <div className="font-display font-semibold text-[14px] text-text-1">
+                  Create your first workspace
+                </div>
+              ) : null}
+
+              <GFormField label="Name">
+                <GInput
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Acme Inc."
+                  // autoFocus is fine here — single primary input on a
+                  // desktop-only workspace-picker page (mobile layout
+                  // not yet supported by the design).
+                  autoFocus
+                  autoComplete="organization"
+                  icon={null}
+                />
+              </GFormField>
+
+              <GFormField label="Slug" hint="lowercase, dashes for spaces">
+                <GInput
+                  type="text"
+                  value={liveSlug}
+                  onChange={(e) => {
+                    setSlug(slugify(e.target.value));
+                    setSlugDirty(true);
+                  }}
+                  placeholder="acme"
+                  // Slug is a URL token — not a dictionary word, never
+                  // remembered by password managers, no autocomplete.
+                  autoComplete="off"
+                  spellCheck={false}
+                  icon={null}
+                  className="font-mono"
+                />
+              </GFormField>
+
+              {createError ? (
+                <div className="text-danger text-[12.5px] leading-[1.45]">
+                  {createError}
+                </div>
+              ) : null}
+
+              <GButton
+                type="submit"
+                variant="ai"
+                size="md"
+                disabled={!canSubmit}
+                className="self-start"
+                iconRight="bolt"
+              >
+                {creating ? "Creating…" : "Create workspace"}
+              </GButton>
+            </form>
+          ) : null}
+        </GCard>
+
+        <div className="text-center">
           <button
             type="button"
             onClick={() => signOut()}
-            className="text-text-3 text-[12px] px-2 py-1 rounded-sm cursor-pointer hover:bg-bg-2 hover:text-text-0"
+            className="text-text-3 text-[12.5px] px-2 py-1 rounded-md cursor-pointer hover:bg-bg-2 hover:text-text-0"
           >
             Sign out
           </button>
         </div>
       </div>
-    </div>
+    </GoofyTheme>
   );
 }

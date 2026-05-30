@@ -18,18 +18,28 @@
 //   serializer yet. We render a best-effort line using the *derived*
 //   counts so it stays alive.
 //
-// Member-stack overlap: in the old CSS the `.av` children get
-// `margin-left: -6px` + a 2px `--bg-0` border, with the first child
-// reset to `margin-left: 0`. We reproduce that with `[&>*]:-ml-1.5
-// [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0` on the
-// stack container so the children keep their generic `<Av/>` markup.
+// Goofy rendering
+// ───────────────
+// Chrome is sticker pills: title in Fredoka display, meta line in
+// hand-written Caveat, AI / member / notifications pills become
+// `<GChip/>` and `<GButton/>`. The more-actions menu is a `<GPopover/>`
+// with `<GMenuItem/>`s and a danger row at the end.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import Av from "../Ui/Av";
-import { Ic } from "../Ui/Ic";
+import {
+  GAvatarStack,
+  GButton,
+  GChip,
+  GIconButton,
+  GMenuItem,
+  GMenuSep,
+  GPopover,
+  GlyphSlot,
+} from "../Goofy";
 import { useChannels } from "../../state/channels";
+import { errorToast } from "../../state/toasts";
 import type { AgentRef, Channel, Message, User } from "../../types";
 
 interface ChannelHeaderProps {
@@ -90,11 +100,6 @@ function dedupeAgents(messages: Message[]): AgentRef[] {
   return out;
 }
 
-const PILL =
-  "flex items-center gap-1.5 h-6 px-2.5 rounded-md border border-border-soft text-[12px] text-text-1 bg-bg-2 hover:bg-bg-3";
-const PILL_AI =
-  "flex items-center gap-1.5 h-6 px-2.5 rounded-md border border-ai-glow text-[12px] text-ai bg-ai-bg hover:bg-bg-3";
-
 export default function ChannelHeader({
   channel,
   channelMessages = [],
@@ -115,117 +120,103 @@ export default function ChannelHeader({
   // channel topic if present.
   const pinned = channel.topic ? channel.topic : "—";
   const metaParts: string[] = [];
-  if (humans.length) metaParts.push(`${humans.length} member${humans.length === 1 ? "" : "s"}`);
-  if (agents.length) metaParts.push(`${agents.length} AI teammate${agents.length === 1 ? "" : "s"}`);
+  if (humans.length)
+    metaParts.push(`${humans.length} member${humans.length === 1 ? "" : "s"}`);
+  if (agents.length)
+    metaParts.push(`${agents.length} AI`);
   metaParts.push(`Pinned: ${pinned}`);
 
   return (
     <div className="flex items-center gap-3 px-[18px] py-2.5 border-b border-border-soft shrink-0">
       <div className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-1.5 text-[15px] font-semibold text-text-0 tracking-[-0.01em]">
+        <div className="flex items-center gap-1.5">
           {isDM ? (
-            <Ic.at className="text-text-3" />
+            <GlyphSlot name="at" size={15} className="text-text-3" />
           ) : (
-            <span className="text-text-3">#</span>
+            <GlyphSlot name="hash" size={15} className="text-text-3" />
           )}
-          <span>{channel.name || (isDM ? "Direct message" : "channel")}</span>
-          <button
-            type="button"
+          <span className="font-display font-semibold text-[16px] text-text-0">
+            {channel.name || (isDM ? "Direct message" : "channel")}
+          </span>
+          <GIconButton
+            icon="star"
+            size="sm"
             title="Star channel"
             aria-label="Star channel"
-            className="text-text-3 hover:text-text-0"
             onClick={() => {
               /* v1: no star endpoint yet */
             }}
-          >
-            <Ic.star width={14} height={14} />
-          </button>
+          />
         </div>
-        <div className="text-text-3 text-[12px]">{metaParts.join(" · ")}</div>
+        <div className="font-hand font-bold text-[15px] text-ai-deep mt-px leading-none">
+          {metaParts.join(" · ")}
+        </div>
       </div>
 
       <div className="flex-1" />
 
       {/* AI pill — agents observed in the currently loaded messages. */}
       {visibleAgents.length > 0 ? (
-        <button
-          type="button"
-          className={PILL_AI}
-          title="Agents on this channel"
-        >
-          <Ic.sparkle width={12} height={12} />
-          <div className="flex ml-0.5 [&>*]:-ml-1.5 [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0">
-            {visibleAgents.map((a) => (
-              <Av
-                key={a.id}
-                kind="agent"
-                size="sm"
-                agent={{ name: a.name || "A", hue: hueForAgent(a.id) }}
-              />
-            ))}
-          </div>
+        <GChip variant="ai" size="lg" title="Agents on this channel">
+          <GlyphSlot name="sparkle" size={13} />
+          <GAvatarStack
+            people={visibleAgents.map((a) => ({
+              kind: "agent",
+              name: a.name,
+              hue: hueForAgent(a.id),
+            }))}
+            size="sm"
+          />
           <span className="ml-1">{agents.length}</span>
-        </button>
+        </GChip>
       ) : (
-        <button
-          type="button"
-          className={PILL_AI}
-          title="No agents in this channel yet"
-        >
-          <Ic.sparkle width={12} height={12} />
+        <GChip variant="ai" size="lg" title="No agents in this channel yet">
+          <GlyphSlot name="sparkle" size={13} />
           AI on standby
-        </button>
+        </GChip>
       )}
 
       {/* Member stack — humans observed in the currently loaded messages. */}
       {visibleHumans.length > 0 ? (
         <div className="flex items-center gap-1.5">
-          <div className="flex [&>*]:-ml-1.5 [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0">
-            {visibleHumans.map((u) => (
-              <Av
-                key={u.id}
-                kind="human"
-                size="sm"
-                who={{
-                  name: u.full_name || u.email || "?",
-                  color: colorForUser(u.id),
-                }}
-              />
-            ))}
-          </div>
+          <GAvatarStack
+            people={visibleHumans.map((u) => ({
+              name: u.full_name || u.email || "?",
+              color: colorForUser(u.id),
+            }))}
+            size="sm"
+          />
           {overflowHumans > 0 ? (
-            <span className="text-[12px] text-text-2 px-1">+{overflowHumans}</span>
+            <span className="text-[12px] text-text-2 px-1">
+              +{overflowHumans}
+            </span>
           ) : (
-            <span className="text-[12px] text-text-2 px-1">{humans.length}</span>
+            <span className="text-[12px] text-text-2 px-1">
+              {humans.length}
+            </span>
           )}
         </div>
       ) : null}
 
-      <button
-        type="button"
-        className={PILL}
+      <GButton
+        variant="default"
+        size="sm"
+        icon="bell"
         title="Notification settings"
         aria-label="Notification settings"
       >
-        <Ic.bell width={12} height={12} />
         Notifications
-      </button>
-      <ChannelActionsMenu channel={channel} pillClass={PILL} />
+      </GButton>
+      <ChannelActionsMenu channel={channel} />
     </div>
   );
 }
 
 // ── Per-channel actions (rename + delete) ──────────────────────────────────
-// Lightweight kebab menu attached to the header's "More" pill. Rename uses an
+// Lightweight kebab menu attached to the header. Rename uses an
 // inline prompt for v1; delete asks confirm() then routes back to /channels.
 
-function ChannelActionsMenu({
-  channel,
-  pillClass,
-}: {
-  channel: Channel;
-  pillClass: string;
-}) {
+function ChannelActionsMenu({ channel }: { channel: Channel }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -251,7 +242,7 @@ function ChannelActionsMenu({
     try {
       await updateChannel(channel.id, { name: trimmed });
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't update channel");
     } finally {
       setBusy(false);
       setOpen(false);
@@ -265,7 +256,7 @@ function ChannelActionsMenu({
     try {
       await updateChannel(channel.id, { topic: next });
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't update channel");
     } finally {
       setBusy(false);
       setOpen(false);
@@ -278,7 +269,7 @@ function ChannelActionsMenu({
     try {
       await updateChannel(channel.id, { visibility: next });
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't update channel");
     } finally {
       setBusy(false);
       setOpen(false);
@@ -295,69 +286,63 @@ function ChannelActionsMenu({
       await deleteChannel(channel.id);
       navigate("/channels");
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't delete channel");
       setBusy(false);
     }
   }
 
-  const itemCls =
-    "w-full text-left px-2.5 py-1.5 text-[12.5px] text-text-1 hover:bg-bg-2 hover:text-text-0 disabled:opacity-50";
+  // Wrap each menu item in a small `aria-disabled` shim so the busy
+  // state surfaces visually + blocks the click without breaking
+  // GMenuItem's role / keyboard semantics.
+  function handleClick(fn: () => void) {
+    return () => {
+      if (busy) return;
+      fn();
+    };
+  }
 
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
-        className={pillClass}
+      <GIconButton
+        icon="more"
         title="More actions"
         aria-label="More actions"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-      >
-        <Ic.more width={12} height={12} />
-      </button>
+      />
       {open && (
-        <div
-          role="menu"
-          className="absolute right-0 mt-1 z-20 w-[200px] bg-bg-1 border border-border-soft rounded-md shadow-soft py-1"
-        >
-          <button
-            role="menuitem"
-            type="button"
-            disabled={busy}
-            onClick={rename}
-            className={itemCls}
+        <GPopover className="absolute right-0 mt-1 z-20 w-[200px]">
+          <GMenuItem
+            icon="edit"
+            aria-disabled={busy}
+            onClick={handleClick(rename)}
           >
             Rename channel
-          </button>
-          <button
-            role="menuitem"
-            type="button"
-            disabled={busy}
-            onClick={setTopic}
-            className={itemCls}
+          </GMenuItem>
+          <GMenuItem
+            icon="pin"
+            aria-disabled={busy}
+            onClick={handleClick(setTopic)}
           >
             Set topic
-          </button>
-          <button
-            role="menuitem"
-            type="button"
-            disabled={busy}
-            onClick={toggleVisibility}
-            className={itemCls}
+          </GMenuItem>
+          <GMenuItem
+            icon="lock"
+            aria-disabled={busy}
+            onClick={handleClick(toggleVisibility)}
           >
             Make {channel.visibility === "public" ? "private" : "public"}
-          </button>
-          <div className="my-1 border-t border-border-soft" />
-          <button
-            role="menuitem"
-            type="button"
-            disabled={busy}
-            onClick={destroy}
-            className={`${itemCls} text-danger hover:text-danger`}
+          </GMenuItem>
+          <GMenuSep />
+          <GMenuItem
+            danger
+            icon="trash"
+            aria-disabled={busy}
+            onClick={handleClick(destroy)}
           >
             Delete channel
-          </button>
-        </div>
+          </GMenuItem>
+        </GPopover>
       )}
     </div>
   );

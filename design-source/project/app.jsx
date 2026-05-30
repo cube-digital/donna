@@ -2,6 +2,7 @@
 const { useState, useEffect } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "goofy": true,
   "dark": true,
   "density": "comfortable",
   "agentHue": 282,
@@ -22,7 +23,8 @@ function App() {
     } else {
       document.body.classList.add("theme-light");
     }
-  }, [t.dark, t.agentHue]);
+    document.body.classList.toggle("goofy", !!t.goofy);
+  }, [t.dark, t.agentHue, t.goofy]);
 
   // Showcase script: cycle through views every 8s only on first paint? No — let user drive.
 
@@ -54,6 +56,7 @@ function App() {
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Theme"/>
+        <TweakToggle label="Goofy mode \uD83E\uDD93" value={t.goofy} onChange={v => setTweak("goofy", v)}/>
         <TweakToggle label="Dark mode" value={t.dark} onChange={v => setTweak("dark", v)}/>
         <TweakColor
           label="Agent hue"
