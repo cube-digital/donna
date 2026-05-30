@@ -1,0 +1,133 @@
+// Goofy lists.
+//
+//   <GList/>       flex column with tight gap
+//   <GListItem/>   one row — `hash` for channel-style #, `dot` for status,
+//                  `badge` slot on the right; active rows become a
+//                  sticker (sun bg + ink border + shadow)
+//   <GDoc/>        document row — icon + name + meta, scoots right on hover
+
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
+
+import { cn } from "../../lib/cn";
+import { GlyphSlot, type IconName } from "./GIcons";
+
+export type GListDot = "online" | "ai" | "muted";
+
+const DOT_CLS: Record<GListDot, string> = {
+  online: "bg-ok",
+  ai: "bg-ai shadow-[0_0_0_2px_var(--ai-glow)]",
+  muted: "bg-text-3",
+};
+
+// ── List ───────────────────────────────────────────────────────────────
+
+export const GList = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+  function GList({ className, children, ...rest }, ref) {
+    return (
+      <div ref={ref} className={cn("flex flex-col gap-0.5", className)} {...rest}>
+        {children}
+      </div>
+    );
+  },
+);
+
+// ── List item ──────────────────────────────────────────────────────────
+
+const ITEM_BASE =
+  "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[13px] cursor-pointer " +
+  "transition-colors duration-[100ms] hover:bg-bg-3 " +
+  "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
+
+const ITEM_ACTIVE =
+  // sun bg + ink border + sticker shadow = "this row is the chosen sticker"
+  "bg-pop-sun text-on-bright border-2 border-ink shadow-ink-1 font-semibold !py-1 !px-[7px]";
+
+export interface GListItemProps extends HTMLAttributes<HTMLDivElement> {
+  active?: boolean;
+  /** Leading hash character — typically `#` for channels. */
+  hash?: ReactNode;
+  /** Leading status dot. */
+  dot?: GListDot;
+  /** Trailing element — usually a `<GBadge/>`. */
+  badge?: ReactNode;
+}
+
+export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
+  function GListItem(
+    { active = false, hash, dot, badge, className, children, ...rest },
+    ref,
+  ) {
+    return (
+      <div
+        ref={ref}
+        role="button"
+        tabIndex={0}
+        aria-current={active ? "true" : undefined}
+        className={cn(ITEM_BASE, active && ITEM_ACTIVE, className)}
+        {...rest}
+      >
+        {hash ? (
+          <span
+            className={cn(
+              "w-3.5 text-center shrink-0",
+              active ? "text-on-bright" : "text-text-3",
+            )}
+          >
+            {hash}
+          </span>
+        ) : null}
+        {dot ? (
+          <span
+            className={cn("w-[7px] h-[7px] rounded-full shrink-0", DOT_CLS[dot])}
+          />
+        ) : null}
+        <span className="flex-1 min-w-0 truncate">{children}</span>
+        {badge}
+      </div>
+    );
+  },
+);
+
+// ── Doc row ────────────────────────────────────────────────────────────
+
+// Matches `GListItem`'s 9 px radius so a `GDoc` sitting next to a list
+// item reads as the same family. Hover changes only the background —
+// the previous `translate-x-0.5` looked juddery when scanning a list.
+// Focus outline is replaced with a goofy AI-grape ring at the same 9 px corner.
+const DOC_BASE =
+  "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[12.5px] cursor-pointer " +
+  "transition-colors duration-[100ms] hover:bg-bg-3 " +
+  "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
+
+export interface GDocProps extends HTMLAttributes<HTMLDivElement> {
+  icon?: IconName;
+  name: ReactNode;
+  meta?: ReactNode;
+}
+
+/**
+ * Document / link row. Renders an icon, a truncated name, and an
+ * optional monospace meta string at the end.
+ */
+export const GDoc = forwardRef<HTMLDivElement, GDocProps>(function GDoc(
+  { icon = "doc", name, meta, className, ...rest },
+  ref,
+) {
+  return (
+    <div
+      ref={ref}
+      role="button"
+      tabIndex={0}
+      className={cn(DOC_BASE, className)}
+      {...rest}
+    >
+      <span className="grid place-items-center text-text-3">
+        <GlyphSlot name={icon} size={15} />
+      </span>
+      <span className="flex-1 min-w-0 truncate">{name}</span>
+      {meta != null ? (
+        <span className="text-text-3 text-[11px] font-mono">{meta}</span>
+      ) : null}
+    </div>
+  );
+});

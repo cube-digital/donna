@@ -1,8 +1,8 @@
-/* DonnaAI global entry. Tailwind first, then design tokens (so utilities
- * can resolve var()-backed colours), then a tiny base layer for body
- * defaults + a few primitives that aren't easily expressed as utilities
- * (custom scrollbar styling, OKLCH ::selection, the avatar agent
- * gradient that needs a per-instance --hue CSS variable). */
+/* DonnaAI global entry — Tailwind directives, design tokens, and a small
+ * @layer components for effects that can't be cleanly expressed as
+ * utility chains (avatar gradient, paper-dot background, sticker-book
+ * scrollbar, run-card backdrop). Everything else lives inline as
+ * Tailwind utility classes on the components themselves. */
 
 @import "./tokens.css";
 
@@ -12,113 +12,146 @@
 
 @layer base {
   html,
-  body,
-  #root {
+  body {
     margin: 0;
     height: 100%;
-    background: var(--bg-0);
-    color: var(--text-1);
+  }
+  /* #root has no inherent height — `min-h-full` keeps short pages
+     filling the viewport while letting tall pages (Showcase) scroll. */
+  #root {
+    min-height: 100%;
   }
   body {
-    @apply font-sans antialiased;
-    font: 13px/1.45 "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    @apply bg-bg-0 text-text-1 font-sans antialiased;
+    font-size: 13px;
+    line-height: 1.45;
     font-feature-settings: "ss01", "cv11";
     text-rendering: optimizeLegibility;
+  }
+  /* Routes that own the full viewport (chat AppShell) opt into
+     overflow clipping. Routes that scroll naturally (Showcase, Auth,
+     WorkspacePicker) inherit the default. */
+  body:has(.app-shell-root) {
     overflow: hidden;
   }
-  button {
+  /* :where() keeps the reset at element-only specificity so component
+     classes always win — this is the same trick the design source uses.
+     IMPORTANT: do NOT use `border: 0` shorthand here. The shorthand sets
+     `border-style: none`, which then defeats Tailwind utility classes
+     like `border-2` (those only set `border-width`, relying on the
+     preflight's `border-style: solid`). Set width only. */
+  :where(button) {
     font: inherit;
     color: inherit;
     background: none;
-    border: 0;
+    border-width: 0;
     padding: 0;
-    cursor: default;
+    cursor: pointer;
   }
-  input,
-  textarea {
+  :where(input, textarea) {
     font: inherit;
     color: inherit;
     background: transparent;
-    border: 0;
+    border-width: 0;
     outline: 0;
   }
   ::selection {
-    background: var(--ai-glow);
-    color: var(--text-0);
+    background: var(--pop-sun);
+    color: var(--on-bright);
   }
+  /* Chunky 13 px scrollbars in the goofy spirit */
   *::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 13px;
+    height: 13px;
   }
   *::-webkit-scrollbar-track {
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background: var(--bg-4);
-    border-radius: 6px;
-    border: 2px solid transparent;
+    background: var(--ink);
+    border-radius: 8px;
+    border: 3px solid transparent;
     background-clip: content-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: var(--border-strong);
+    background: var(--ai);
     background-clip: content-box;
   }
 }
 
+/* Goofy keyframes — declared here (not just in tailwind.config) so the
+ * `.av-pulse-ring`, `.thought-dots`, and other component helpers below
+ * that reference them via raw `animation:` work even when nothing in
+ * JSX uses the matching `animate-*` utility. Tailwind v3 only injects
+ * keyframes from the config when the utility class is detected during
+ * content-scan, so plain-CSS consumers can't rely on them. */
+@keyframes gx-pulse-ring {
+  0%   { transform: scale(0.95); opacity: 0.7; }
+  100% { transform: scale(1.3);  opacity: 0; }
+}
+@keyframes gx-dots {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+@keyframes gx-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes gx-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes gx-wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+@keyframes gx-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+@keyframes gx-pop-in {
+  0%   { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+  70%  { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
 @layer components {
+  /* Faint paper-dot texture — opt in by adding the `paper-dots` class to
+     any container (typically the app shell or showcase root). Off by
+     default so non-Goofy pages don't carry it. */
+  .paper-dots {
+    background-image: radial-gradient(var(--paper-dot) 1.3px, transparent 1.3px);
+    background-size: 22px 22px;
+  }
+
   /* Agent avatar gradient — needs a per-instance `--hue` CSS variable set
-     inline by <Av kind="agent" agent={{ hue }} />, so Tailwind utilities
-     can't express the full thing. Class only carries the gradient + glow;
-     size/border-radius are utility-applied at the call site. */
+     inline by <GAvatar agent hue=… />. Size + radius come from utility
+     classes at the call site. */
   .av-agent-gradient {
     background: radial-gradient(
       at 30% 25%,
-      oklch(0.85 0.18 var(--hue, 282)) 0%,
-      oklch(0.55 0.20 var(--hue, 282)) 60%,
-      oklch(0.35 0.18 var(--hue, 282)) 100%
+      oklch(0.85 0.18 var(--hue, 288)) 0%,
+      oklch(0.55 0.22 var(--hue, 288)) 60%,
+      oklch(0.40 0.18 var(--hue, 288)) 100%
     );
-    color: oklch(1 0 0);
-    box-shadow:
-      0 0 0 1px oklch(0.74 0.16 var(--hue, 282) / 0.35),
-      0 0 12px oklch(0.74 0.16 var(--hue, 282) / 0.25);
-  }
-  .av-agent-gradient-lg {
-    box-shadow:
-      0 0 0 1px oklch(0.74 0.16 var(--hue, 282) / 0.35),
-      0 0 20px oklch(0.74 0.16 var(--hue, 282) / 0.3);
-  }
-  .av-agent-gradient-xl {
-    box-shadow:
-      0 0 0 2px oklch(0.74 0.16 var(--hue, 282) / 0.35),
-      0 0 36px oklch(0.74 0.16 var(--hue, 282) / 0.3);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--ink);
   }
   /* Pulse ring around an agent avatar mid-stream. */
   .av-pulse-ring::after {
     content: "";
     position: absolute;
-    inset: -3px;
+    inset: -4px;
     border-radius: inherit;
-    border: 1px solid oklch(0.74 0.16 var(--hue, 282) / 0.6);
-    animation: pulse-ring 1.6s ease-out infinite;
+    border: 2px solid var(--ai);
+    animation: gx-pulse-ring 1.6s ease-out infinite;
   }
-  /* Agent-run gradient body — single hue tint with a fade. */
+  /* Goofy run-card gradient body. */
   .run-card-bg {
-    background: linear-gradient(
-      180deg,
-      var(--ai-bg) 0%,
-      oklch(0.18 0.012 var(--ai-h) / 0.4) 100%
-    );
-  }
-  .theme-light .run-card-bg {
-    background: linear-gradient(
-      180deg,
-      var(--ai-bg) 0%,
-      oklch(0.96 0.005 var(--ai-h)) 100%
-    );
+    background: linear-gradient(180deg, var(--ai-bg) 0%, var(--bg-1) 60%);
   }
   /* Streaming "thought" 3-dot animation. */
   .thought-dots::after {
     content: " ●";
-    animation: dots-pulse 1s steps(3, end) infinite;
+    animation: gx-dots 1s steps(3, end) infinite;
   }
 }

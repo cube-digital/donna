@@ -1,0 +1,546 @@
+/* ════════════════════════════════════════════════════════════════
+   GOOFY MODE  🦔  — a bouncy, sticker-book reskin of DonnaAI.
+   Everything lives under body.goofy so the serious theme is untouched.
+   Cream paper background · chunky ink borders · hard offset shadows ·
+   rounded display type · handwritten doodle accents · cheeky tilts.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Shared structure (palette-independent) ──────────────────── */
+body.goofy {
+  /* text that always sits on a BRIGHT sticker fill (sun/mint) — stays dark in both themes */
+  --on-bright: oklch(0.22 0.04 285);
+
+  /* Hard sticker shadows replace soft ones — colour comes from --ink (theme-aware) */
+  --shadow-1: 2px 2px 0 var(--ink);
+  --shadow-2: 5px 5px 0 var(--ink);
+
+  /* Bouncier corners */
+  --r-sm: 7px;
+  --r: 11px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg-0);
+  /* faint dotted paper texture (dot colour is theme-aware via --paper-dot) */
+  background-image: radial-gradient(var(--paper-dot) 1.3px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+
+/* ── CREAM GOOFY (light) ─────────────────────────────────────── */
+body.goofy.theme-light {
+  /* Paper-y warm base */
+  --bg-0: oklch(0.962 0.022 92);     /* app paper */
+  --bg-1: oklch(0.995 0.006 92);     /* white cards / sidebars */
+  --bg-2: oklch(0.945 0.026 92);     /* inputs / chips */
+  --bg-3: oklch(0.905 0.045 92);     /* hover / active */
+  --bg-4: oklch(0.86 0.06 92);       /* strong */
+
+  /* Chunky ink lines — dark on cream */
+  --ink: oklch(0.26 0.03 285);
+  --border: oklch(0.26 0.03 285 / 0.92);
+  --border-strong: oklch(0.20 0.03 285);
+  --paper-dot: oklch(0.26 0.03 285 / 0.05);
+
+  --text-0: oklch(0.24 0.035 285);
+  --text-1: oklch(0.34 0.03 285);
+  --text-2: oklch(0.46 0.028 285);
+  --text-3: oklch(0.56 0.026 285);
+  --text-4: oklch(0.66 0.024 285);
+
+  /* AI / agent hue — a loud friendly grape */
+  --ai-h: 288;
+  --ai: oklch(0.55 0.23 var(--ai-h));
+  --ai-dim: oklch(0.62 0.17 var(--ai-h));
+  --ai-deep: oklch(0.42 0.20 var(--ai-h));
+  --ai-bg: oklch(0.55 0.23 var(--ai-h) / 0.12);
+  --ai-glow: oklch(0.55 0.23 var(--ai-h) / 0.45);
+
+  /* Crayon-box accents */
+  --pop-blue: oklch(0.58 0.20 255);
+  --pop-coral: oklch(0.66 0.20 33);
+  --pop-sun: oklch(0.84 0.16 92);
+  --pop-mint: oklch(0.74 0.16 158);
+
+  --ok: oklch(0.66 0.18 150);
+  --warn: oklch(0.78 0.16 78);
+  --danger: oklch(0.62 0.22 28);
+}
+
+/* ── MIDNIGHT GOOFY (dark) ───────────────────────────────────── */
+/* Deep warm charcoal paper, but the outlines + offset shadows flip to
+   CREAM lines — the classic dark sticker / neo-brutalist look. */
+body.goofy:not(.theme-light) {
+  --bg-0: oklch(0.305 0.020 285);    /* soft slate paper */
+  --bg-1: oklch(0.350 0.022 285);    /* raised cards / sidebars */
+  --bg-2: oklch(0.395 0.024 285);    /* inputs / chips */
+  --bg-3: oklch(0.450 0.028 285);    /* hover / active */
+  --bg-4: oklch(0.510 0.030 285);    /* strong */
+
+  /* Chunky ink lines — soft cream, gentle contrast */
+  --ink: oklch(0.80 0.028 92);
+  --border: oklch(0.80 0.028 92 / 0.62);
+  --border-strong: oklch(0.86 0.025 92);
+  --paper-dot: oklch(0.90 0.03 92 / 0.045);
+
+  --text-0: oklch(0.94 0.012 285);
+  --text-1: oklch(0.86 0.015 285);
+  --text-2: oklch(0.73 0.017 285);
+  --text-3: oklch(0.63 0.018 285);
+  --text-4: oklch(0.55 0.02 285);
+
+  /* AI / agent hue — grape, friendly on slate */
+  --ai-h: 288;
+  --ai: oklch(0.74 0.18 var(--ai-h));
+  --ai-dim: oklch(0.66 0.15 var(--ai-h));
+  --ai-deep: oklch(0.84 0.14 var(--ai-h));
+  --ai-bg: oklch(0.74 0.18 var(--ai-h) / 0.18);
+  --ai-glow: oklch(0.74 0.18 var(--ai-h) / 0.45);
+
+  /* Crayon-box accents */
+  --pop-blue: oklch(0.68 0.17 255);
+  --pop-coral: oklch(0.72 0.19 33);
+  --pop-sun: oklch(0.85 0.15 92);
+  --pop-mint: oklch(0.79 0.15 158);
+
+  --ok: oklch(0.76 0.16 150);
+  --warn: oklch(0.83 0.14 78);
+  --danger: oklch(0.70 0.20 28);
+}
+
+/* ── Display + doodle type ───────────────────────────────────── */
+body.goofy .ws-header .ws-name,
+body.goofy .channel-header .title,
+body.goofy .empty h1,
+body.goofy .search-view h1,
+body.goofy .wsview h1,
+body.goofy .profile .phero .pname,
+body.goofy .vault-fullscreen .vh .title,
+body.goofy .vd-head h1,
+body.goofy .msg .head .who,
+body.goofy .personal .chat-head .who,
+body.goofy .bubble.user {
+  font-family: "Fredoka", "Geist", sans-serif;
+  letter-spacing: 0;
+}
+body.goofy .empty h1,
+body.goofy .search-view h1,
+body.goofy .wsview h1,
+body.goofy .vd-head h1 { font-weight: 600; }
+
+/* Display titles shouldn't break at hyphens (e.g. #recist-protocol) */
+body.goofy .channel-header .title,
+body.goofy .ws-header .ws-name,
+body.goofy .personal .chat-head .who,
+body.goofy .run-head .label,
+body.goofy .vault-fullscreen .vh .title { white-space: nowrap; }
+
+/* Section labels & dividers go hand-lettered */
+body.goofy .sidebar .group-h,
+body.goofy .rr-section .rr-h,
+body.goofy .day-divider span,
+body.goofy .search-section h3,
+body.goofy .pside h2,
+body.goofy .wsview .col h2,
+body.goofy .vd-block h3,
+body.goofy .vault-filters h3,
+body.goofy .empty .step-section h3,
+body.goofy .personal .hist .htag {
+  font-family: "Caveat", cursive;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: var(--ai-deep);
+}
+body.goofy .rr-section .rr-h.ai { color: var(--ai); }
+
+/* ── Bright, happy selection ─────────────────────────────────── */
+body.goofy ::selection { background: var(--pop-sun); color: var(--on-bright); }
+
+/* ── Chunky scrollbars ───────────────────────────────────────── */
+body.goofy *::-webkit-scrollbar { width: 13px; height: 13px; }
+body.goofy *::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+body.goofy *::-webkit-scrollbar-thumb:hover { background: var(--ai); background-clip: content-box; }
+
+/* ── App shell gets visible seams ────────────────────────────── */
+body.goofy .wsrail { border-right: 2px solid var(--ink); background: var(--bg-1); }
+body.goofy .topbar { border-bottom: 2px solid var(--ink); background: var(--bg-1); }
+body.goofy .sidebar { border-right: 2px solid var(--ink); }
+body.goofy .rightrail { border-left: 2px solid var(--ink); }
+body.goofy .archive { border-top: 2px solid var(--ink); }
+
+/* ── Workspace rail pills become sticker tiles ───────────────── */
+body.goofy .wsrail .ws-pill {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--pop-sun);
+  color: var(--on-bright);
+  font-family: "Fredoka", sans-serif;
+  font-weight: 600;
+}
+body.goofy .wsrail .ws-pill.active::before { background: var(--ai); width: 4px; border-radius: 4px; }
+body.goofy .wsrail .ws-icon { border-radius: 11px; }
+body.goofy .wsrail .ws-icon:hover { background: var(--bg-3); transform: rotate(-4deg); }
+body.goofy .wsrail .ws-icon.active { background: var(--bg-3); box-shadow: 2px 2px 0 var(--ink); border: 2px solid var(--ink); }
+body.goofy .wsrail .ws-icon.ai.active { box-shadow: 2px 2px 0 var(--ai); border: 2px solid var(--ai); }
+
+/* ── Top search bar: a friendly capsule ──────────────────────── */
+body.goofy .topbar .search {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--bg-1);
+}
+body.goofy .topbar .search kbd {
+  border: 1.5px solid var(--ink);
+  background: var(--pop-sun);
+  color: var(--on-bright);
+  border-radius: 5px;
+  font-weight: 600;
+}
+body.goofy .topbar .btn-i { border-radius: 9px; }
+body.goofy .topbar .btn-i:hover { background: var(--bg-3); transform: rotate(6deg); }
+
+/* ── Sidebar items: rounded, springy ─────────────────────────── */
+body.goofy .sidebar .item { border-radius: 9px; }
+body.goofy .sidebar .item:hover { background: var(--bg-3); }
+body.goofy .sidebar .item.active {
+  background: var(--pop-sun);
+  color: var(--on-bright);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-weight: 600;
+  padding: 2px 8px;
+}
+body.goofy .sidebar .item.active .hash { color: var(--on-bright); }
+body.goofy .sidebar .item .badge {
+  background: var(--ink); color: var(--bg-1);
+  border-radius: 999px; font-weight: 700;
+}
+body.goofy .sidebar .item .badge.mention {
+  background: var(--pop-coral); color: #fff;
+  transform: rotate(-6deg);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+body.goofy .sidebar .item .dot.ai { box-shadow: 0 0 0 2px var(--ai-glow); }
+body.goofy .sidebar .project-h .glyph {
+  border: 2px solid var(--ink);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  background: var(--pop-mint); color: var(--on-bright);
+  border-radius: 7px;
+}
+
+/* "new" tag near a channel — make it a real sticker */
+body.goofy .sidebar .item .badge:not(.mention):empty { display: none; }
+
+/* ── Channel header pills + tabs ─────────────────────────────── */
+body.goofy .channel-header { border-bottom: 2px solid var(--ink); }
+body.goofy .channel-header .title { font-size: 18px; }
+body.goofy .channel-header .pill {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--bg-1);
+  font-weight: 500;
+}
+body.goofy .channel-header .pill.ai { background: var(--ai-bg); color: var(--ai-deep); border-color: var(--ai); box-shadow: 2px 2px 0 var(--ai); }
+body.goofy .channel-header .pill:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+body.goofy .channel-header .members .stack .av { border: 2px solid var(--bg-0); }
+body.goofy .channel-header .tab.active { background: var(--pop-sun); color: var(--on-bright); border: 1.5px solid var(--ink); }
+
+/* ── Avatars: every face gets an ink outline ─────────────────── */
+body.goofy .av {
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  font-family: "Fredoka", sans-serif;
+  font-weight: 600;
+}
+body.goofy .av.sm { border-width: 1.5px; border-radius: 6px; }
+body.goofy .av.lg { border-radius: 13px; }
+body.goofy .av.xl { border-radius: 20px; border-width: 2.5px; }
+body.goofy .av.agent { box-shadow: 0 0 0 2px var(--ink); border-color: var(--ink); }
+
+/* ── Messages: hover gets a sunny wash ───────────────────────── */
+body.goofy .msg .head .who { font-size: 14.5px; }
+body.goofy .msg:hover { background: oklch(0.84 0.16 92 / 0.18); }
+body.goofy .msg .head .role-chip {
+  background: var(--ai); color: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  transform: rotate(-4deg);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  letter-spacing: 0.04em;
+}
+body.goofy .msg .attach {
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--bg-1);
+}
+body.goofy .msg .attach:hover { transform: rotate(-1deg); }
+body.goofy .msg .react {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg-1);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+body.goofy .msg .react:hover { transform: translate(-1px,-1px); }
+body.goofy .msg .hover-actions {
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--bg-1);
+}
+
+/* ── Agent run card: the showpiece sticker ───────────────────── */
+body.goofy .run {
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 5px 5px 0 var(--ai);
+  background: linear-gradient(180deg, var(--ai-bg) 0%, var(--bg-1) 60%);
+}
+body.goofy .run-head { border-bottom: 2px dashed var(--ink); }
+body.goofy .run-head .label {
+  font-family: "Caveat", cursive; text-transform: none;
+  font-size: 16px; font-weight: 700;
+}
+body.goofy .run-step .step-icon {
+  border: 1.5px solid var(--ink);
+  border-radius: 7px;
+  background: var(--pop-mint); color: var(--on-bright);
+}
+body.goofy .run-output {
+  border: 2px solid var(--ink);
+  border-radius: 11px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body.goofy .run-foot { border-top: 2px dashed var(--ink); }
+body.goofy .run-foot .mem {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg-1);
+}
+body.goofy .run-foot .act.primary {
+  background: var(--ai); color: #fff;
+  border: 1.5px solid var(--ink);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+
+/* ── Composer: a big friendly note card ──────────────────────── */
+body.goofy .composer {
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 var(--ink);
+  background: var(--bg-1);
+}
+body.goofy .composer .formatting { border-bottom: 2px dashed var(--ink); }
+body.goofy .composer .footer .at-agents {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ai-bg); color: var(--ai-deep);
+  font-weight: 600;
+}
+body.goofy .composer .footer .send {
+  border-radius: 10px;
+  border: 2px solid var(--ink);
+}
+body.goofy .composer .footer .send.ready {
+  background: var(--pop-coral); color: #fff;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body.goofy .composer .footer .send.ready:hover { transform: translate(-1px,-1px) rotate(-3deg); box-shadow: 3px 3px 0 var(--ink); }
+
+/* ── Day divider: dashed doodle line ─────────────────────────── */
+body.goofy .day-divider::before, body.goofy .day-divider::after {
+  height: 0; border-top: 2px dashed var(--border);
+}
+
+/* ── Right rail cards / tasks / docs ─────────────────────────── */
+body.goofy .rr-card,
+body.goofy .task,
+body.goofy .mem-item {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body.goofy .rr-card.ai { background: var(--ai-bg); border-color: var(--ai); box-shadow: 2px 2px 0 var(--ai); }
+body.goofy .task.done .check { background: var(--ok); border-color: var(--ink); color: #fff; }
+body.goofy .task.running .check { border-color: var(--ink); }
+body.goofy .task .check { border: 2px solid var(--ink); }
+body.goofy .mem-item .key {
+  background: var(--pop-sun); color: var(--on-bright);
+  border: 1.5px solid var(--ink); border-radius: 5px;
+  font-weight: 600;
+}
+body.goofy .doc:hover { background: var(--bg-3); transform: translateX(2px); }
+body.goofy .connector:hover { background: var(--bg-3); }
+body.goofy .connector .icon { border: 1.5px solid var(--ink); border-radius: 6px; background: var(--pop-mint); color: var(--on-bright); }
+body.goofy .connector .state.live { color: var(--ok); font-weight: 600; }
+
+/* ── Archive dock + tags ─────────────────────────────────────── */
+body.goofy .archive .dock-tag {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg-1);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+body.goofy .archive .dock-tag:nth-child(2n) { transform: rotate(-2deg); }
+body.goofy .archive .dock-tag:nth-child(3n) { transform: rotate(1.5deg); }
+body.goofy .archive .dock-toggle {
+  border: 1.5px solid var(--ink); border-radius: 999px;
+  background: var(--pop-sun); color: var(--on-bright); font-weight: 600;
+}
+
+/* ── Buttons everywhere get the press-down springiness ───────── */
+body.goofy .profile .pactions .btn,
+body.goofy .vd-head .actions .a,
+body.goofy .search-filters .chip,
+body.goofy .empty .step .cta {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--ink);
+  font-weight: 500;
+  background: var(--bg-1);
+}
+body.goofy .profile .pactions .btn.primary,
+body.goofy .vd-head .actions .a.primary,
+body.goofy .empty .step .cta { background: var(--pop-coral); color: #fff; }
+body.goofy .vd-head .actions .a.ai { background: var(--ai); color: #fff; }
+body.goofy .search-filters .chip.active { background: var(--pop-sun); color: var(--on-bright); }
+body.goofy .profile .pactions .btn:hover,
+body.goofy .vd-head .actions .a:hover,
+body.goofy .search-filters .chip:hover,
+body.goofy .empty .step .cta:hover {
+  transform: translate(-1px,-1px) rotate(-2deg);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+/* ── Cards across views ──────────────────────────────────────── */
+body.goofy .wsview .channel-card,
+body.goofy .wsview .agent-card,
+body.goofy .search-result,
+body.goofy .profile .stat,
+body.goofy .profile .recent-run,
+body.goofy .empty .step,
+body.goofy .empty .agent-pick,
+body.goofy .empty .hero .glyph,
+body.goofy .wsview .wsglyph,
+body.goofy .vault-tile,
+body.goofy .vault-resurface .rc,
+body.goofy .vault-item .type-icon {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body.goofy .wsview .channel-card:hover,
+body.goofy .wsview .agent-card:hover,
+body.goofy .search-result:hover,
+body.goofy .vault-tile:hover {
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 var(--ink);
+  background: var(--bg-1);
+}
+body.goofy .empty .step.ai,
+body.goofy .empty .agent-pick.selected { border-color: var(--ai); box-shadow: 2px 2px 0 var(--ai); }
+body.goofy .empty .step .num {
+  border: 2px solid var(--ink);
+  background: var(--pop-sun); color: var(--on-bright);
+  font-family: "Fredoka", sans-serif;
+}
+body.goofy .empty .step.ai .num { background: var(--ai); color: #fff; }
+body.goofy .empty .hero .glyph, body.goofy .wsview .wsglyph {
+  background: var(--pop-mint); color: var(--on-bright);
+  font-family: "Fredoka", sans-serif;
+}
+body.goofy .search-result mark { background: var(--pop-sun); color: var(--on-bright); border-radius: 3px; padding: 0 3px; }
+body.goofy .profile .stat .v { font-family: "Fredoka", sans-serif; }
+body.goofy .profile .phero .prole,
+body.goofy .empty .agent-pick .pick { border: 1.5px solid var(--ink); }
+body.goofy .profile .phero .prole { background: var(--ai); color: #fff; border-radius: 6px; transform: rotate(-3deg); }
+body.goofy .profile .pside .chips .c { border: 1.5px solid var(--ink); border-radius: 999px; }
+body.goofy .vd-affects .c { border: 1.5px solid var(--ink); border-radius: 999px; }
+
+/* ── Personal AI chat bubbles ────────────────────────────────── */
+body.goofy .personal .hist { border-right: 2px solid var(--ink); }
+body.goofy .personal .chat-head { border-bottom: 2px solid var(--ink); }
+body.goofy .personal .hist .new-chat {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--ai-bg); color: var(--ai-deep);
+  font-weight: 600;
+}
+body.goofy .personal .hist .new-chat:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
+body.goofy .personal .hist .h-item.active { background: var(--pop-sun); border: 1.5px solid var(--ink); }
+body.goofy .bubble.user {
+  background: var(--pop-blue); color: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 16px 16px 5px 16px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+body.goofy .bubble.agent .text {
+  background: var(--bg-1);
+  border: 2px solid var(--ink);
+  border-radius: 16px 16px 16px 5px;
+  box-shadow: 2px 2px 0 var(--ink);
+  padding: 10px 14px;
+}
+
+/* ── Search / vault inputs ───────────────────────────────────── */
+body.goofy .search-input,
+body.goofy .vault-ask {
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--bg-1);
+}
+body.goofy .vault-ask { background: var(--ai-bg); border-color: var(--ai); box-shadow: 3px 3px 0 var(--ai); }
+body.goofy .vault-ask .ask-btn {
+  background: var(--ai); color: #fff;
+  border: 1.5px solid var(--ink); border-radius: 999px;
+  box-shadow: 1.5px 1.5px 0 var(--ink); font-weight: 600;
+}
+
+/* ── Vault chrome ────────────────────────────────────────────── */
+body.goofy .vault-fullscreen .vh { border-bottom: 2px solid var(--ink); }
+body.goofy .vault-fullscreen .vh .glyph {
+  border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink);
+  background: var(--pop-mint); color: var(--on-bright);
+}
+body.goofy .vault-fullscreen .vh .vmodes,
+body.goofy .vault-fullscreen .vh .close {
+  border: 2px solid var(--ink); border-radius: 10px;
+}
+body.goofy .vault-fullscreen .vh .vmode.active { background: var(--pop-sun); color: var(--on-bright); border-radius: 6px; }
+body.goofy .vault-grid3 { border-top: 2px solid var(--ink); }
+body.goofy .vault-filters { border-right: 2px solid var(--ink); }
+body.goofy .vault-list { border-right: 2px solid var(--ink); }
+body.goofy .vault-filters .vf.active { background: var(--pop-sun); color: var(--on-bright); border-radius: 8px; }
+body.goofy .vault-item.active { background: var(--bg-3); }
+body.goofy .vd-head .type-badge { border: 1.5px solid var(--ink); transform: rotate(-2deg); box-shadow: 1.5px 1.5px 0 var(--ink); }
+body.goofy .vd-meta-grid .mi,
+body.goofy .vd-considered .opt,
+body.goofy .vd-output,
+body.goofy .vd-run-steps .rs,
+body.goofy .vd-prov,
+body.goofy .vd-learned .li,
+body.goofy .vault-resurface .rc {
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+}
+body.goofy .vd-considered .opt.chosen { border-color: var(--ok); box-shadow: 2px 2px 0 var(--ok); }
+body.goofy .vd-rationale, body.goofy .vd-excerpt { border-left-width: 4px; border-radius: 0 10px 10px 0; }
+body.goofy .vault-resurface .rc::before { width: 3px; }
+body.goofy .vd-run-steps .rs .tool { border: 1.5px solid var(--ink); border-radius: 5px; }
+
+/* ── A couple of friendly floating doodles in the chat ───────── */
+body.goofy .chat-scroll { position: relative; }

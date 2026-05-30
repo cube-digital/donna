@@ -46,9 +46,6 @@ export default function TopBar() {
     if (location.pathname.startsWith("/search")) {
       return { icon: "search", label: "Search" };
     }
-    if (location.pathname.startsWith("/vault")) {
-      return { icon: "archive", label: "Vault" };
-    }
     if (location.pathname.startsWith("/agents")) {
       return { icon: "sparkle", label: "Agent profile" };
     }

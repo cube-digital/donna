@@ -26,6 +26,7 @@ import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
 import IntegrationDetail from "./views/IntegrationDetail";
+import Showcase from "./views/Showcase";
 
 export default function App() {
   const isAuthenticated = useAuth((s) => s.isAuthenticated);
@@ -45,6 +46,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <Routes>
+        <Route path="/showcase" element={<Showcase />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/oauth/return" element={<OAuthReturn />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
@@ -55,6 +57,7 @@ export default function App() {
   if (!activeId) {
     return (
       <Routes>
+        <Route path="/showcase" element={<Showcase />} />
         <Route path="/workspaces" element={<WorkspacePicker />} />
         <Route path="/oauth/return" element={<OAuthReturn />} />
         <Route path="*" element={<Navigate to="/workspaces" replace />} />
@@ -64,6 +67,7 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/showcase" element={<Showcase />} />
       <Route path="/oauth/return" element={<OAuthReturn />} />
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/channels" replace />} />
@@ -74,7 +78,6 @@ export default function App() {
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/integrations/:slug" element={<IntegrationDetail />} />
         <Route path="/search" element={<ComingSoon title="Search & history" />} />
-        <Route path="/vault" element={<ComingSoon title="Vault" />} />
         <Route path="/agents/:agentId" element={<ComingSoon title="Agent profile" />} />
         <Route path="/projects/:projectId" element={<ComingSoon title="Project overview" />} />
         <Route path="*" element={<Navigate to="/channels" replace />} />

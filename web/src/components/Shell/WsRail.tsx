@@ -13,7 +13,7 @@ import { useAuth } from "../../state/auth";
 import { useWorkspace } from "../../state/workspace";
 import { Ic } from "../Ui/Ic";
 
-type NavKey = "workspace" | "dms" | "personal" | "search" | "files" | "vault";
+type NavKey = "workspace" | "dms" | "personal" | "search" | "files";
 
 interface NavItem {
   key: NavKey;
@@ -49,13 +49,6 @@ const NAV: NavItem[] = [
     matcher: (p) => p.startsWith("/search"),
   },
   { key: "files", label: "Files", icon: "file" },
-  {
-    key: "vault",
-    label: "Vault",
-    icon: "archive",
-    href: "/vault",
-    matcher: (p) => p.startsWith("/vault"),
-  },
 ];
 
 function workspaceGlyph(name: string): string {
