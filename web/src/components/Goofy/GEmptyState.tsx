@@ -5,7 +5,7 @@
 // The icon medallion picks an accent fill from the `tone` prop. Pass
 // any node as the `cta` slot — typically a `<GButton/>`.
 
-import type { ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
 import { GlyphSlot, type IconName } from "./GIcons";
@@ -21,7 +21,8 @@ const TONE_BG: Record<GEmptyStateTone, string> = {
   ai: "bg-ai text-white",
 };
 
-export interface GEmptyStateProps {
+export interface GEmptyStateProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   icon?: IconName;
   /** Override the icon medallion entirely (use for emoji or custom SVG). */
   emblem?: ReactNode;
@@ -31,42 +32,49 @@ export interface GEmptyStateProps {
   sub?: ReactNode;
   /** Optional CTA — typically a `<GButton/>`. */
   cta?: ReactNode;
-  className?: string;
 }
 
-export function GEmptyState({
-  icon = "sparkle",
-  emblem,
-  tone = "neutral",
-  title,
-  sub,
-  cta,
-  className,
-}: GEmptyStateProps) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col items-center text-center gap-3 py-10 px-6 max-w-[420px] mx-auto",
-        className,
-      )}
-    >
+export const GEmptyState = forwardRef<HTMLDivElement, GEmptyStateProps>(
+  function GEmptyState(
+    {
+      icon = "sparkle",
+      emblem,
+      tone = "neutral",
+      title,
+      sub,
+      cta,
+      className,
+      ...rest
+    },
+    ref,
+  ) {
+    return (
       <div
+        ref={ref}
         className={cn(
-          "w-16 h-16 grid place-items-center rounded-2xl border-2 border-ink shadow-ink-1 text-2xl",
-          TONE_BG[tone],
+          "flex flex-col items-center text-center gap-3 py-10 px-6 max-w-[420px] mx-auto",
+          className,
         )}
+        {...rest}
       >
-        {emblem ?? <GlyphSlot name={icon} size={28} />}
-      </div>
-      <div className="font-display font-semibold text-[18px] text-text-0 leading-tight">
-        {title}
-      </div>
-      {sub ? (
-        <div className="font-hand font-bold text-[18px] text-text-2 leading-snug">
-          {sub}
+        <div
+          className={cn(
+            "w-16 h-16 grid place-items-center rounded-2xl border-2 border-ink shadow-ink-1 text-2xl",
+            TONE_BG[tone],
+          )}
+        >
+          {emblem ?? <GlyphSlot name={icon} size={28} />}
         </div>
-      ) : null}
-      {cta ? <div className="mt-1">{cta}</div> : null}
-    </div>
-  );
-}
+        <div className="font-display font-semibold text-[18px] text-text-0 leading-tight">
+          {title}
+        </div>
+        {sub ? (
+          <div className="font-hand font-bold text-[18px] text-text-2 leading-snug">
+            {sub}
+          </div>
+        ) : null}
+        {cta ? <div className="mt-1">{cta}</div> : null}
+      </div>
+    );
+  },
+);

@@ -148,6 +148,17 @@ export interface GTooltipProps extends HTMLAttributes<HTMLSpanElement> {
 /**
  * Self-contained tooltip surface — black ink fill, cream paper text,
  * sticker shadow. Positioning is the caller's responsibility.
+ *
+ * Accessibility: this component renders with `role="tooltip"` but does
+ * not auto-associate with its trigger. Callers must give the tooltip
+ * an `id` and reference it from the trigger via `aria-describedby`
+ * (or `aria-labelledby` if the tooltip is the trigger's only accessible
+ * name) — e.g.:
+ *
+ * ```tsx
+ * <button aria-describedby="save-tip">Save</button>
+ * <GTooltip id="save-tip">Saves the current draft (⌘S)</GTooltip>
+ * ```
  */
 export function GTooltip({ className, children, ...rest }: GTooltipProps) {
   return (

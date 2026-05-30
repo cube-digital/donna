@@ -2,7 +2,13 @@
 // and the rest in muted text. Generic over the tab key type so type
 // errors catch mistyped values at the call site.
 
-import type { HTMLAttributes, ReactNode } from "react";
+import {
+  forwardRef,
+  type ForwardedRef,
+  type HTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
 import { cn } from "../../lib/cn";
 
@@ -25,15 +31,21 @@ function normalise<T extends string>(item: GTabsItem<T>): BaseTab<T> {
   return item;
 }
 
-export function GTabs<T extends string = string>({
-  tabs,
-  value,
-  onChange,
-  className,
-  ...rest
-}: GTabsProps<T>) {
+// `forwardRef` doesn't naturally preserve generics — re-cast the wrapped
+// function back to a generic component signature. The runtime shape is
+// unchanged; this is purely a typing helper so callers like
+// `<GTabs<"All"|"Mine"> .../>` keep their narrow tab-value typing.
+type GTabsComponent = <T extends string = string>(
+  props: GTabsProps<T> & { ref?: ForwardedRef<HTMLDivElement> },
+) => ReactElement;
+
+export const GTabs = forwardRef(function GTabs<T extends string = string>(
+  { tabs, value, onChange, className, ...rest }: GTabsProps<T>,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
   return (
     <div
+      ref={ref}
       role="tablist"
       className={cn(
         // Outer + inner pills share the same `rounded-full` so the
@@ -67,4 +79,4 @@ export function GTabs<T extends string = string>({
       })}
     </div>
   );
-}
+}) as GTabsComponent;

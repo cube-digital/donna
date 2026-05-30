@@ -4,7 +4,7 @@
 // `onChange(next: boolean)`. They expose the underlying element via
 // `forwardRef` so callers can integrate with form libraries.
 
-import { forwardRef, useCallback, type ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 import { cn } from "../../lib/cn";
 import { GlyphSlot } from "./GIcons";
@@ -27,14 +27,16 @@ export const GCheck = forwardRef<HTMLButtonElement, GCheckProps>(function GCheck
   { checked = false, onChange, className, ...rest },
   ref,
 ) {
-  const handle = useCallback(() => onChange?.(!checked), [checked, onChange]);
   return (
     <button
       ref={ref}
       type="button"
       role="checkbox"
       aria-checked={checked}
-      onClick={handle}
+      // Inline arrow — `useCallback` here would be redundant: the click
+      // handler isn't passed to a memo'd child or stored as a dependency,
+      // so closure churn on each render costs nothing measurable.
+      onClick={() => onChange?.(!checked)}
       className={cn(CHECK_BASE, checked && CHECK_ON, className)}
       {...rest}
     >
@@ -113,14 +115,14 @@ export const GSwitch = forwardRef<HTMLButtonElement, GSwitchProps>(function GSwi
   { on = false, onChange, className, ...rest },
   ref,
 ) {
-  const handle = useCallback(() => onChange?.(!on), [on, onChange]);
   return (
     <button
       ref={ref}
       type="button"
       role="switch"
       aria-checked={on}
-      onClick={handle}
+      // See `GCheck` — inline arrow is intentional, no memoization needed.
+      onClick={() => onChange?.(!on)}
       className={cn(SWITCH_BASE, on && SWITCH_ON, className)}
       {...rest}
     >

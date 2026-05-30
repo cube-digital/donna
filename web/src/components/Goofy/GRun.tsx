@@ -5,7 +5,7 @@
 // and what memory got touched. The grape backdrop + dashed-ink dividers
 // + offset shadow in `var(--ai)` set it apart from regular cards.
 
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
 import { GlyphSlot, type IconName } from "./GIcons";
@@ -45,26 +45,30 @@ export interface GRunProps extends HTMLAttributes<HTMLDivElement> {
 const STEP_ICON_CLS =
   "w-6 h-6 shrink-0 grid place-items-center border-[1.5px] border-ink rounded-[7px] bg-pop-mint text-on-bright";
 
-export function GRun({
-  label = "Agent run",
-  summary,
-  status = "done",
-  running = false,
-  thought,
-  steps = [],
-  output,
-  memory,
-  footer,
-  onDismiss,
-  onApprove,
-  className,
-  ...rest
-}: GRunProps) {
+export const GRun = forwardRef<HTMLDivElement, GRunProps>(function GRun(
+  {
+    label = "Agent run",
+    summary,
+    status = "done",
+    running = false,
+    thought,
+    steps = [],
+    output,
+    memory,
+    footer,
+    onDismiss,
+    onApprove,
+    className,
+    ...rest
+  },
+  ref,
+) {
   const showFooter = footer !== false && (footer || memory || output);
   const footerOpts = typeof footer === "object" ? footer : null;
 
   return (
     <div
+      ref={ref}
       className={cn(
         "border-[2.5px] border-ink rounded-[16px] shadow-ai-stamp run-card-bg overflow-hidden",
         className,
@@ -161,4 +165,4 @@ export function GRun({
       ) : null}
     </div>
   );
-}
+});

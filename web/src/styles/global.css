@@ -155,3 +155,26 @@
     animation: gx-dots 1s steps(3, end) infinite;
   }
 }
+
+/* Wiggly mode — every interactive sticker tilts on hover. Lives in
+ * global CSS (instead of a Tailwind arbitrary-variant chain on the
+ * provider) so we can:
+ *   1) honour `prefers-reduced-motion` cleanly, and
+ *   2) keep the JSX provider thin.
+ *
+ * Covers <button>, all the ARIA roles used by composable elements that
+ * aren't <button> (tabs / switches / checkboxes / menu items / list
+ * rows / tooltips), and the explicit `.gx-wiggle-target` opt-in for
+ * decorative stickers (avatars, chips, badges, role-chips). */
+@media (prefers-reduced-motion: no-preference) {
+  .gx.wiggly button:hover,
+  .gx.wiggly [role="button"]:hover,
+  .gx.wiggly [role="tab"]:hover,
+  .gx.wiggly [role="switch"]:hover,
+  .gx.wiggly [role="checkbox"]:hover,
+  .gx.wiggly [role="menuitem"]:hover,
+  .gx.wiggly [role="tooltip"]:hover,
+  .gx.wiggly .gx-wiggle-target:hover {
+    animation: gx-wiggle 0.4s ease-in-out;
+  }
+}

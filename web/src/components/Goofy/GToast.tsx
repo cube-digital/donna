@@ -5,7 +5,7 @@
 // Status tones flip the accent stripe + icon medallion colour but keep
 // the body on cream paper so the message stays legible.
 
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
 import { GIconButton } from "./GButton";
@@ -44,18 +44,13 @@ export interface GToastProps
   emblem?: ReactNode;
 }
 
-export function GToast({
-  tone = "info",
-  title,
-  sub,
-  actions,
-  onDismiss,
-  emblem,
-  className,
-  ...rest
-}: GToastProps) {
+export const GToast = forwardRef<HTMLDivElement, GToastProps>(function GToast(
+  { tone = "info", title, sub, actions, onDismiss, emblem, className, ...rest },
+  ref,
+) {
   return (
     <div
+      ref={ref}
       role="status"
       aria-live="polite"
       className={cn(
@@ -91,4 +86,4 @@ export function GToast({
       ) : null}
     </div>
   );
-}
+});

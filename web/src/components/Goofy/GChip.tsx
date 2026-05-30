@@ -3,7 +3,12 @@
 // on hover. Tags are flat (no shadow); badges are small count pills;
 // role-chips are tiny tilted "AGENT"/"AI" stamps.
 
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 
 import { cn } from "../../lib/cn";
 import { GlyphSlot } from "./GIcons";
@@ -48,46 +53,75 @@ export interface GChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   onRemove?: () => void;
 }
 
+/**
+ * Sticker pill. Defaults to a single `<button/>` so it composes into
+ * forms / toolbars naturally.
+ *
+ * When `onRemove` is set, the chip splits into a `<span role="group"/>`
+ * wrapper around two independently-focusable `<button/>`s — one for the
+ * chip body, one for the `×`. We deliberately avoid nesting interactive
+ * elements (the previous shape rendered a `role="button"` X inside the
+ * outer `<button>`), which is invalid HTML and produced inconsistent
+ * keyboard / screen-reader behaviour. The forwarded `ref` always lands
+ * on the body button so form-library refs keep working unchanged.
+ */
 export const GChip = forwardRef<HTMLButtonElement, GChipProps>(function GChip(
   { variant = "default", active = false, onRemove, className, children, type, ...rest },
   ref,
 ) {
+  const variantCls = active ? CHIP_ACTIVE : VARIANT_CLS[variant];
+
+  if (!onRemove) {
+    return (
+      <button
+        ref={ref}
+        type={type ?? "button"}
+        aria-pressed={active}
+        className={cn(CHIP_BASE, variantCls, className)}
+        {...rest}
+      >
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <button
-      ref={ref}
-      type={type ?? "button"}
-      aria-pressed={active}
+    <span
+      role="group"
       className={cn(
         CHIP_BASE,
-        // active wins over variant
-        active ? CHIP_ACTIVE : VARIANT_CLS[variant],
+        variantCls,
+        // Re-tighten the right padding — the × button supplies its own
+        // visual breathing room so we don't want the wrapper's default.
+        "pr-1.5",
         className,
       )}
-      {...rest}
     >
-      {children}
-      {onRemove ? (
-        <span
-          role="button"
-          aria-label="Remove"
-          tabIndex={0}
-          className="grid place-items-center w-3.5 h-3.5 opacity-70 hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.stopPropagation();
-              e.preventDefault();
-              onRemove();
-            }
-          }}
-        >
-          <GlyphSlot name="x" size={11} />
-        </span>
-      ) : null}
-    </button>
+      <button
+        ref={ref}
+        type={type ?? "button"}
+        aria-pressed={active}
+        className="inline-flex items-center gap-1.5 outline-none focus-visible:underline cursor-pointer"
+        {...rest}
+      >
+        {children}
+      </button>
+      <button
+        type="button"
+        aria-label="Remove"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        className={cn(
+          "grid place-items-center w-4 h-4 ml-1.5 rounded-full opacity-70 cursor-pointer",
+          "hover:opacity-100",
+          "outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ai",
+        )}
+      >
+        <GlyphSlot name="x" size={11} />
+      </button>
+    </span>
   );
 });
 
@@ -101,49 +135,56 @@ const TAG_VARIANTS: Record<GTagVariant, string> = {
   sun: "bg-pop-sun text-on-bright",
 };
 
-export interface GTagProps {
+export interface GTagProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: GTagVariant;
   /** Optional trailing count chip. */
   count?: number | string;
   children: ReactNode;
-  className?: string;
 }
 
 /**
  * Small inline tag with a 1.5 px ink border but no offset shadow.
  * Renders a `<span/>` so it composes inside paragraphs and list rows.
  */
-export function GTag({ variant = "default", count, children, className }: GTagProps) {
+export const GTag = forwardRef<HTMLSpanElement, GTagProps>(function GTag(
+  { variant = "default", count, children, className, ...rest },
+  ref,
+) {
   return (
     <span
+      ref={ref}
       className={cn(
         "gx-wiggle-target inline-flex items-center gap-1.5 px-[9px] py-0.5 border-[1.5px] border-ink rounded-full text-[11.5px] font-medium",
         TAG_VARIANTS[variant],
         className,
       )}
+      {...rest}
     >
       {children}
       {count != null ? <span className="font-mono opacity-70">{count}</span> : null}
     </span>
   );
-}
+});
 
 // ── Badge ───────────────────────────────────────────────────────────────
 
-export interface GBadgeProps {
+export interface GBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   /** Mention variant — coral fill, ink border, sticker shadow, slight tilt. */
   mention?: boolean;
   children: ReactNode;
-  className?: string;
 }
 
 /**
  * Small numeric badge. Mention variant ("3 unread @-mentions") tilts
  * and stamps with a hard shadow to draw the eye.
  */
-export function GBadge({ mention = false, children, className }: GBadgeProps) {
+export const GBadge = forwardRef<HTMLSpanElement, GBadgeProps>(function GBadge(
+  { mention = false, children, className, ...rest },
+  ref,
+) {
   return (
     <span
+      ref={ref}
       className={cn(
         "gx-wiggle-target inline-grid place-items-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold tabular-nums",
         mention
@@ -151,31 +192,35 @@ export function GBadge({ mention = false, children, className }: GBadgeProps) {
           : "bg-ink text-bg-1",
         className,
       )}
+      {...rest}
     >
       {children}
     </span>
   );
-}
+});
 
 // ── Role chip ──────────────────────────────────────────────────────────
 
-export interface GRoleChipProps {
+export interface GRoleChipProps extends HTMLAttributes<HTMLSpanElement> {
   children?: ReactNode;
-  className?: string;
 }
 
 /**
  * Tilted micro-label, used inline next to a name to mark an agent.
  */
-export function GRoleChip({ children = "AI", className }: GRoleChipProps) {
-  return (
-    <span
-      className={cn(
-        "gx-wiggle-target inline-block px-1.5 py-0.5 border-[1.5px] border-ink rounded-[5px] shadow-[1.5px_1.5px_0_var(--ink)] bg-ai text-white text-[9.5px] font-semibold tracking-[0.05em] uppercase -rotate-[4deg]",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
+export const GRoleChip = forwardRef<HTMLSpanElement, GRoleChipProps>(
+  function GRoleChip({ children = "AI", className, ...rest }, ref) {
+    return (
+      <span
+        ref={ref}
+        className={cn(
+          "gx-wiggle-target inline-block px-1.5 py-0.5 border-[1.5px] border-ink rounded-[5px] shadow-[1.5px_1.5px_0_var(--ink)] bg-ai text-white text-[9.5px] font-semibold tracking-[0.05em] uppercase -rotate-[4deg]",
+          className,
+        )}
+        {...rest}
+      >
+        {children}
+      </span>
+    );
+  },
+);

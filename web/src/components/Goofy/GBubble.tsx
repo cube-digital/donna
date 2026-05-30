@@ -2,7 +2,7 @@
 // a custom corner radius; agent bubbles sit left, paired with their
 // avatar, in cream paper.
 
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 
 import { cn } from "../../lib/cn";
 import { GAvatar } from "./GAvatar";
@@ -16,16 +16,14 @@ export interface GBubbleProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   children: ReactNode;
 }
 
-export function GBubble({
-  from = "agent",
-  avatar,
-  className,
-  children,
-  ...rest
-}: GBubbleProps) {
+export const GBubble = forwardRef<HTMLDivElement, GBubbleProps>(function GBubble(
+  { from = "agent", avatar, className, children, ...rest },
+  ref,
+) {
   if (from === "user") {
     return (
       <div
+        ref={ref}
         className={cn(
           "max-w-[460px] text-[14px] leading-[1.5] ml-auto bg-pop-blue text-white border-2 border-ink rounded-[16px_16px_5px_16px] shadow-ink-1 px-3.5 py-2.5 font-display font-medium",
           className,
@@ -38,6 +36,7 @@ export function GBubble({
   }
   return (
     <div
+      ref={ref}
       className={cn(
         "flex items-start gap-2.5 max-w-[460px] text-[14px] leading-[1.5]",
         className,
@@ -50,4 +49,4 @@ export function GBubble({
       </div>
     </div>
   );
-}
+});
