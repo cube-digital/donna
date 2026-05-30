@@ -218,6 +218,25 @@ class RegistryService:
         if token is None:
             return False
 
+        # Per-connector pre-disconnect cleanup (e.g. delete remote webhook
+        # registrations). Runs while the OAuth token is still valid — vendor
+        # APIs needed for cleanup will fail after revoke. Failures are logged
+        # and swallowed so local state cleanup always completes; an orphaned
+        # vendor-side resource is recoverable, a half-deleted DB row is not.
+        connection = (
+            token.connection_set.filter(provider_slug=slug).first()  # type: ignore[attr-defined]
+            if hasattr(token, "connection_set")
+            else None
+        )
+        if connection is not None:
+            try:
+                provider.on_disconnect(token=token, connection=connection)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "on_disconnect_failed",
+                    extra={"slug": slug, "error": str(exc)},
+                )
+
         # Best-effort revocation; ignore upstream failures.
         try:
             provider.oauth_handler(oauth_config).revoke(token)
@@ -339,5 +358,19 @@ class RegistryService:
         if not conn_created and connection.token_id != token.id:
             connection.token = token
             connection.save(update_fields=["token", "updated_at"])
+
+        # Per-connector post-connect hook (e.g. register a remote webhook).
+        # Runs inside this @transaction.atomic block — any raise rolls back
+        # the OAuthToken + Connection rows so we never leave a half-configured
+        # binding behind. Hook implementations should be idempotent so a retry
+        # after a transient vendor error works.
+        try:
+            provider.on_connect(token=token, connection=connection)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "on_connect_failed",
+                extra={"slug": connector_slug, "error": str(exc)},
+            )
+            raise
 
         return token

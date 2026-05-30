@@ -139,7 +139,7 @@ export default function WorkspacePicker() {
                 onClick={() => setActive(w.id)}
                 className="flex items-center gap-3 px-3.5 py-3 bg-bg-2 border border-border-soft rounded text-left w-full cursor-pointer hover:bg-bg-3"
               >
-                <span className="w-9 h-9 rounded-[10px] bg-bg-3 text-text-0 grid place-items-center font-bold text-sm flex-shrink-0">
+                <span className="w-9 h-9 rounded-md bg-bg-3 text-text-0 grid place-items-center font-bold text-sm flex-shrink-0">
                   {glyph(w.name)}
                 </span>
                 <span className="flex-1 min-w-0">
@@ -180,7 +180,7 @@ export default function WorkspacePicker() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Acme Inc."
                 autoFocus
-                className="h-9 px-3 bg-bg-2 border border-border-strong rounded text-text-0 text-[13.5px]"
+                className="h-9 px-3 bg-bg-2 border border-border-strong rounded text-text-0 text-[13px]"
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -193,7 +193,7 @@ export default function WorkspacePicker() {
                   setSlugDirty(true);
                 }}
                 placeholder="acme"
-                className="h-9 px-3 bg-bg-2 border border-border-strong rounded text-text-0 text-[13.5px] font-mono"
+                className="h-9 px-3 bg-bg-2 border border-border-strong rounded text-text-0 text-[13px] font-mono"
               />
             </label>
 

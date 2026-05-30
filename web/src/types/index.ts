@@ -99,12 +99,22 @@ export interface Notification {
   created_at: ISODateTime;
 }
 
+/**
+ * JSON Schema subset shipped from the backend connector `config_schema`.
+ * Loose `Record<string, unknown>` because the only consumer is the
+ * IntegrationForm engine which walks it at runtime.
+ */
+export type ConfigSchema = Record<string, unknown>;
+
 export interface IntegrationProvider {
   slug: string;
   display_name: string;
   status: "live" | "read-only" | "not_connected" | "error";
   scope: "user" | "workspace";
   description?: string;
+  /** Populated on the retrieve endpoint only (omitted from list). */
+  config_schema?: ConfigSchema | null;
+  default_config?: Record<string, unknown> | null;
 }
 
 export interface Connection {

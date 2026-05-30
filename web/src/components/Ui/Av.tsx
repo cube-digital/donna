@@ -44,9 +44,9 @@ export type AvProps = HumanAv | AgentAv;
 // chip used inline in chat rows; `sm` is the member-stack thumbnail;
 // `lg` / `xl` show up in the agent profile hero.
 const SIZE_CLASSES: Record<AvatarSize, string> = {
-  sm: "w-5 h-5 text-[9px] rounded-[5px]",
-  "": "w-7 h-7 text-[11px] rounded-[7px]",
-  lg: "w-11 h-11 text-base rounded-[10px]",
+  sm: "w-5 h-5 text-[9px] rounded-sm",
+  "": "w-7 h-7 text-[11px] rounded-md",
+  lg: "w-11 h-11 text-base rounded-md",
   xl: "w-[72px] h-[72px] text-2xl rounded-2xl",
 };
 

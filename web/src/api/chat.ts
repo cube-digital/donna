@@ -25,6 +25,41 @@ export async function getChannel(id: string): Promise<Channel> {
   return apiFetch<Channel>(`/api/v1/chat/channels/${id}/`);
 }
 
+export interface CreateChannelInput {
+  name: string;
+  slug?: string;
+  topic?: string;
+  visibility?: "public" | "private";
+}
+
+export async function createChannel(input: CreateChannelInput): Promise<Channel> {
+  return apiFetch<Channel>("/api/v1/chat/channels/", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export interface UpdateChannelInput {
+  name?: string;
+  slug?: string;
+  topic?: string;
+  visibility?: "public" | "private";
+}
+
+export async function updateChannel(
+  id: string,
+  input: UpdateChannelInput,
+): Promise<Channel> {
+  return apiFetch<Channel>(`/api/v1/chat/channels/${id}/`, {
+    method: "PATCH",
+    body: input,
+  });
+}
+
+export async function deleteChannel(id: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/chat/channels/${id}/`, { method: "DELETE" });
+}
+
 /**
  * Fetch a page of messages for a channel.
  *

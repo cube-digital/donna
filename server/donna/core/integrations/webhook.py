@@ -18,7 +18,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from donna.integrations.models import ClientCredentials
+    from donna.integrations.models import ClientCredentials, Connection
 
 from .exceptions import WebhookPayloadInvalid, WebhookSignatureInvalid
 
@@ -46,9 +46,21 @@ class BaseWebhookHandler:
         self.config = config
 
     # ── Signature verification ──────────────────────────────────────────────
-    def verify(self, payload: bytes, signature: str | None) -> bool:
+    def verify(
+        self,
+        payload: bytes,
+        signature: str | None,
+        *,
+        connection: "Connection | None" = None,
+    ) -> bool:
         """
         Verify the HMAC signature of an incoming webhook.
+
+        ``connection`` is the resolved per-tenant Connection (when the webhook
+        view was able to load one). Subclasses with per-Connection secrets
+        (e.g. Fathom, where each webhook registration has its own ``whsec_…``)
+        read from ``connection.state``. The base implementation ignores it and
+        falls back to the deployment-wide ``ClientCredentials.webhook_secret``.
 
         Returns True on success; raises WebhookSignatureInvalid on failure.
         """

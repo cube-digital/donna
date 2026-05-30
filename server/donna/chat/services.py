@@ -263,6 +263,26 @@ class ChannelService:
         )
 
     @staticmethod
+    def emit_channel_updated(channel: Channel) -> None:
+        ChannelService._broadcast(
+            workspace_events_group(channel.workspace_id),
+            {
+                "type":    "chat.channel.updated",
+                "payload": _serialize_channel(channel),
+            },
+        )
+
+    @staticmethod
+    def emit_channel_deleted(channel_id: str, workspace_id: str) -> None:
+        ChannelService._broadcast(
+            workspace_events_group(workspace_id),
+            {
+                "type":    "chat.channel.deleted",
+                "payload": {"channel_id": str(channel_id)},
+            },
+        )
+
+    @staticmethod
     def emit_member_added(channel: Channel, user_id) -> None:
         ChannelService._broadcast(
             channel_group(channel.id),

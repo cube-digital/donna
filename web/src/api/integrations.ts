@@ -32,6 +32,9 @@ interface RawIntegrationStatus {
   category: string;
   is_configured: boolean;
   is_connected: boolean;
+  token_scope?: "user" | "workspace" | null;
+  config_schema?: Record<string, unknown> | null;
+  default_config?: Record<string, unknown> | null;
 }
 
 function toProvider(raw: RawIntegrationStatus): IntegrationProvider {
@@ -43,8 +46,10 @@ function toProvider(raw: RawIntegrationStatus): IntegrationProvider {
     slug: raw.slug,
     display_name: raw.display_name,
     status,
-    scope: "user", // default; backend list DTO doesn't surface token_scope.
+    scope: raw.token_scope ?? "user",
     description: raw.category || undefined,
+    config_schema: raw.config_schema ?? null,
+    default_config: raw.default_config ?? null,
   };
 }
 
@@ -91,4 +96,20 @@ export async function updateSubscription(
     method: "PATCH",
     body: { config },
   });
+}
+
+/**
+ * Fetch picker data for a specific resource (e.g. Gmail labels, Drive
+ * folders). Backed by `ConnectionPickerView` — the resource slugs are
+ * connector-defined (see each connector's `picker()` method on the backend).
+ */
+export async function getPicker(
+  slug: string,
+  resource: string,
+  params: Record<string, string> = {},
+): Promise<Record<string, unknown>> {
+  const qs = new URLSearchParams(params).toString();
+  return apiFetch<Record<string, unknown>>(
+    `/api/v1/integrations/${slug}/subscription/picker/${resource}${qs ? `?${qs}` : ""}`,
+  );
 }

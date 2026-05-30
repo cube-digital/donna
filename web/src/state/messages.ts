@@ -107,10 +107,12 @@ function normalize(msg: Message): Message {
  * objects come back via REST history load.
  */
 function fromEvent(payload: MessageWsPayload): Message {
+  // Caller contract: only invoked for message.created / message.updated
+  // events where id + body are always present.
   const msg: Message = {
-    id: payload.id,
+    id: payload.id!,
     channel: payload.channel_id,
-    body: payload.body,
+    body: payload.body!,
     author_user: payload.author_user
       ? {
           id: payload.author_user,

@@ -15,7 +15,7 @@ export default function ComingSoon({
   return (
     <div className="overflow-y-auto px-8 py-6 h-full">
       <div className="flex flex-col items-center justify-center h-full text-text-3 gap-3 p-10 text-center">
-        <div className="inline-grid place-items-center w-14 h-14 rounded-[14px] bg-bg-2 text-text-3">
+        <div className="inline-grid place-items-center w-14 h-14 rounded-xl bg-bg-2 text-text-3">
           <svg
             width="22"
             height="22"

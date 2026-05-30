@@ -23,10 +23,10 @@ type Mode = "signin" | "signup";
 
 // Class fragments reused below — hoisted to keep the JSX readable.
 const TAB_BASE =
-  "h-8 rounded-[7px] text-[13px] font-medium text-text-2 cursor-pointer";
+  "h-8 rounded-md text-[13px] font-medium text-text-2 cursor-pointer";
 const TAB_ACTIVE = "bg-bg-4 text-text-0 shadow-soft";
 const INPUT_CLASS =
-  "h-10 w-full bg-bg-2 border border-border-soft rounded-[10px] px-3 text-sm text-text-0";
+  "h-10 w-full bg-bg-2 border border-border-soft rounded-md px-3 text-sm text-text-0";
 const LABEL_CLASS =
   "text-[11px] tracking-[0.04em] uppercase text-text-3 font-semibold";
 
@@ -83,7 +83,7 @@ export default function Auth() {
     <div className="min-h-screen bg-bg-0 text-text-1 grid place-items-center p-6">
       <div className="w-[360px] bg-bg-1 border border-border-strong rounded-2xl p-7 shadow-elevated flex flex-col gap-[18px]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[10px] grid place-items-center bg-ai-bg text-ai border border-ai-glow">
+          <div className="w-9 h-9 rounded-md grid place-items-center bg-ai-bg text-ai border border-ai-glow">
             <Sparkle width={18} height={18} />
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function Auth() {
         </div>
 
         <div
-          className="grid grid-cols-2 gap-0.5 bg-bg-2 border border-border-soft rounded-[10px] p-[3px]"
+          className="grid grid-cols-2 gap-0.5 bg-bg-2 border border-border-soft rounded-md p-[3px]"
           role="tablist"
         >
           <button
@@ -172,7 +172,7 @@ export default function Auth() {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-0.5 h-10 rounded-[10px] bg-text-0 text-bg-0 font-semibold text-[13.5px] cursor-pointer border border-text-0 disabled:opacity-70"
+            className="mt-0.5 h-10 rounded-md bg-text-0 text-bg-0 font-semibold text-[13px] cursor-pointer border border-text-0 disabled:opacity-70"
           >
             {submitting
               ? mode === "signup"
@@ -194,7 +194,7 @@ export default function Auth() {
           type="button"
           onClick={handleGoogle}
           disabled={submitting}
-          className="h-10 rounded-[10px] bg-bg-2 text-text-0 text-[13.5px] font-medium border border-border-strong flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-70"
+          className="h-10 rounded-md bg-bg-2 text-text-0 text-[13px] font-medium border border-border-strong flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-70"
         >
           <GoogleGlyph />
           <span>Continue with Google</span>

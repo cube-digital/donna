@@ -61,20 +61,10 @@ class ProviderWebhookView(APIView):
         signature = request.headers.get(handler.signature_header)
         payload = request.body
 
-        # 2. Verify
-        try:
-            handler.verify(payload, signature)
-        except WebhookSignatureInvalid as exc:
-            logger.warning(
-                "webhook_signature_invalid",
-                extra={"slug": slug, "error": str(exc)},
-            )
-            return Response(
-                {"detail": "invalid signature"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # 3. Parse
+        # 2. Parse — pure (json.loads), no side effects, runs before verify so
+        #    we can resolve the Connection whose per-tenant secret will be
+        #    used for HMAC verification (Fathom-style per-webhook secrets).
+        #    Dispatch never happens until verify succeeds further below.
         try:
             parsed = handler.parse(payload)
         except WebhookPayloadInvalid as exc:
@@ -87,7 +77,7 @@ class ProviderWebhookView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 4. Resolve workspace
+        # 3. Resolve workspace
         try:
             workspace = provider.resolve_workspace(parsed)
         except WorkspaceResolutionFailed as exc:
@@ -101,7 +91,32 @@ class ProviderWebhookView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        # 5. Dispatch to the connector-specific task. The connector is
+        # 4. Look up the Connection (used by handlers with per-tenant secrets,
+        #    e.g. Fathom). Lookup keys off the Connection.provider_slug, which
+        #    matches the URL slug.
+        from donna.integrations.models import Connection
+
+        connection = (
+            Connection.objects
+            .filter(workspace=workspace, provider_slug=slug)
+            .first()
+        )
+
+        # 5. Verify HMAC. Per-Connection secrets read from connection.state;
+        #    base handler ignores the kwarg and falls back to ClientCredentials.
+        try:
+            handler.verify(payload, signature, connection=connection)
+        except WebhookSignatureInvalid as exc:
+            logger.warning(
+                "webhook_signature_invalid",
+                extra={"slug": slug, "error": str(exc)},
+            )
+            return Response(
+                {"detail": "invalid signature"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # 6. Dispatch to the connector-specific task. The connector is
         # responsible for putting `_dispatch_webhook(parsed, workspace)` in
         # its task module, OR we look it up by a naming convention. For v1
         # we delegate to a method on the provider so each connector decides.

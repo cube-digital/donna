@@ -21,9 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(name="integrations.fathom.ingest_meeting", bind=True)
-def ingest_fathom_meeting(self, workspace_id: str, meeting_id: str) -> dict:
+def ingest_fathom_meeting(
+    self,
+    workspace_id: str,
+    recording_id: str,
+    meeting: dict | None = None,
+) -> dict:
     """
-    Fetch a Fathom meeting + transcript and land them in storage.
+    Fetch a Fathom recording's transcript + summary and land in storage.
 
     Idempotent end-to-end:
     - ``default_storage.save(...)`` overwrites the same key on retry.
@@ -31,32 +36,35 @@ def ingest_fathom_meeting(self, workspace_id: str, meeting_id: str) -> dict:
       ``UniqueConstraint(workspace, provider, provider_item_id)``.
 
     Args:
-        workspace_id: UUID string of the Workspace the meeting belongs to.
-            Resolved by the webhook view via ``provider.resolve_workspace``.
-        meeting_id: Fathom's stable meeting identifier from the webhook payload.
-
-    Returns:
-        Dict with ``storage_key`` and ``delivery_package_id`` for caller/logs.
+        workspace_id: UUID string of the Workspace.
+        recording_id: Fathom recording id (stable identifier).
+        meeting:    Optional pre-fetched meeting metadata dict (from a
+            ``/meetings`` list item or an inbound webhook payload). Fathom has
+            no singular ``/meetings/{id}`` endpoint, so we cannot synthesize
+            this from ``recording_id`` alone — when omitted, the meeting
+            block of the stored blob is empty and ``adapter.title()`` /
+            ``occurred_at()`` fall back to defaults.
     """
-    # Imports inside the task so Django apps are ready at execution time.
-    from donna.integrations.models import DeliveryPackage, OAuthToken
+    from donna.integrations.models import Connection, DeliveryPackage
 
     provider_cls = get_provider("fathom")
     provider = provider_cls()
 
-    token = OAuthToken.objects.get(
-        provider__slug=provider.oauth_provider_slug,
-        workspace_id=workspace_id,
+    connection = (
+        Connection.objects
+        .select_related("token")
+        .get(workspace_id=workspace_id, provider_slug="fathom")
     )
+    token = connection.token
 
     with provider.client(token) as client:
-        meeting = client.get_meeting(meeting_id)
-        transcript = client.get_transcript(meeting_id)
+        transcript = client.get_transcript(recording_id)
+        summary    = client.get_summary(recording_id)
 
-    raw = {"meeting": meeting, "transcript": transcript}
+    raw = {"meeting": meeting or {}, "transcript": transcript, "summary": summary}
     adapter = provider.adapter_for(raw)
 
-    storage_key = f"{workspace_id}/fathom/meetings/{meeting_id}.json"
+    storage_key = f"{workspace_id}/fathom/meetings/{recording_id}.json"
 
     # Idempotent storage write — same key on retry overwrites the same blob.
     if default_storage.exists(storage_key):
@@ -66,10 +74,17 @@ def ingest_fathom_meeting(self, workspace_id: str, meeting_id: str) -> dict:
         ContentFile(json.dumps(adapter.to_json()).encode()),
     )
 
+    # adapter.external_id() requires meeting.id; fall back to recording_id
+    # when no meeting dict was provided.
+    try:
+        external_id = adapter.external_id()
+    except ValueError:
+        external_id = str(recording_id)
+
     package, created = DeliveryPackage.objects.update_or_create(
         workspace_id=workspace_id,
         provider="fathom",
-        provider_item_id=adapter.external_id(),
+        provider_item_id=external_id,
         defaults={
             "provider_item_type": "meeting",
             "title":              adapter.title(),
@@ -83,10 +98,9 @@ def ingest_fathom_meeting(self, workspace_id: str, meeting_id: str) -> dict:
         "fathom_meeting_ingested",
         extra={
             "workspace_id":         workspace_id,
-            "meeting_id":           meeting_id,
+            "recording_id":         recording_id,
             "storage_key":          storage_key,
             "delivery_package_id":  str(package.id),
-            # ``created`` collides with LogRecord's built-in field name.
             "row_created":          created,
         },
     )

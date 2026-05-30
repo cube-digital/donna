@@ -290,6 +290,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def chat_channel_created(self, event):
         await self.send_json({"event": "channel.created", **event["payload"]})
 
+    async def chat_channel_updated(self, event):
+        await self.send_json({"event": "channel.updated", **event["payload"]})
+
+    async def chat_channel_deleted(self, event):
+        await self.send_json({"event": "channel.deleted", **event["payload"]})
+
     async def chat_channel_member_added(self, event):
         await self.send_json({"event": "channel.member.added", **event["payload"]})
 

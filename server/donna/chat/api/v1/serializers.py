@@ -35,6 +35,17 @@ class ChannelCreateSerializer(serializers.Serializer):
     )
 
 
+class ChannelUpdateSerializer(serializers.Serializer):
+    """Body for PATCH /chat/channels/{id}/. All fields optional."""
+
+    name = serializers.CharField(max_length=120, required=False)
+    slug = serializers.SlugField(max_length=120, required=False, allow_blank=True)
+    topic = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    visibility = serializers.ChoiceField(
+        choices=Channel.Visibility.choices, required=False
+    )
+
+
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message

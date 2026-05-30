@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "npm run build && electron .",
-    "start:dev": "concurrently -k -n web,electron -c blue,magenta \"npm --prefix ../web run dev\" \"wait-on http://localhost:5173 && npm run start\"",
+    "main:watch": "tsc --watch --preserveWatchOutput",
+    "electron:watch": "wait-on dist/main.js http://localhost:5173 && electronmon .",
+    "start:dev": "concurrently -k -n web,main,electron -c blue,green,magenta \"npm --prefix ../web run dev\" \"npm run main:watch\" \"npm run electron:watch\"",
     "build:prod": "npm --prefix ../web run build && npm run build",
     "start:prod": "DONNA_USE_DEV_SERVER=0 npm run start"
   },
@@ -14,7 +16,11 @@
     "@types/node": "^25.7.0",
     "concurrently": "^9.1.0",
     "electron": "^42.0.1",
+    "electronmon": "^2.0.3",
     "typescript": "^6.0.3",
     "wait-on": "^8.0.1"
+  },
+  "electronmon": {
+    "patterns": ["dist/**/*.js"]
   }
 }

@@ -76,11 +76,24 @@ class IntegrationViewSet(viewsets.ViewSet):
 
     # ── retrieve ────────────────────────────────────────────────────────────
     def retrieve(self, request, slug=None, *args, **kwargs):
+        from donna.core.integrations import get as get_provider
+
         try:
             status_dto = self._service().get_status(request.workspace, slug)
+            cls = get_provider(slug)
         except ProviderNotRegistered as exc:
             raise NotFound(str(exc))
-        return Response(IntegrationStatusSerializer(status_dto).data)
+
+        # Enrich with the per-connector schema so the frontend can render
+        # structured config fields. List endpoint omits these — they can be
+        # several KB per connector.
+        payload = IntegrationStatusSerializer(status_dto).data
+        payload["token_scope"] = getattr(cls, "token_scope", None)
+        payload["config_schema"] = getattr(cls, "config_schema", None) or None
+        payload["default_config"] = (
+            dict(getattr(cls, "default_config", {}) or {}) or None
+        )
+        return Response(payload)
 
     # ── connect ─────────────────────────────────────────────────────────────
     @action(detail=True, methods=["post"], url_path="connect")

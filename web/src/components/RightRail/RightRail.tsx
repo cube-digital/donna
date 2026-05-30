@@ -11,8 +11,10 @@
 // the call site as a class string.
 
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { Ic } from "../Ui/Ic";
+import { ConnectorIcon } from "../Ui/BrandIc";
 import { apiFetch } from "../../api/client";
 import { getSubscription } from "../../api/integrations";
 import { getNotificationsSse } from "../../lib/sse";
@@ -23,7 +25,6 @@ import type {
   IntegrationProvider,
   Notification,
 } from "../../types";
-import IntegrationModal from "./IntegrationModal";
 
 // ── Shared Tailwind fragments ────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const HEADER_CLS =
 const HEADER_AI_CLS =
   "flex items-center gap-1.5 py-1 px-0.5 text-[11px] tracking-[0.04em] uppercase text-ai font-semibold";
 const CARD_AI_CLS =
-  "mt-1.5 py-2.5 px-3 bg-ai-bg border border-ai-glow rounded-[9px]";
+  "mt-1.5 py-2.5 px-3 bg-ai-bg border border-ai-glow rounded-lg";
 
 const COMING_SOON_CLS = "mt-1 text-[11px] text-text-3 italic";
 
@@ -145,7 +146,6 @@ export function ContextSection() {
   const providers = useIntegrations((s) => s.providers);
   const loaded = useIntegrations((s) => s.loaded);
   const load = useIntegrations((s) => s.load);
-  const [open, setOpen] = useState<IntegrationProvider | null>(null);
   // Mirror of `subscriptionCache` into component state so we re-render
   // when a fetch resolves.
   const [conns, setConns] = useState<Record<string, Connection | null>>(() => {
@@ -205,14 +205,13 @@ export function ContextSection() {
       {providers.map((p) => {
         const conn = conns[p.slug];
         return (
-          <button
+          <Link
             key={p.slug}
-            type="button"
-            className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] w-full text-left bg-transparent border-0 cursor-pointer hover:bg-bg-2"
-            onClick={() => setOpen(p)}
+            to={`/integrations/${p.slug}`}
+            className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] w-full hover:bg-bg-2"
           >
-            <span className="w-[18px] h-[18px] rounded-sm bg-bg-3 grid place-items-center text-text-1 text-[10px] font-mono">
-              {p.display_name.slice(0, 2).toUpperCase()}
+            <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
+              <ConnectorIcon slug={p.slug} label={p.display_name} />
             </span>
             <span className="flex-1 min-w-0 text-text-0 overflow-hidden text-ellipsis whitespace-nowrap">
               {p.display_name}
@@ -221,13 +220,9 @@ export function ContextSection() {
               status={p.status}
               lastSyncedAt={conn?.last_synced_at ?? null}
             />
-          </button>
+          </Link>
         );
       })}
-
-      {open && (
-        <IntegrationModal provider={open} onClose={() => setOpen(null)} />
-      )}
     </section>
   );
 }

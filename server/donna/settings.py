@@ -116,6 +116,20 @@ DATABASES = {
     }
 }
 
+# ─── Graph database (FalkorDB / Graphiti) ─────────────────────────────────────
+#
+# Connection params for graphiti_core.driver.FalkorDriver. FalkorDB speaks the
+# Redis protocol; the `graph` service in docker-compose listens on 6379 inside
+# the network. Host-side runs should override GRAPH_HOST=localhost.
+
+GRAPH_DB = {
+    "host":     env.str("GRAPH_HOST",     default="graph"),
+    "port":     env.int("GRAPH_PORT",     default=6379),
+    "database": env.str("GRAPH_DATABASE", default="donna"),
+    "username": env.str("GRAPH_USERNAME", default=None) or None,
+    "password": env.str("GRAPH_PASSWORD", default=None) or None,
+}
+
 # ─── DRF ───────────────────────────────────────────────────────────────────────
 
 REST_FRAMEWORK = {
@@ -161,6 +175,12 @@ SIMPLE_JWT = {
 
 # ─── Auth + frontend ──────────────────────────────────────────────────────────
 WEB_REDIRECT_HOST = env.str("WEB_REDIRECT_HOST", default="http://localhost:5173")
+
+# Public backend URL used to build absolute webhook destination URLs handed to
+# upstream vendors during `IntegrationProvider.on_connect`. WEB_REDIRECT_HOST
+# targets the frontend; this targets the backend. In dev set to an ngrok /
+# cloudflared tunnel — vendors cannot reach `localhost`.
+DONNA_PUBLIC_BASE_URL = env.str("DONNA_PUBLIC_BASE_URL", default="http://localhost:8000")
 
 # Google login OAuth — INTENTIONALLY SEPARATE from the integration-OAuth
 # rows in donna.authentication.OAuthProvider (those drive Gmail/Drive
@@ -216,25 +236,6 @@ def _default_storage_config():
                     default=str(BASE_DIR / "var" / "storage"),
                 ),
                 "base_url": env("DONNA_FILESYSTEM_BASE_URL", default=None),
-            },
-        }
-
-    if backend == "gcs":
-        return {
-            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
-            "OPTIONS": {
-                "bucket_name": env("DONNA_GCS_BUCKET"),
-                "credentials": env("DONNA_GCS_CREDENTIALS_PATH"),
-            },
-        }
-
-    if backend == "azure":
-        return {
-            "BACKEND": "storages.backends.azure_storage.AzureStorage",
-            "OPTIONS": {
-                "account_name":    env("DONNA_AZURE_ACCOUNT"),
-                "account_key":     env("DONNA_AZURE_KEY"),
-                "azure_container": env("DONNA_AZURE_CONTAINER"),
             },
         }
 

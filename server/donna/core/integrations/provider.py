@@ -130,6 +130,19 @@ class IntegrationProvider(Protocol):
         """
         ...
 
+    # ── Connection lifecycle hooks (optional) ───────────────────────────────
+    # Called by RegistryService after a successful OAuth pair / before a
+    # disconnect. Default implementations are no-ops; connectors override to
+    # perform vendor-side side effects (e.g. Fathom programmatic webhook
+    # registration). Raising from on_connect rolls back the surrounding
+    # transaction; on_disconnect failures are logged and swallowed so local
+    # cleanup always completes.
+    def on_connect(self, *, token: "OAuthToken", connection: "Connection") -> None:
+        ...
+
+    def on_disconnect(self, *, token: "OAuthToken", connection: "Connection") -> None:
+        ...
+
     # ── Per-Connection config hooks ─────────────────────────────────────────
     def validate_config(self, config: dict, *, connection: "Connection | None" = None) -> dict:
         """

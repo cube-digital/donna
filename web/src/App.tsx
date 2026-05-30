@@ -24,6 +24,8 @@ import AppShell from "./components/Shell/AppShell";
 import Channel from "./views/Channel";
 import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
+import Integrations from "./views/Integrations";
+import IntegrationDetail from "./views/IntegrationDetail";
 
 export default function App() {
   const isAuthenticated = useAuth((s) => s.isAuthenticated);
@@ -69,6 +71,8 @@ export default function App() {
         <Route path="/channels/:channelId" element={<Channel />} />
         <Route path="/personal" element={<Personal />} />
         <Route path="/personal/:channelId" element={<Personal />} />
+        <Route path="/integrations" element={<Integrations />} />
+        <Route path="/integrations/:slug" element={<IntegrationDetail />} />
         <Route path="/search" element={<ComingSoon title="Search & history" />} />
         <Route path="/vault" element={<ComingSoon title="Vault" />} />
         <Route path="/agents/:agentId" element={<ComingSoon title="Agent profile" />} />

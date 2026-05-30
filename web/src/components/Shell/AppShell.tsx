@@ -37,11 +37,39 @@ import WsRail from "./WsRail";
 
 function WorkspaceBootstrap() {
   const loadChannels = useChannels((s) => s.loadChannels);
+  const upsertFromEvent = useChannels((s) => s.upsertFromEvent);
+  const removeFromEvent = useChannels((s) => s.removeFromEvent);
   const workspaces = useWorkspace((s) => s.workspaces);
   const setWorkspaces = useWorkspace((s) => s.setWorkspaces);
   useEffect(() => {
     void loadChannels();
   }, [loadChannels]);
+
+  // Subscribe to channel lifecycle events from the chat WS so other tabs /
+  // teammates' mutations show up without a hard refresh.
+  useEffect(() => {
+    // Lazy import to avoid pulling ws into the bootstrap during SSR.
+    let cleanup: (() => void) | undefined;
+    void import("../../lib/ws").then(({ getChatWs }) => {
+      const ws = getChatWs();
+      const offCreated = ws.on("channel.created", (p) =>
+        upsertFromEvent(p as never),
+      );
+      const offUpdated = ws.on("channel.updated", (p) =>
+        upsertFromEvent(p as never),
+      );
+      const offDeleted = ws.on("channel.deleted", (p: { channel_id: string }) =>
+        removeFromEvent(p.channel_id),
+      );
+      cleanup = () => {
+        offCreated();
+        offUpdated();
+        offDeleted();
+      };
+    });
+    return () => cleanup?.();
+  }, [upsertFromEvent, removeFromEvent]);
+
   useEffect(() => {
     // Re-hydrate the workspace list after a hard reload so the sidebar
     // header can resolve the active workspace name.

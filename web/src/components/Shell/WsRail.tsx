@@ -76,11 +76,11 @@ function userInitials(activeWorkspaceName?: string): string {
 // outside its left edge — expressed entirely as `before:` utilities below
 // so we don't need a child element or a custom @layer rule.
 const PILL_BASE =
-  "w-9 h-9 rounded-[10px] grid place-items-center text-[13px] font-semibold text-text-1 bg-bg-2 border border-border-soft relative";
+  "w-9 h-9 rounded-md grid place-items-center text-[13px] font-semibold text-text-1 bg-bg-2 border border-border-soft relative";
 const PILL_ACTIVE =
-  "before:content-[''] before:absolute before:-left-[10px] before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-[3px] before:bg-text-0";
+  "before:content-[''] before:absolute before:-left-[10px] before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-sm before:bg-text-0";
 const ICON_BASE =
-  "w-9 h-9 rounded-[10px] grid place-items-center text-text-2 hover:bg-bg-2 hover:text-text-0";
+  "w-9 h-9 rounded-md grid place-items-center text-text-2 hover:bg-bg-2 hover:text-text-0";
 const ICON_ACTIVE = "bg-bg-3 text-text-0";
 const ICON_AI = "text-ai hover:text-ai";
 const ICON_AI_ACTIVE =

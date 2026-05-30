@@ -58,7 +58,7 @@ function RunStep({ step }: { step: AgentRunStep }) {
     step.state === "running" ? "text-ai" : "text-text-3";
   return (
     <div className="flex items-center gap-2.5 py-1 text-[12.5px] text-text-1">
-      <div className="w-[22px] h-[22px] rounded-[5px] grid place-items-center bg-[oklch(0.74_0.16_282/0.12)] text-ai shrink-0">
+      <div className="w-[22px] h-[22px] rounded-sm grid place-items-center bg-[oklch(0.74_0.16_282/0.12)] text-ai shrink-0">
         {stepIcon(step.kind)}
       </div>
       <span className="text-text-0">{step.label}</span>
@@ -92,7 +92,7 @@ export default function AgentRunCard({ msg }: AgentRunCardProps) {
       : "bg-ok";
 
   return (
-    <div className="mt-1.5 border border-ai-glow rounded-[10px] run-card-bg overflow-hidden">
+    <div className="mt-1.5 border border-ai-glow rounded-lg run-card-bg overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-ai-glow">
         <span className="text-[11px] tracking-[0.04em] uppercase font-semibold text-ai">
           Agent run
@@ -140,7 +140,7 @@ export default function AgentRunCard({ msg }: AgentRunCardProps) {
           ) : null}
 
           {meta.output ? (
-            <div className="mt-2 px-3 py-2.5 bg-bg-1 border border-border-soft rounded-[8px] text-text-0 text-[13px] leading-[1.55]">
+            <div className="mt-2 px-3 py-2.5 bg-bg-1 border border-border-soft rounded-lg text-text-0 text-[13px] leading-[1.55]">
               {meta.output}
             </div>
           ) : null}
@@ -176,7 +176,7 @@ export default function AgentRunCard({ msg }: AgentRunCardProps) {
             {memory.map((m, i) => (
               <span
                 key={i}
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded-[10px] bg-bg-2 border border-border-soft text-[11px] text-text-2 font-mono"
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-2 border border-border-soft text-[11px] text-text-2 font-mono"
               >
                 <Ic.brain width={11} height={11} />
                 {m}

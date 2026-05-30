@@ -55,9 +55,9 @@ function hueForAgent(id: string | undefined): number {
 
 // Hover-action buttons (the row that fades in above a message on hover).
 const HB =
-  "w-[26px] h-[26px] rounded-[5px] grid place-items-center text-text-2 hover:bg-bg-3 hover:text-text-0";
+  "w-6 h-6 rounded-sm grid place-items-center text-text-2 hover:bg-bg-3 hover:text-text-0";
 const HB_AI =
-  "w-[26px] h-[26px] rounded-[5px] grid place-items-center text-text-2 hover:text-ai hover:bg-ai-bg";
+  "w-6 h-6 rounded-sm grid place-items-center text-text-2 hover:text-ai hover:bg-ai-bg";
 
 export default function Message({ msg }: MessageProps) {
   if (msg.kind === "system") {
@@ -104,11 +104,11 @@ export default function Message({ msg }: MessageProps) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-text-0 text-[13.5px] tracking-[-0.005em]">
+          <span className="font-semibold text-text-0 text-[13px] tracking-[-0.005em]">
             {displayName}
           </span>
           {isAgent ? (
-            <span className="text-[9.5px] tracking-[0.06em] uppercase font-semibold px-[5px] py-px rounded-[3px] bg-ai-bg text-ai border border-ai-glow">
+            <span className="text-[9.5px] tracking-[0.06em] uppercase font-semibold px-1.5 py-px rounded-sm bg-ai-bg text-ai border border-ai-glow">
               Agent
             </span>
           ) : null}
@@ -118,7 +118,7 @@ export default function Message({ msg }: MessageProps) {
         {msg.kind === "agent-run" ? (
           <AgentRunCard msg={msg} />
         ) : (
-          <div className="text-text-1 text-[13.5px] leading-[1.55] mt-px [&>p]:m-0 [&>p]:mb-1">
+          <div className="text-text-1 text-[13px] leading-[1.55] mt-px [&>p]:m-0 [&>p]:mb-1">
             {msg.body.split("\n").map((line, i) => (
               <p key={i}>{line}</p>
             ))}
@@ -126,7 +126,7 @@ export default function Message({ msg }: MessageProps) {
         )}
       </div>
 
-      <div className="absolute -top-2.5 right-6 hidden group-hover:flex gap-px bg-bg-2 border border-border-strong rounded-[7px] shadow-soft p-px">
+      <div className="absolute -top-2.5 right-6 hidden group-hover:flex gap-px bg-bg-2 border border-border-strong rounded-md shadow-soft p-px">
         <button
           type="button"
           className={HB}

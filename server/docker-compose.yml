@@ -7,6 +7,7 @@
 # Services:
 #   database  — Postgres (data)
 #   cache     — Redis (Celery broker + Channels layer + cache)
+#   graph     — FalkorDB (Graphiti knowledge graph)
 #   server    — Django/uvicorn (HTTP + WebSockets in one ASGI process)
 #                runs migrate + collectstatic on start via deploy/entrypoint.sh
 #   worker    — Celery worker for connector ingestion tasks
@@ -54,6 +55,21 @@ services:
       retries: 10
     restart: always
 
+  graph:
+    image: falkordb/falkordb:latest
+    container_name: donna-graph
+    volumes:
+      - falkor_data:/data
+    ports:
+      - "${GRAPH_HOST_PORT:-6669}:${GRAPH_PORT:-6379}"
+      - "${GRAPH_BROWSER_HOST_PORT:-3001}:3000"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: always
+
   server:
     image: donna
     container_name: donna-server
@@ -68,8 +84,11 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
+      graph:
+        condition: service_healthy
     volumes:
       - ./donna:/opt/donna/donna
+      - ./var/storage:/var/donna/storage
     ports:
       - "${WEB_HOST_PORT:-8190}:8000"
 
@@ -91,10 +110,13 @@ services:
       - env/.env.docker
     volumes:
       - ./donna:/opt/donna/donna
+      - ./var/storage:/var/donna/storage
     depends_on:
       database:
         condition: service_healthy
       cache:
+        condition: service_healthy
+      graph:
         condition: service_healthy
       server:
         condition: service_started
@@ -120,6 +142,8 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
+      graph:
+        condition: service_healthy
       server:
         condition: service_started
 
@@ -127,3 +151,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  falkor_data:

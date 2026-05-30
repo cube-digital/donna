@@ -69,9 +69,9 @@ function isTypingInsideField(el: Element | null): boolean {
 }
 
 const FMT_BTN =
-  "w-6 h-6 grid place-items-center rounded-[5px] hover:bg-bg-2 hover:text-text-1";
+  "w-6 h-6 grid place-items-center rounded-sm hover:bg-bg-2 hover:text-text-1";
 const FOOT_BTN =
-  "w-[26px] h-[26px] grid place-items-center rounded-md text-text-2 hover:bg-bg-2 hover:text-text-0";
+  "w-6 h-6 grid place-items-center rounded-md text-text-2 hover:bg-bg-2 hover:text-text-0";
 
 export default function Composer({ channelId, placeholder }: ComposerProps) {
   const [text, setText] = useState("");
@@ -211,7 +211,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
         </button>
       </div>
 
-      <div className="px-3.5 py-3 min-h-[44px] text-text-0 text-[13.5px]">
+      <div className="px-3.5 py-3 min-h-[44px] text-text-0 text-[13px]">
         <textarea
           ref={textareaRef}
           value={text}
@@ -228,7 +228,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
           onKeyDown={onKeyDown}
           placeholder={ph}
           rows={2}
-          className="block w-full resize-none bg-transparent text-text-0 text-[13.5px] leading-[1.55] min-h-[28px] placeholder:text-text-3"
+          className="block w-full resize-none bg-transparent text-text-0 text-[13px] leading-[1.55] min-h-[28px] placeholder:text-text-3"
         />
         {charCount > 0 ? (
           <div className="mt-1 text-[11px] text-text-3 flex gap-2 tabular-nums">

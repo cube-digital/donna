@@ -65,9 +65,18 @@ export default function TopBar() {
 
   const CrumbIcon = Ic[crumb.icon];
 
+  // Electron window drag — the whole top bar acts as the OS title bar.
+  // Interactive children opt out via `no-drag`. No-ops in normal browsers.
+  const dragStyle = { WebkitAppRegion: "drag" } as React.CSSProperties;
+  const noDragStyle = { WebkitAppRegion: "no-drag" } as React.CSSProperties;
+
   return (
-    <div className="[grid-area:topbar] flex items-center gap-2.5 px-3 bg-bg-0 border-b border-border-soft">
-      <div className="flex items-center gap-2 text-text-2 text-[12.5px]">
+    <div
+      className="[grid-area:topbar] flex items-center gap-2.5 px-3 bg-bg-0 border-b border-border-soft"
+      style={dragStyle}
+    >
+      {/* pl-20 reserves space for macOS traffic-light controls under hiddenInset */}
+      <div className="flex items-center gap-2 text-text-2 text-[12.5px] pl-20">
         <CrumbIcon />
         {crumb.hashed ? (
           <>
@@ -80,6 +89,7 @@ export default function TopBar() {
       </div>
 
       <form
+        style={noDragStyle}
         className="flex-1 max-w-[560px] mx-auto flex items-center gap-2 h-7 px-2.5 bg-bg-2 border border-border-soft rounded text-text-2 text-[12.5px]"
         onSubmit={(e) => {
           e.preventDefault();
@@ -96,12 +106,12 @@ export default function TopBar() {
           onFocus={() => navigate("/search")}
           readOnly
         />
-        <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-[3px] bg-bg-1 border border-border-soft">
+        <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-sm bg-bg-1 border border-border-soft">
           ⌘K
         </kbd>
       </form>
 
-      <div className="flex gap-1">
+      <div style={noDragStyle} className="flex gap-1">
         <button
           type="button"
           className="relative w-7 h-7 grid place-items-center rounded-md text-text-2 hover:bg-bg-2 hover:text-text-0"
@@ -121,7 +131,7 @@ export default function TopBar() {
           {unreadCount > 0 && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-[8px] bg-ai text-bg-0 text-[9px] font-bold leading-[14px] text-center"
+              className="pointer-events-none absolute top-0.5 right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-sm bg-ai text-bg-0 text-[9px] font-bold leading-[14px] text-center"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>

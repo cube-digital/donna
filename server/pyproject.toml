@@ -22,6 +22,7 @@ dependencies = [
     "drf-spectacular>=0.29.0",
     "google-auth>=2.53.0",
     "google-auth-oauthlib>=1.4.0",
+    "graphiti-core[anthropic,falkordb,google-genai]>=0.29.1",
     "gunicorn>=26.0.0",
     "httpx>=0.28.1",
     "jsonschema>=4.20.0",

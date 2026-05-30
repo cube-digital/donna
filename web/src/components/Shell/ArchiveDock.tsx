@@ -49,7 +49,7 @@ export default function ArchiveDock() {
           <button
             key={t.label}
             type="button"
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded-[10px] bg-bg-2 border border-border-soft text-[11.5px] text-text-2 whitespace-nowrap hover:bg-bg-3 hover:text-text-0"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-2 border border-border-soft text-[11px] text-text-2 whitespace-nowrap hover:bg-bg-3 hover:text-text-0"
             onClick={open}
             role="listitem"
           >

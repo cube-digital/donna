@@ -23,6 +23,7 @@ from .serializers import (
     AdvanceReadSerializer,
     ChannelCreateSerializer,
     ChannelSerializer,
+    ChannelUpdateSerializer,
     DMOpenSerializer,
     MessageCreateSerializer,
     MessageEditSerializer,
@@ -71,7 +72,7 @@ class ChannelListCreateView(generics.ListCreateAPIView):
             topic=data.get("topic") or "",
             visibility=data.get("visibility") or Channel.Visibility.PUBLIC,
             created_by=request.user,
-            updated_by=request.user,
+            modified_by=request.user,
         )
         ChannelMembership.objects.create(
             channel=channel, user=request.user, role=ChannelMembership.Role.ADMIN
@@ -82,16 +83,50 @@ class ChannelListCreateView(generics.ListCreateAPIView):
         )
 
 
-class ChannelDetailView(generics.RetrieveDestroyAPIView):
+class ChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """``/chat/channels/{id}/`` — retrieve / PATCH (name/topic/visibility) / DELETE.
+
+    Membership gates retrieve + delete; only the admin role on the channel
+    can update or delete. We don't expose PUT — patch is partial only.
+    """
+
     serializer_class = ChannelSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = "id"
+    http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         return Channel.objects.filter(
             workspace=self.request.workspace,
             memberships__user=self.request.user,
         ).distinct()
+
+    def _require_admin(self, channel):
+        membership = _require_channel_membership(self.request.user, channel)
+        if membership.role != ChannelMembership.Role.ADMIN:
+            raise PermissionDenied("channel admin role required")
+
+    def partial_update(self, request, *args, **kwargs):
+        channel = self.get_object()
+        self._require_admin(channel)
+
+        serializer = ChannelUpdateSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        for field, value in serializer.validated_data.items():
+            setattr(channel, field, value)
+        channel.modified_by = request.user
+        channel.save()
+        ChannelService.emit_channel_updated(channel)
+        return Response(ChannelSerializer(channel).data)
+
+    def destroy(self, request, *args, **kwargs):
+        channel = self.get_object()
+        self._require_admin(channel)
+        channel_id = str(channel.id)
+        workspace_id = str(channel.workspace_id)
+        channel.delete()
+        ChannelService.emit_channel_deleted(channel_id, workspace_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ── Messages ────────────────────────────────────────────────────────────────

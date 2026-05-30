@@ -14,16 +14,19 @@
 // header. When projects land, group channels by project FK and lift the
 // project name onto a `.project-h` row above the channel cluster.
 
-import { useMemo } from "react";
-import { Link, useLocation, useMatch } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { hueForAgent } from "../../lib/hueForAgent";
 import { useChannels } from "../../state/channels";
+import { useIntegrations } from "../../state/integrations";
 import { useMessages } from "../../state/messages";
 import { useWorkspace } from "../../state/workspace";
-import type { AgentRef, Channel } from "../../types";
+import type { AgentRef, Channel, IntegrationProvider } from "../../types";
+import { ConnectorIcon } from "../Ui/BrandIc";
 import { Av } from "../Ui/Av";
 import { Ic } from "../Ui/Ic";
+import { CreateChannelDialog } from "../Channel/CreateChannelDialog";
 
 // Tailwind class fragments for the sidebar row variants. Hoisted so
 // the JSX below stays scannable.
@@ -120,10 +123,12 @@ export default function Sidebar() {
   const channels = useChannels((s) => s.channels);
   const byChannel = useMessages((s) => s.byChannel);
   const location = useLocation();
+  const navigate = useNavigate();
   const channelMatch = useMatch("/channels/:channelId");
   const agentMatch = useMatch("/agents/:agentId");
   const activeChannelId = channelMatch?.params.channelId ?? null;
   const activeAgentId = agentMatch?.params.agentId ?? null;
+  const [createOpen, setCreateOpen] = useState(false);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeId);
 
@@ -198,7 +203,7 @@ export default function Sidebar() {
             <Ic.search />
           </span>
           <span className={NAME_SLOT}>Search</span>
-          <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-[3px] bg-bg-2 border border-border-soft">
+          <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-sm bg-bg-2 border border-border-soft">
             ⌘K
           </kbd>
         </NavRow>
@@ -289,7 +294,7 @@ export default function Sidebar() {
 
       {/* Channels — flat list (no project grouping in v1; backend has no Project model) */}
       <div className="mt-3">
-        <GroupHeader label="Channels" onAdd={() => {}} />
+        <GroupHeader label="Channels" onAdd={() => setCreateOpen(true)} />
         {publicChannels.length === 0 ? (
           <div className={cls(ROW_BASE, ROW_DISABLED)}>
             <span className={cls(NAME_SLOT, "text-[12px]")}>
@@ -311,7 +316,19 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Apps */}
+      <CreateChannelDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(ch) => navigate(`/channels/${ch.id}`)}
+      />
+
+      {/* Connections — connected integrations (Gmail, Drive, Fathom, ...).
+          Pattern blend: Slack "Apps" entry placement + Linear connection cards
+          + Discord-style brand icon + status dot. Clicking opens the existing
+          IntegrationModal (same surface as the right rail listing). */}
+      <ConnectionsGroup />
+
+      {/* Apps — placeholder kept for v1 parity with the design source. */}
       <div className="mt-3">
         <GroupHeader label="Apps" />
         <div
@@ -324,5 +341,71 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+// ── Connections ─────────────────────────────────────────────────────────────
+
+function ConnectionsGroup() {
+  const providers = useIntegrations((s) => s.providers);
+  const loaded = useIntegrations((s) => s.loaded);
+  const load = useIntegrations((s) => s.load);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loaded) void load();
+  }, [loaded, load]);
+
+  const connected = providers.filter(
+    (p) => p.status === "live" || p.status === "error",
+  );
+
+  return (
+    <div className="mt-3">
+      <GroupHeader label="Connections" onAdd={() => navigate("/integrations")} />
+
+      {connected.length === 0 ? (
+        <div className={cls(ROW_BASE, ROW_DISABLED)}>
+          <span className={cls(NAME_SLOT, "text-[12px]")}>
+            No connections yet
+          </span>
+        </div>
+      ) : (
+        connected.map((p) => <ConnectionRow key={p.slug} provider={p} />)
+      )}
+    </div>
+  );
+}
+
+function ConnectionRow({ provider }: { provider: IntegrationProvider }) {
+  const active = !!useMatch(`/integrations/${provider.slug}`);
+  const dotClass =
+    provider.status === "live"
+      ? "bg-ok shadow-[0_0_6px_var(--ok)]"
+      : provider.status === "error"
+      ? "bg-danger"
+      : "bg-bg-3";
+
+  return (
+    <Link
+      to={`/integrations/${provider.slug}`}
+      aria-label={`${provider.display_name} integration settings`}
+      aria-current={active ? "page" : undefined}
+      className={cls(ROW_BASE, active && ROW_ACTIVE)}
+    >
+      <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
+        <ConnectorIcon slug={provider.slug} label={provider.display_name} />
+      </span>
+      <span className={cls(NAME_SLOT, "text-text-0")}>
+        {provider.display_name}
+      </span>
+      <span
+        className={cls(
+          "w-1.5 h-1.5 rounded-full flex-shrink-0",
+          dotClass,
+        )}
+        aria-hidden="true"
+      />
+    </Link>
   );
 }

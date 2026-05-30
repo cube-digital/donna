@@ -13,6 +13,22 @@ interface IntegrationsState {
   loading: boolean;
   loaded: boolean;
   load(): Promise<void>;
+  /** Bypass the loaded-once guard. Used after connect/disconnect. */
+  reload(): Promise<void>;
+  /** Selector helper — undefined if slug unknown. */
+  bySlug(slug: string): IntegrationProvider | undefined;
+}
+
+async function fetchAndSet(set: (p: Partial<IntegrationsState>) => void): Promise<void> {
+  set({ loading: true });
+  try {
+    const providers = await listIntegrations();
+    set({ providers, loaded: true });
+  } catch {
+    // Swallow — section renders empty.
+  } finally {
+    set({ loading: false });
+  }
 }
 
 export const useIntegrations = create<IntegrationsState>((set, get) => ({
@@ -20,15 +36,12 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
   loading: false,
   loaded: false,
   load: async () => {
-    if (get().loading) return;
-    set({ loading: true });
-    try {
-      const providers = await listIntegrations();
-      set({ providers, loaded: true });
-    } catch {
-      // Swallow — context section renders empty.
-    } finally {
-      set({ loading: false });
-    }
+    if (get().loading || get().loaded) return;
+    await fetchAndSet(set);
   },
+  reload: async () => {
+    if (get().loading) return;
+    await fetchAndSet(set);
+  },
+  bySlug: (slug: string) => get().providers.find((p) => p.slug === slug),
 }));

@@ -40,14 +40,14 @@ const NEAR_BOTTOM_PX = 80;
 
 // Reusable Tailwind fragments — kept as constants so the JSX stays terse.
 const HIST_ITEM_BASE =
-  "block w-full text-left bg-transparent border-0 cursor-pointer py-2 px-2.5 rounded-[7px] mx-0.5 my-px hover:bg-bg-2";
+  "block w-full text-left bg-transparent border-0 cursor-pointer py-2 px-2.5 rounded-md mx-0.5 my-px hover:bg-bg-2";
 const HIST_ITEM_ACTIVE = "bg-bg-3";
 
 // Chat-head pill (Memory · N, Switch agent) — disclosure-style chip.
 // The design's `.channel-header .pill` rule isn't scoped to `.personal`,
 // so we replicate the matching look with utilities.
 const PILL_CLS =
-  "flex items-center gap-1.5 h-7 px-3 rounded-[7px] border border-border-soft bg-bg-2 text-[12px] text-text-1 cursor-pointer hover:bg-bg-3";
+  "flex items-center gap-1.5 h-7 px-3 rounded-md border border-border-soft bg-bg-2 text-[12px] text-text-1 cursor-pointer hover:bg-bg-3";
 
 export default function Personal() {
   const navigate = useNavigate();

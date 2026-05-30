@@ -24,10 +24,12 @@
 // [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0` on the
 // stack container so the children keep their generic `<Av/>` markup.
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Av from "../Ui/Av";
 import { Ic } from "../Ui/Ic";
+import { useChannels } from "../../state/channels";
 import type { AgentRef, Channel, Message, User } from "../../types";
 
 interface ChannelHeaderProps {
@@ -89,9 +91,9 @@ function dedupeAgents(messages: Message[]): AgentRef[] {
 }
 
 const PILL =
-  "flex items-center gap-1.5 h-[26px] px-2.5 rounded-[7px] border border-border-soft text-[12px] text-text-1 bg-bg-2 hover:bg-bg-3";
+  "flex items-center gap-1.5 h-6 px-2.5 rounded-md border border-border-soft text-[12px] text-text-1 bg-bg-2 hover:bg-bg-3";
 const PILL_AI =
-  "flex items-center gap-1.5 h-[26px] px-2.5 rounded-[7px] border border-ai-glow text-[12px] text-ai bg-ai-bg hover:bg-bg-3";
+  "flex items-center gap-1.5 h-6 px-2.5 rounded-md border border-ai-glow text-[12px] text-ai bg-ai-bg hover:bg-bg-3";
 
 export default function ChannelHeader({
   channel,
@@ -208,14 +210,155 @@ export default function ChannelHeader({
         <Ic.bell width={12} height={12} />
         Notifications
       </button>
+      <ChannelActionsMenu channel={channel} pillClass={PILL} />
+    </div>
+  );
+}
+
+// ── Per-channel actions (rename + delete) ──────────────────────────────────
+// Lightweight kebab menu attached to the header's "More" pill. Rename uses an
+// inline prompt for v1; delete asks confirm() then routes back to /channels.
+
+function ChannelActionsMenu({
+  channel,
+  pillClass,
+}: {
+  channel: Channel;
+  pillClass: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const updateChannel = useChannels((s) => s.updateChannel);
+  const deleteChannel = useChannels((s) => s.deleteChannel);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  async function rename() {
+    const next = window.prompt("Rename channel", channel.name);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === channel.name) return;
+    setBusy(true);
+    try {
+      await updateChannel(channel.id, { name: trimmed });
+    } catch (e) {
+      window.alert((e as Error).message);
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  async function setTopic() {
+    const next = window.prompt("Channel topic", channel.topic);
+    if (next === null) return;
+    setBusy(true);
+    try {
+      await updateChannel(channel.id, { topic: next });
+    } catch (e) {
+      window.alert((e as Error).message);
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  async function toggleVisibility() {
+    const next = channel.visibility === "public" ? "private" : "public";
+    setBusy(true);
+    try {
+      await updateChannel(channel.id, { visibility: next });
+    } catch (e) {
+      window.alert((e as Error).message);
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  }
+
+  async function destroy() {
+    const ok = window.confirm(
+      `Delete #${channel.name}? All messages and history will be removed.`,
+    );
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await deleteChannel(channel.id);
+      navigate("/channels");
+    } catch (e) {
+      window.alert((e as Error).message);
+      setBusy(false);
+    }
+  }
+
+  const itemCls =
+    "w-full text-left px-2.5 py-1.5 text-[12.5px] text-text-1 hover:bg-bg-2 hover:text-text-0 disabled:opacity-50";
+
+  return (
+    <div ref={ref} className="relative">
       <button
         type="button"
-        className={PILL}
+        className={pillClass}
         title="More actions"
         aria-label="More actions"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
       >
         <Ic.more width={12} height={12} />
       </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 mt-1 z-20 w-[200px] bg-bg-1 border border-border-soft rounded-md shadow-soft py-1"
+        >
+          <button
+            role="menuitem"
+            type="button"
+            disabled={busy}
+            onClick={rename}
+            className={itemCls}
+          >
+            Rename channel
+          </button>
+          <button
+            role="menuitem"
+            type="button"
+            disabled={busy}
+            onClick={setTopic}
+            className={itemCls}
+          >
+            Set topic
+          </button>
+          <button
+            role="menuitem"
+            type="button"
+            disabled={busy}
+            onClick={toggleVisibility}
+            className={itemCls}
+          >
+            Make {channel.visibility === "public" ? "private" : "public"}
+          </button>
+          <div className="my-1 border-t border-border-soft" />
+          <button
+            role="menuitem"
+            type="button"
+            disabled={busy}
+            onClick={destroy}
+            className={`${itemCls} text-danger hover:text-danger`}
+          >
+            Delete channel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
