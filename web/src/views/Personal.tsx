@@ -34,6 +34,7 @@ import Composer from "../components/Channel/Composer";
 import MessageRow from "../components/Channel/Message";
 import { DonnaToday } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
+import { comingSoonToast, toast } from "../state/toasts";
 import {
   GAvatar,
   GButton,
@@ -168,9 +169,11 @@ export default function Personal() {
             icon="plus"
             className="w-full justify-center"
             onClick={() =>
-              alert(
-                "Personal chats with Donna will get their own backing model soon. For now, open any direct-message channel from the sidebar.",
-              )
+              toast({
+                tone: "ai",
+                title: "Personal chats coming soon",
+                sub: "For now, open any direct-message channel from the sidebar.",
+              })
             }
           >
             New chat
@@ -226,7 +229,7 @@ export default function Personal() {
               <GChip
                 variant="ai"
                 title="Coming soon"
-                onClick={() => alert("Memory inspector coming soon.")}
+                onClick={() => comingSoonToast("Memory inspector")}
               >
                 <GlyphSlot name="brain" size={12} />
                 <span>Memory · 0 items</span>
@@ -235,7 +238,7 @@ export default function Personal() {
                 variant="default"
                 size="sm"
                 iconRight="caret"
-                onClick={() => alert("Agent switcher coming soon.")}
+                onClick={() => comingSoonToast("Agent switcher")}
               >
                 Switch agent
               </GButton>

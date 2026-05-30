@@ -58,6 +58,7 @@ export const GEmptyState = forwardRef<HTMLDivElement, GEmptyStateProps>(
         {...rest}
       >
         <div
+          aria-hidden="true"
           className={cn(
             "w-16 h-16 grid place-items-center rounded-2xl border-2 border-ink shadow-ink-1 text-2xl",
             TONE_BG[tone],

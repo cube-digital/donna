@@ -81,12 +81,17 @@ export const GAvatar = forwardRef<HTMLDivElement, GAvatarProps>(function GAvatar
       pulsing = false,
       className,
       style,
+      "aria-label": ariaLabel,
       ...rest
     } = props;
     void _kind;
     return (
       <div
         ref={ref}
+        // Accessible name falls back to the agent name when the caller
+        // doesn't supply `aria-label`, so screen readers announce
+        // "Donna" rather than "DO" (raw initials).
+        aria-label={ariaLabel ?? name}
         className={cn(
           BASE,
           SIZE_CLS[size],
@@ -97,7 +102,7 @@ export const GAvatar = forwardRef<HTMLDivElement, GAvatarProps>(function GAvatar
         style={{ "--hue": hue ?? 288, ...style } as CSSProperties}
         {...rest}
       >
-        <span>{makeInitials(name)}</span>
+        <span aria-hidden="true">{makeInitials(name)}</span>
       </div>
     );
   }
@@ -109,17 +114,19 @@ export const GAvatar = forwardRef<HTMLDivElement, GAvatarProps>(function GAvatar
     pulsing = false,
     className,
     style,
+    "aria-label": ariaLabel,
     ...rest
   } = props;
   void _kind;
   return (
     <div
       ref={ref}
+      aria-label={ariaLabel ?? name}
       className={cn(BASE, SIZE_CLS[size], pulsing && "av-pulse-ring", className)}
       style={{ background: color ?? "var(--pop-coral)", ...style }}
       {...rest}
     >
-      <span>{makeInitials(name)}</span>
+      <span aria-hidden="true">{makeInitials(name)}</span>
     </div>
   );
 });

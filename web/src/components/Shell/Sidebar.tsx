@@ -181,7 +181,7 @@ export default function Sidebar() {
           icon={<GlyphSlot name="search" />}
           badge={
             <kbd className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
-              ⌘K
+              ⌘&nbsp;K
             </kbd>
           }
         >
@@ -300,6 +300,10 @@ export default function Sidebar() {
         <GroupHeader label="apps" />
         <GListItem
           aria-disabled={true}
+          // Disabled rows should be skipped during Tab navigation;
+          // they're not actionable yet (Workflows stub) so taking them
+          // out of the focus order keeps the keyboard tour purposeful.
+          tabIndex={-1}
           className="opacity-60 cursor-not-allowed"
           icon={<GlyphSlot name="bolt" />}
         >

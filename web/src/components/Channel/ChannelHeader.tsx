@@ -39,6 +39,7 @@ import {
   GlyphSlot,
 } from "../Goofy";
 import { useChannels } from "../../state/channels";
+import { errorToast } from "../../state/toasts";
 import type { AgentRef, Channel, Message, User } from "../../types";
 
 interface ChannelHeaderProps {
@@ -241,7 +242,7 @@ function ChannelActionsMenu({ channel }: { channel: Channel }) {
     try {
       await updateChannel(channel.id, { name: trimmed });
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't update channel");
     } finally {
       setBusy(false);
       setOpen(false);
@@ -255,7 +256,7 @@ function ChannelActionsMenu({ channel }: { channel: Channel }) {
     try {
       await updateChannel(channel.id, { topic: next });
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't update channel");
     } finally {
       setBusy(false);
       setOpen(false);
@@ -268,7 +269,7 @@ function ChannelActionsMenu({ channel }: { channel: Channel }) {
     try {
       await updateChannel(channel.id, { visibility: next });
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't update channel");
     } finally {
       setBusy(false);
       setOpen(false);
@@ -285,7 +286,7 @@ function ChannelActionsMenu({ channel }: { channel: Channel }) {
       await deleteChannel(channel.id);
       navigate("/channels");
     } catch (e) {
-      window.alert((e as Error).message);
+      errorToast(e, "Couldn't delete channel");
       setBusy(false);
     }
   }

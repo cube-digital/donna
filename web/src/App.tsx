@@ -21,6 +21,7 @@ import Auth from "./views/Auth";
 import OAuthReturn from "./views/OAuthReturn";
 import WorkspacePicker from "./views/WorkspacePicker";
 import AppShell from "./components/Shell/AppShell";
+import { ToastStack } from "./components/Shell/ToastStack";
 import Channel from "./views/Channel";
 import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
@@ -69,45 +70,57 @@ export default function App() {
     return () => setUnauthorizedHandler(null);
   }, [signOut, navigate]);
 
-  if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/showcase" element={<LazyShowcase />} />
-        <Route path="/auth/*" element={<Auth />} />
-        <Route path="/oauth/return" element={<OAuthReturn />} />
-        <Route path="*" element={<Navigate to="/auth" replace />} />
-      </Routes>
-    );
-  }
-
-  if (!activeId) {
-    return (
-      <Routes>
-        <Route path="/showcase" element={<LazyShowcase />} />
-        <Route path="/workspaces" element={<WorkspacePicker />} />
-        <Route path="/oauth/return" element={<OAuthReturn />} />
-        <Route path="*" element={<Navigate to="/workspaces" replace />} />
-      </Routes>
-    );
-  }
-
+  // `<ToastStack/>` is mounted once at the route root (outside the
+  // Routes tree) so toasts fired from auth, picker, and signed-in
+  // views all surface in the same stack and survive route changes.
   return (
-    <Routes>
-      <Route path="/showcase" element={<LazyShowcase />} />
-      <Route path="/oauth/return" element={<OAuthReturn />} />
-      <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/channels" replace />} />
-        <Route path="/channels" element={<ComingSoon title="Pick a channel" />} />
-        <Route path="/channels/:channelId" element={<Channel />} />
-        <Route path="/personal" element={<Personal />} />
-        <Route path="/personal/:channelId" element={<Personal />} />
-        <Route path="/integrations" element={<Integrations />} />
-        <Route path="/integrations/:slug" element={<IntegrationDetail />} />
-        <Route path="/search" element={<ComingSoon title="Search & history" />} />
-        <Route path="/agents/:agentId" element={<ComingSoon title="Agent profile" />} />
-        <Route path="/projects/:projectId" element={<ComingSoon title="Project overview" />} />
-        <Route path="*" element={<Navigate to="/channels" replace />} />
-      </Route>
-    </Routes>
+    <>
+      {renderRoutes()}
+      <ToastStack />
+    </>
   );
+
+  function renderRoutes() {
+    if (!isAuthenticated) {
+      return (
+        <Routes>
+          <Route path="/showcase" element={<LazyShowcase />} />
+          <Route path="/auth/*" element={<Auth />} />
+          <Route path="/oauth/return" element={<OAuthReturn />} />
+          <Route path="*" element={<Navigate to="/auth" replace />} />
+        </Routes>
+      );
+    }
+
+    if (!activeId) {
+      return (
+        <Routes>
+          <Route path="/showcase" element={<LazyShowcase />} />
+          <Route path="/workspaces" element={<WorkspacePicker />} />
+          <Route path="/oauth/return" element={<OAuthReturn />} />
+          <Route path="*" element={<Navigate to="/workspaces" replace />} />
+        </Routes>
+      );
+    }
+
+    return (
+      <Routes>
+        <Route path="/showcase" element={<LazyShowcase />} />
+        <Route path="/oauth/return" element={<OAuthReturn />} />
+        <Route element={<AppShell />}>
+          <Route index element={<Navigate to="/channels" replace />} />
+          <Route path="/channels" element={<ComingSoon title="Pick a channel" />} />
+          <Route path="/channels/:channelId" element={<Channel />} />
+          <Route path="/personal" element={<Personal />} />
+          <Route path="/personal/:channelId" element={<Personal />} />
+          <Route path="/integrations" element={<Integrations />} />
+          <Route path="/integrations/:slug" element={<IntegrationDetail />} />
+          <Route path="/search" element={<ComingSoon title="Search & history" />} />
+          <Route path="/agents/:agentId" element={<ComingSoon title="Agent profile" />} />
+          <Route path="/projects/:projectId" element={<ComingSoon title="Project overview" />} />
+          <Route path="*" element={<Navigate to="/channels" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
 }

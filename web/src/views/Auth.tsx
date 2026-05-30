@@ -153,7 +153,14 @@ export default function Auth() {
             </GFormField>
 
             {error && (
-              <div className="text-danger text-[12.5px] leading-[1.45]">
+              // `role="alert"` + `aria-live="assertive"` announces auth
+              // failures the moment they render so screen-reader users
+              // know why the submit didn't go through.
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="text-danger text-[12.5px] leading-[1.45]"
+              >
                 {error}
               </div>
             )}
@@ -176,8 +183,11 @@ export default function Auth() {
           </form>
 
           {/* OR divider — dashed ink rule + hand-lettered "or" so the
-              break reads as part of the goofy world, not generic chrome. */}
-          <div className="flex items-center gap-2.5 text-text-3">
+              break reads as part of the goofy world, not generic chrome.
+              Hidden from AT because the next button label ("Continue
+              with Google") is already self-explanatory; announcing "or"
+              between the two CTAs adds noise. */}
+          <div aria-hidden="true" className="flex items-center gap-2.5 text-text-3">
             <span className="flex-1 border-t-2 border-dashed border-ink/40" />
             <span className="font-hand font-bold text-[18px] text-text-2 leading-none">
               or

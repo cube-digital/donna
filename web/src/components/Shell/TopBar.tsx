@@ -10,17 +10,27 @@
 // routes to /search for v1 since /notifications isn't a real route yet.
 
 import { useMemo } from "react";
-import { useLocation, useMatch, useNavigate } from "react-router-dom";
+import { Link, useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { useChannels } from "../../state/channels";
 import { useNotifications } from "../../state/notifications";
 import {
   GBadge,
   GIconButton,
-  GInput,
   GlyphSlot,
   type IconName,
 } from "../Goofy";
+
+// Build once at module scope — `Intl.PluralRules` allocates a small
+// internal collator; cheap, but no reason to re-instantiate per render.
+const PLURAL_EN = new Intl.PluralRules("en-US");
+function notificationCount(n: number): string {
+  // English-only fallback for the v1 string; swap the locale + branches
+  // when full i18n lands. Uses the proper CLDR `one`/`other` keys
+  // instead of `n === 1 ? "" : "s"` so localisation can plug in later.
+  const form = PLURAL_EN.select(n);
+  return form === "one" ? `${n} unread notification` : `${n} unread notifications`;
+}
 
 interface Crumb {
   icon: IconName;
@@ -123,28 +133,27 @@ export default function TopBar() {
         )}
       </div>
 
-      {/* Centre — search. `auto` column width hugs the input at its
-          natural 560 px max, so it sits dead-centre between the two 1fr
-          flanks. */}
-      <form
-        style={noDragStyle}
-        className="w-[560px] max-w-[40vw]"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate("/search");
-        }}
-        role="search"
-        aria-label="Search"
-      >
-        <GInput
-          icon="search"
-          kbd="⌘K"
-          readOnly
-          placeholder="Search messages, files, agents, or ask Donna…"
-          onFocus={() => navigate("/search")}
-          shellClassName="w-full h-[34px]"
-        />
-      </form>
+      {/* Centre — search trigger.
+          Previously a readonly `<input>` that navigated on focus, which
+          breaks Cmd-click + middle-click and is semantically a button
+          masquerading as text. Render a real `<Link/>` styled like the
+          GInput pill so keyboard, screen-reader, and pointer affordances
+          all agree on what's happening. */}
+      <div style={noDragStyle} className="w-[560px] max-w-[40vw]">
+        <Link
+          to="/search"
+          aria-label="Search messages, files, agents, or ask Donna"
+          className="flex items-center gap-[9px] h-[34px] px-[14px] w-full border-2 border-ink rounded-full shadow-ink-1 bg-bg-1 text-text-3 transition-[box-shadow,border-color] duration-[120ms] hover:border-ai hover:shadow-[3px_3px_0_var(--ai)] outline-none focus-visible:border-ai focus-visible:shadow-[3px_3px_0_var(--ai)]"
+        >
+          <GlyphSlot name="search" />
+          <span className="flex-1 min-w-0 truncate text-[13.5px]">
+            Search messages, files, agents, or ask&nbsp;Donna…
+          </span>
+          <kbd className="font-mono text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
+            ⌘&nbsp;K
+          </kbd>
+        </Link>
+      </div>
 
       {/* Right — bell + more. `justify-end` pins the cluster flush right
           regardless of crumb width. */}
@@ -153,13 +162,11 @@ export default function TopBar() {
           <GIconButton
             icon="bell"
             title={
-              unreadCount > 0
-                ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
-                : "Notifications"
+              unreadCount > 0 ? notificationCount(unreadCount) : "Notifications"
             }
             aria-label={
               unreadCount > 0
-                ? `Notifications (${unreadCount} unread)`
+                ? `Notifications (${notificationCount(unreadCount)})`
                 : "Notifications"
             }
             onClick={() => navigate("/search")}

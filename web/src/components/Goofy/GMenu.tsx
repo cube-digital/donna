@@ -5,10 +5,34 @@
 // own anchor logic and drop these in as children). The components don't
 // hard-code z-index either; wrap them as needed.
 
-import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type HTMLAttributes,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "../../lib/cn";
 import { GlyphSlot, type IconName } from "./GIcons";
+
+// `<div role="menuitem">` doesn't get Space/Enter → click for free —
+// the browser only fires synthetic click on real <button>. Synthesise
+// that activation, then forward to any caller-supplied onKeyDown so
+// keyboard users + screen-reader users can pick menu items via the
+// keyboard the same way they would a button.
+function menuKeyActivation(
+  onClick: ((e: React.MouseEvent<HTMLDivElement>) => void) | undefined,
+  onKeyDown: ((e: KeyboardEvent<HTMLDivElement>) => void) | undefined,
+) {
+  return (e: KeyboardEvent<HTMLDivElement>) => {
+    if (onKeyDown) onKeyDown(e);
+    if (e.defaultPrevented) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.(e as unknown as React.MouseEvent<HTMLDivElement>);
+    }
+  };
+}
 
 // ── Popover surface ─────────────────────────────────────────────────────
 
@@ -60,7 +84,17 @@ export interface GMenuItemProps extends HTMLAttributes<HTMLDivElement> {
 
 export const GMenuItem = forwardRef<HTMLDivElement, GMenuItemProps>(
   function GMenuItem(
-    { icon, ai = false, danger = false, kbd, className, children, ...rest },
+    {
+      icon,
+      ai = false,
+      danger = false,
+      kbd,
+      className,
+      children,
+      onClick,
+      onKeyDown,
+      ...rest
+    },
     ref,
   ) {
     return (
@@ -68,6 +102,8 @@ export const GMenuItem = forwardRef<HTMLDivElement, GMenuItemProps>(
         ref={ref}
         role="menuitem"
         tabIndex={0}
+        onClick={onClick}
+        onKeyDown={menuKeyActivation(onClick, onKeyDown)}
         className={cn(
           MENU_ITEM_BASE,
           ai && MENU_ITEM_AI,

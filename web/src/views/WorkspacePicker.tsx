@@ -212,7 +212,11 @@ export default function WorkspacePicker() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Acme Inc."
+                  // autoFocus is fine here — single primary input on a
+                  // desktop-only workspace-picker page (mobile layout
+                  // not yet supported by the design).
                   autoFocus
+                  autoComplete="organization"
                   icon={null}
                 />
               </GFormField>
@@ -226,6 +230,10 @@ export default function WorkspacePicker() {
                     setSlugDirty(true);
                   }}
                   placeholder="acme"
+                  // Slug is a URL token — not a dictionary word, never
+                  // remembered by password managers, no autocomplete.
+                  autoComplete="off"
+                  spellCheck={false}
                   icon={null}
                   className="font-mono"
                 />

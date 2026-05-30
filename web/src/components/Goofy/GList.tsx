@@ -6,10 +6,35 @@
 //                  sticker (sun bg + ink border + shadow)
 //   <GDoc/>        document row — icon + name + meta, scoots right on hover
 
-import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type HTMLAttributes,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "../../lib/cn";
 import { GlyphSlot, type IconName } from "./GIcons";
+
+// `<div role="button">` rows don't get keyboard activation for free —
+// the browser only fires synthetic click on Space/Enter for real <button>.
+// This helper synthesises that activation, then forwards to any caller-
+// supplied onKeyDown so screen-reader users + keyboard navigators can
+// activate sticker rows just like a button. Composed at the row level
+// so every GListItem / GDoc / (future) row type gets it consistently.
+function rowKeyActivation<E extends HTMLElement>(
+  onClick: ((e: React.MouseEvent<E>) => void) | undefined,
+  onKeyDown: ((e: KeyboardEvent<E>) => void) | undefined,
+) {
+  return (e: KeyboardEvent<E>) => {
+    if (onKeyDown) onKeyDown(e);
+    if (e.defaultPrevented) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.(e as unknown as React.MouseEvent<E>);
+    }
+  };
+}
 
 export type GListDot = "online" | "ai" | "muted";
 
@@ -79,7 +104,18 @@ export interface GListItemProps extends HTMLAttributes<HTMLDivElement> {
 
 export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
   function GListItem(
-    { active = false, icon, hash, dot, badge, className, children, ...rest },
+    {
+      active = false,
+      icon,
+      hash,
+      dot,
+      badge,
+      className,
+      children,
+      onClick,
+      onKeyDown,
+      ...rest
+    },
     ref,
   ) {
     return (
@@ -88,6 +124,8 @@ export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
         role="button"
         tabIndex={0}
         aria-current={active ? "true" : undefined}
+        onClick={onClick}
+        onKeyDown={rowKeyActivation(onClick, onKeyDown)}
         className={cn(ITEM_BASE, active && ITEM_ACTIVE, className)}
         {...rest}
       >
@@ -147,7 +185,7 @@ export interface GDocProps extends HTMLAttributes<HTMLDivElement> {
  * optional monospace meta string at the end.
  */
 export const GDoc = forwardRef<HTMLDivElement, GDocProps>(function GDoc(
-  { icon = "doc", name, meta, className, ...rest },
+  { icon = "doc", name, meta, className, onClick, onKeyDown, ...rest },
   ref,
 ) {
   return (
@@ -155,6 +193,8 @@ export const GDoc = forwardRef<HTMLDivElement, GDocProps>(function GDoc(
       ref={ref}
       role="button"
       tabIndex={0}
+      onClick={onClick}
+      onKeyDown={rowKeyActivation(onClick, onKeyDown)}
       className={cn(DOC_BASE, className)}
       {...rest}
     >

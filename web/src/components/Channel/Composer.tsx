@@ -40,6 +40,7 @@ import {
 
 import { getChatWs } from "../../lib/ws";
 import { useMessages } from "../../state/messages";
+import { comingSoonToast } from "../../state/toasts";
 import {
   GChip,
   GField,
@@ -263,21 +264,21 @@ export default function Composer({
                 title="Attach file"
                 aria-label="Attach file"
                 size="sm"
-                onClick={() => alert("Attachments coming soon")}
+                onClick={() => comingSoonToast("Attachments")}
               />
               <GIconButton
                 icon="at"
                 title="Mention agent"
                 aria-label="Mention agent"
                 size="sm"
-                onClick={() => alert("Agent mention coming soon")}
+                onClick={() => comingSoonToast("Agent mention")}
               />
               <GIconButton
                 icon="smile"
                 title="Emoji"
                 aria-label="Emoji"
                 size="sm"
-                onClick={() => alert("Emoji picker coming soon")}
+                onClick={() => comingSoonToast("Emoji picker")}
               />
               <GChip variant="ai" size="sm">
                 <GlyphSlot name="sparkle" size={12} className="text-white" />

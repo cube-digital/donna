@@ -41,6 +41,7 @@ import {
   type GRunStepData,
   type IconName,
 } from "../Goofy";
+import { comingSoonToast } from "../../state/toasts";
 import type { AgentRunStep, Message as MessageT } from "../../types";
 
 interface MessageProps {
@@ -158,8 +159,8 @@ export default function Message({ msg }: MessageProps) {
               output={meta.output}
               memory={memoryChip}
               footer={{ approveLabel: `Continue with ${agentName}` }}
-              onDismiss={() => alert("Add to context coming soon")}
-              onApprove={() => alert(`Continue with ${agentName} coming soon`)}
+              onDismiss={() => comingSoonToast("Add to context")}
+              onApprove={() => comingSoonToast(`Continue with ${agentName}`)}
             />
           </div>
         </div>
@@ -212,7 +213,7 @@ export default function Message({ msg }: MessageProps) {
           title="Reply in thread"
           aria-label="Reply in thread"
           size="sm"
-          onClick={() => alert("Threads coming soon")}
+          onClick={() => comingSoonToast("Threads")}
         />
         <GIconButton
           icon="share"
@@ -232,7 +233,7 @@ export default function Message({ msg }: MessageProps) {
           // that flips to grape on hover, so we keep the colour mutation
           // inline rather than baking another variant into GIconButton.
           className="hover:text-ai hover:bg-ai-bg"
-          onClick={() => alert("Ask-an-agent coming soon")}
+          onClick={() => comingSoonToast("Ask an agent")}
         />
         <GIconButton
           icon="more"

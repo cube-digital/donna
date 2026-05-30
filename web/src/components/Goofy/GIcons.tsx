@@ -20,6 +20,8 @@ const baseProps: Partial<IconProps> = {
 function Svg({
   children,
   strokeWidth = 1.8,
+  "aria-hidden": ariaHidden = true,
+  focusable = false,
   ...rest
 }: IconProps) {
   return (
@@ -28,6 +30,14 @@ function Svg({
       width="16"
       height="16"
       strokeWidth={strokeWidth}
+      // Inline-SVG icons are decorative by default — they live inside a
+      // <button> / <a> / row that already carries the accessible name
+      // (aria-label / surrounding text). Hiding the SVG from AT prevents
+      // double-announcement. Callers using an icon as the *only* visible
+      // content of a non-labelled element can opt back in by passing
+      // aria-hidden={false} + a role/aria-label.
+      aria-hidden={ariaHidden}
+      focusable={focusable}
       {...baseProps}
       {...rest}
     >

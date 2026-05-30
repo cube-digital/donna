@@ -97,7 +97,8 @@ export default function WsRail() {
         type="button"
         className={cn(STICKER_PILL, STICKER_ACTIVE_RAIL)}
         title={active?.name ?? "Workspace"}
-        aria-label={active?.name ?? "Workspace"}
+        aria-label={`${active?.name ?? "Workspace"} (active workspace)`}
+        aria-current="true"
       >
         {workspaceGlyph(active?.name ?? "C")}
       </button>

@@ -39,12 +39,30 @@ export interface GCardProps
 }
 
 export const GCard = forwardRef<HTMLDivElement, GCardProps>(function GCard(
-  { ai = false, hover = false, title, sub, className, children, ...rest },
+  { ai = false, hover = false, title, sub, className, children, onClick, ...rest },
   ref,
 ) {
+  // When the card is interactive (`hover` + `onClick`), upgrade the
+  // semantic to `role="button"` + add Space/Enter keyboard activation
+  // so it isn't a click-only target. Plain non-interactive cards stay
+  // as a bare <div>.
+  const interactive = hover && typeof onClick === "function";
   return (
     <div
       ref={ref}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.(e as unknown as React.MouseEvent<HTMLDivElement>);
+              }
+            }
+          : undefined
+      }
       className={cn(CARD_BASE, ai && CARD_AI, hover && CARD_HOVER, className)}
       {...rest}
     >

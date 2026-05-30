@@ -13,6 +13,12 @@
 
 :root,
 .gx {
+  /* Tells the UA which palette to use for native UI (scrollbars, form
+   * controls, focus rings on inputs) so our custom tokens don't sit on
+   * top of a dark-mode native chrome. The Midnight branch below flips
+   * this to `dark`. */
+  color-scheme: light;
+
   /* Cream goofy (light, default) */
   --bg-0: oklch(0.962 0.022 92);
   --bg-1: oklch(0.995 0.006 92);
@@ -67,6 +73,9 @@
 
 body.theme-dark,
 .gx.dark {
+  /* Match the native widget palette to the Midnight tokens. */
+  color-scheme: dark;
+
   /* Midnight goofy */
   --bg-0: oklch(0.305 0.020 285);
   --bg-1: oklch(0.350 0.022 285);

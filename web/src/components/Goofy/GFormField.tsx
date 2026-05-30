@@ -51,7 +51,16 @@ export const GFormField = forwardRef<HTMLElement, GFormFieldProps>(
           )}
         >
           {label}
-          {required ? <span className="text-danger ml-0.5">*</span> : null}
+          {required ? (
+            // Visual `*` marker. Decorative — screen readers already get
+            // the required signal from the consumer's `required` /
+            // `aria-required` on the inner control, so we hide the
+            // asterisk from AT to avoid "asterisk" being announced
+            // mid-label.
+            <span aria-hidden="true" className="text-danger ml-0.5">
+              *
+            </span>
+          ) : null}
         </span>
         <div className="flex-1 min-w-0 flex flex-col gap-1">
           {children}
