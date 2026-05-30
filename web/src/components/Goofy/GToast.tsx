@@ -79,9 +79,9 @@ export const GToast = forwardRef<HTMLDivElement, GToastProps>(function GToast(
       {onDismiss ? (
         <GIconButton
           icon="x"
+          size="sm"
           aria-label="Dismiss"
           onClick={onDismiss}
-          className="!w-7 !h-7"
         />
       ) : null}
     </div>

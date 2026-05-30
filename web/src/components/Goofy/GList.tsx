@@ -41,9 +41,14 @@ const ITEM_BASE =
   "transition-colors duration-[100ms] hover:bg-bg-3 motion-safe:hover:animate-mini-wiggle " +
   "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
 
+// sun bg + ink border + sticker shadow = "this row is the chosen sticker"
+// The padding shrinks by 2 px in each direction to compensate for the
+// `border-2` (the inactive row has no border), keeping total geometry
+// pixel-stable when toggling active. Appended after `ITEM_BASE` in the
+// `cn(…)` chain in `GListItem`, so the smaller padding wins by
+// source order — no `!important` needed.
 const ITEM_ACTIVE =
-  // sun bg + ink border + sticker shadow = "this row is the chosen sticker"
-  "bg-pop-sun text-on-bright border-2 border-ink shadow-ink-1 font-semibold !py-1 !px-[7px]";
+  "bg-pop-sun text-on-bright border-2 border-ink shadow-ink-1 font-semibold py-1 px-[7px]";
 
 export interface GListItemProps extends HTMLAttributes<HTMLDivElement> {
   active?: boolean;

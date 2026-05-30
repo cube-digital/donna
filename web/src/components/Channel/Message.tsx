@@ -202,7 +202,7 @@ export default function Message({ msg }: MessageProps) {
           icon="smile"
           title="React"
           aria-label="React"
-          className="!w-7 !h-7"
+          size="sm"
           onClick={() => {
             /* v1: reactions not wired */
           }}
@@ -211,30 +211,34 @@ export default function Message({ msg }: MessageProps) {
           icon="thread"
           title="Reply in thread"
           aria-label="Reply in thread"
-          className="!w-7 !h-7"
+          size="sm"
           onClick={() => alert("Threads coming soon")}
         />
         <GIconButton
           icon="share"
           title="Share"
           aria-label="Share"
-          className="!w-7 !h-7"
+          size="sm"
           onClick={() => {
             /* v1: no-op */
           }}
         />
         <GIconButton
           icon="sparkle"
+          size="sm"
           title="Ask an agent"
           aria-label="Ask an agent"
-          className="!w-7 !h-7 hover:!text-ai hover:!bg-ai-bg"
+          // State-driven AI-tinted hover — this is the only icon button
+          // that flips to grape on hover, so we keep the colour mutation
+          // inline rather than baking another variant into GIconButton.
+          className="hover:text-ai hover:bg-ai-bg"
           onClick={() => alert("Ask-an-agent coming soon")}
         />
         <GIconButton
           icon="more"
           title="More"
           aria-label="More actions"
-          className="!w-7 !h-7"
+          size="sm"
           onClick={() => {
             /* v1: no-op */
           }}

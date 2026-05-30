@@ -100,7 +100,7 @@ export default function AppShell() {
       <div
         className="app-shell-root grid h-screen w-screen bg-bg-0
           grid-cols-[56px_252px_1fr_320px]
-          grid-rows-[44px_1fr]
+          grid-rows-[56px_1fr]
           [grid-template-areas:'rail_topbar_topbar_topbar'_'rail_sidebar_main_rightrail']"
       >
         <WsRail />

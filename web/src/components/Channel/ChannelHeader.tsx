@@ -139,9 +139,9 @@ export default function ChannelHeader({
           </span>
           <GIconButton
             icon="star"
+            size="sm"
             title="Star channel"
             aria-label="Star channel"
-            className="!w-7 !h-7"
             onClick={() => {
               /* v1: no star endpoint yet */
             }}
@@ -156,7 +156,7 @@ export default function ChannelHeader({
 
       {/* AI pill — agents observed in the currently loaded messages. */}
       {visibleAgents.length > 0 ? (
-        <GChip variant="ai" className="!h-8" title="Agents on this channel">
+        <GChip variant="ai" size="lg" title="Agents on this channel">
           <GlyphSlot name="sparkle" size={13} />
           <GAvatarStack
             people={visibleAgents.map((a) => ({
@@ -169,7 +169,7 @@ export default function ChannelHeader({
           <span className="ml-1">{agents.length}</span>
         </GChip>
       ) : (
-        <GChip variant="ai" className="!h-8" title="No agents in this channel yet">
+        <GChip variant="ai" size="lg" title="No agents in this channel yet">
           <GlyphSlot name="sparkle" size={13} />
           AI on standby
         </GChip>

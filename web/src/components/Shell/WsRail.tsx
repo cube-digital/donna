@@ -66,11 +66,6 @@ function userInitials(activeWorkspaceName?: string): string {
   return workspaceGlyph(activeWorkspaceName ?? "");
 }
 
-// Square sticker sizing override — `<GIconButton/>` defaults to 34 × 34
-// rounded-9; in the rail we want a chunkier 40 × 40 rounded-12 so the
-// pills line up with the workspace + user stickers above/below.
-const SQUARE_PILL = "!w-10 !h-10 !rounded-[12px]";
-
 // Workspace + user sticker — sun-yellow fill, chunky ink border, hard
 // offset shadow, Fredoka heavy weight. The active workspace also wears
 // a 3 px ink "rail" pseudo-element 10 px outside its left edge.
@@ -109,7 +104,7 @@ export default function WsRail() {
       <GIconButton
         icon="plus"
         outlined
-        className={SQUARE_PILL}
+        size="lg"
         title="Add workspace"
         aria-label="Add workspace"
       />
@@ -122,19 +117,21 @@ export default function WsRail() {
       {NAV.map((item) => {
         const isActive = item.matcher ? item.matcher(pathname) : false;
         const isAi = !!item.ai;
-        const className = cn(
-          SQUARE_PILL,
-          // AI Personal — coloured AI grape when idle, sticker-ringed when active.
+        // State-driven hover/active tints — these are colour mutations
+        // on top of the base `size="lg"` pill, so they remain inline.
+        // The geometry overrides (`!w-10 !h-10 !rounded-[12px]`) are
+        // gone — `size="lg"` handles them.
+        const stateCls = cn(
           isAi && "text-ai hover:text-ai",
-          isAi && isActive && "!bg-ai-bg !text-ai shadow-[inset_0_0_0_2px_var(--ai-glow)]",
-          // Non-AI items get a paper-warm "active" state so they read as picked.
-          !isAi && isActive && "!bg-bg-3 !text-text-0",
+          isAi && isActive && "bg-ai-bg text-ai shadow-[inset_0_0_0_2px_var(--ai-glow)]",
+          !isAi && isActive && "bg-bg-3 text-text-0",
         );
         return (
           <GIconButton
             key={item.key}
             icon={item.icon}
-            className={className}
+            size="lg"
+            className={stateCls}
             title={item.label}
             aria-label={item.label}
             aria-current={isActive ? "page" : undefined}
@@ -149,13 +146,13 @@ export default function WsRail() {
 
       <GIconButton
         icon="sun"
-        className={SQUARE_PILL}
+        size="lg"
         title="Toggle theme"
         aria-label="Toggle theme"
       />
       <button
         type="button"
-        className={cn(STICKER_PILL, "!text-[12px]")}
+        className={cn(STICKER_PILL, "text-[12px]")}
         title="Sign out"
         aria-label="Sign out"
         onClick={() => signOut()}

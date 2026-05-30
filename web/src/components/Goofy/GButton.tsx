@@ -97,8 +97,30 @@ export const GButton = forwardRef<HTMLButtonElement, GButtonProps>(
 
 // ── Icon button ─────────────────────────────────────────────────────────
 
+export type GIconButtonSize = "xs" | "sm" | "md" | "lg";
+
+// Geometry per size. `md` is the default (matches the design source's
+// `.gx-btn-icon`). `sm` is the right call for in-row tools (composer
+// toolbar, message hover actions). `lg` is the WsRail / square-pill
+// shape. `xs` is the workspace-settings pencil + sidebar `+` add stamps.
+const ICON_BTN_SIZE: Record<GIconButtonSize, string> = {
+  xs: "w-6 h-6 rounded-md",
+  sm: "w-7 h-7 rounded-[7px]",
+  md: "w-[34px] h-[34px] rounded-[9px]",
+  lg: "w-10 h-10 rounded-[12px]",
+};
+
+// Glyph pixel size per button size — keeps the inner glyph optically
+// centred regardless of the surrounding pill.
+const ICON_BTN_GLYPH: Record<GIconButtonSize, number> = {
+  xs: 14,
+  sm: 15,
+  md: 17,
+  lg: 18,
+};
+
 const ICON_BTN_BASE =
-  "w-[34px] h-[34px] grid place-items-center rounded-[9px] text-text-2 " +
+  "grid place-items-center text-text-2 " +
   "transition-[transform,background,color] duration-[140ms] ease-out " +
   "hover:bg-bg-3 hover:text-text-0 hover:rotate-[8deg] " +
   "active:translate-x-0.5 active:translate-y-0.5";
@@ -113,18 +135,28 @@ export interface GIconButtonProps
   icon: IconName;
   /** If set, the button gets a chunky ink border + sticker shadow. */
   outlined?: boolean;
+  /** Pill size — sm (28), md (34, default), lg (40), xs (24). */
+  size?: GIconButtonSize;
 }
 
 export const GIconButton = forwardRef<HTMLButtonElement, GIconButtonProps>(
-  function GIconButton({ icon, outlined = false, className, type, ...rest }, ref) {
+  function GIconButton(
+    { icon, outlined = false, size = "md", className, type, ...rest },
+    ref,
+  ) {
     return (
       <button
         ref={ref}
         type={type ?? "button"}
-        className={cn(ICON_BTN_BASE, outlined && ICON_BTN_OUTLINED, className)}
+        className={cn(
+          ICON_BTN_BASE,
+          ICON_BTN_SIZE[size],
+          outlined && ICON_BTN_OUTLINED,
+          className,
+        )}
         {...rest}
       >
-        <GlyphSlot name={icon} size={17} />
+        <GlyphSlot name={icon} size={ICON_BTN_GLYPH[size]} />
       </button>
     );
   },

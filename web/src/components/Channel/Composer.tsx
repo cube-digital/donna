@@ -201,21 +201,21 @@ export default function Composer({
           outlined
           aria-label="Code"
           title="Code"
-          className="!w-7 !h-7"
+          size="sm"
         />
         <GIconButton
           icon="reply"
           outlined
           aria-label="Quote"
           title="Quote"
-          className="!w-7 !h-7"
+          size="sm"
         />
         <GIconButton
           icon="link"
           outlined
           aria-label="Link"
           title="Link"
-          className="!w-7 !h-7"
+          size="sm"
         />
         <span className="w-px h-5 bg-border-soft mx-1" />
         <GIconButton
@@ -223,7 +223,7 @@ export default function Composer({
           outlined
           aria-label="List"
           title="List"
-          className="!w-7 !h-7"
+          size="sm"
         />
       </div>
 
@@ -262,24 +262,24 @@ export default function Composer({
                 icon="plus"
                 title="Attach file"
                 aria-label="Attach file"
-                className="!w-7 !h-7"
+                size="sm"
                 onClick={() => alert("Attachments coming soon")}
               />
               <GIconButton
                 icon="at"
                 title="Mention agent"
                 aria-label="Mention agent"
-                className="!w-7 !h-7"
+                size="sm"
                 onClick={() => alert("Agent mention coming soon")}
               />
               <GIconButton
                 icon="smile"
                 title="Emoji"
                 aria-label="Emoji"
-                className="!w-7 !h-7"
+                size="sm"
                 onClick={() => alert("Emoji picker coming soon")}
               />
-              <GChip variant="ai" className="!h-[26px]">
+              <GChip variant="ai" size="sm">
                 <GlyphSlot name="sparkle" size={12} className="text-white" />
                 Agents on standby
               </GChip>
@@ -291,7 +291,11 @@ export default function Composer({
                 disabled={!ready}
                 aria-label="Send message"
                 title="Send"
-                className={ready ? "!bg-ai !text-white" : ""}
+                // Prime the send sticker in AI grape once there's actually
+                // something to send. Appended last in the `cn(…)` chain
+                // inside `GIconButton`, so it wins over the outlined
+                // `text-text-0` without needing `!important`.
+                className={ready ? "bg-ai text-white" : ""}
               />
             </div>
           </>

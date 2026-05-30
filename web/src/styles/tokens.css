@@ -21,7 +21,11 @@
   --bg-4: oklch(0.86 0.06 92);
 
   --ink: oklch(0.26 0.03 285);
-  --border: oklch(0.26 0.03 285 / 0.92);
+  /* Layout-shell border — chunky 92 % ink reads as too harsh between
+   * adjacent paper surfaces (rail / sidebar / topbar / rightrail).
+   * 10 % alpha keeps the seam legible without competing with the
+   * sticker chrome that lives on the actual UI elements. */
+  --border: oklch(0.26 0.03 285 / 0.10);
   --border-strong: oklch(0.20 0.03 285);
   --paper-dot: oklch(0.26 0.03 285 / 0.05);
 
@@ -71,7 +75,9 @@ body.theme-dark,
   --bg-4: oklch(0.510 0.030 285);
 
   --ink: oklch(0.80 0.028 92);
-  --border: oklch(0.80 0.028 92 / 0.62);
+  /* Same softening as the cream palette — keep the layout seam quiet
+   * so it doesn't compete with sticker chrome on midnight. */
+  --border: oklch(0.80 0.028 92 / 0.12);
   --border-strong: oklch(0.86 0.025 92);
   --paper-dot: oklch(0.90 0.03 92 / 0.045);
 

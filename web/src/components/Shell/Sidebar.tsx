@@ -61,7 +61,7 @@ function GroupHeader({
       {onAdd ? (
         <GIconButton
           icon="plus"
-          className="!w-6 !h-6"
+          size="xs"
           aria-label={`Add ${label}`}
           onClick={onAdd}
         />
@@ -70,13 +70,33 @@ function GroupHeader({
   );
 }
 
-// Map a connector status to the dot-colour used in `<GListItem dot=…/>`.
-// Only "live" and "error" providers reach the sidebar (filtered upstream),
-// but the fallback keeps the type narrowed if that ever changes.
+// Map a connector status to the dot-colour shown in the trailing badge
+// slot. Only "live" and "error" providers reach the sidebar (filtered
+// upstream), but the fallback keeps the type narrowed if that changes.
 function statusToDot(status: IntegrationProvider["status"]): GListDot {
   if (status === "live") return "online";
   if (status === "error") return "ai"; // treat as warning — AI dot is the loudest
   return "muted";
+}
+
+// Standalone dot used in the trailing `badge` slot — same colour map
+// as `<GListItem dot=…/>` but rendered manually so we don't shift
+// every row's leading icon column when a status dot exists.
+const TRAIL_DOT_CLS: Record<GListDot, string> = {
+  online: "bg-ok",
+  ai: "bg-ai shadow-[0_0_0_2px_var(--ai-glow)]",
+  muted: "bg-text-3",
+};
+function TrailDot({ kind }: { kind: GListDot }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "w-[7px] h-[7px] rounded-full shrink-0",
+        TRAIL_DOT_CLS[kind],
+      )}
+    />
+  );
 }
 
 export default function Sidebar() {
@@ -146,7 +166,7 @@ export default function Sidebar() {
         </div>
         <GIconButton
           icon="edit"
-          className="!w-6 !h-6"
+          size="xs"
           title="Workspace settings"
           aria-label="Workspace settings"
         />
@@ -175,7 +195,7 @@ export default function Sidebar() {
           active={isPersonalActive}
           aria-label="Personal AI"
           onClick={() => navigate("/personal")}
-          dot="ai"
+          badge={<TrailDot kind="ai" />}
         >
           <span className="inline-flex items-center gap-2 min-w-0">
             <span className="w-3.5 grid place-items-center text-ai">
@@ -231,7 +251,7 @@ export default function Sidebar() {
       <div>
         <GroupHeader label="ai teammates" ai />
         {teammates.length === 0 ? (
-          <GListItem dot="ai" aria-label="Donna">
+          <GListItem aria-label="Donna" badge={<TrailDot kind="ai" />}>
             <span className="inline-flex items-center gap-2 min-w-0">
               <GAvatar kind="agent" size="sm" name="Donna" hue={282} />
               <span className="truncate">Donna</span>
@@ -244,7 +264,7 @@ export default function Sidebar() {
               active={activeAgentId === a.id}
               aria-label={a.name}
               onClick={() => navigate(`/agents/${a.id}`)}
-              dot="ai"
+              badge={<TrailDot kind="ai" />}
             >
               <span className="inline-flex items-center gap-2 min-w-0">
                 <GAvatar
@@ -353,7 +373,7 @@ function ConnectionRow({ provider }: { provider: IntegrationProvider }) {
       active={active}
       aria-label={`${provider.display_name} integration settings`}
       onClick={() => navigate(`/integrations/${provider.slug}`)}
-      dot={statusToDot(provider.status)}
+      badge={<TrailDot kind={statusToDot(provider.status)} />}
     >
       <span className="inline-flex items-center gap-2 min-w-0">
         <span className="w-[18px] h-[18px] flex items-center justify-center shrink-0">

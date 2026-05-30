@@ -23,10 +23,21 @@ export type GChipVariant =
   | "coral"
   | "ai";
 
+export type GChipSize = "sm" | "md" | "lg";
+
+// Geometry per chip size — `md` (h-7 = 28 px) is the design-source
+// default. `sm` fits inline next to composer toolbar buttons; `lg`
+// matches the chunkier 32 px AI pill that channel headers carry.
+const CHIP_SIZE: Record<GChipSize, string> = {
+  sm: "h-[26px] px-2.5 text-[12px]",
+  md: "h-7 px-3 text-[12.5px]",
+  lg: "h-8 px-3 text-[13px]",
+};
+
 const CHIP_BASE =
-  "gx-wiggle-target inline-flex items-center gap-1.5 h-7 px-3 " +
+  "gx-wiggle-target inline-flex items-center gap-1.5 " +
   "border-2 border-ink rounded-full shadow-ink-1 " +
-  "text-[12.5px] font-medium " +
+  "font-medium " +
   "transition-[transform,box-shadow] duration-[120ms] ease-spring " +
   "hover:-translate-x-px hover:-translate-y-px hover:shadow-ink-3";
 
@@ -47,6 +58,8 @@ const CHIP_ACTIVE = "bg-pop-sun text-on-bright";
 export interface GChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Resting colour family. Default is paper-coloured. */
   variant?: GChipVariant;
+  /** Pill size — sm (26), md (28, default), lg (32). */
+  size?: GChipSize;
   /** Filter-active state — overrides `variant` to sun-yellow. */
   active?: boolean;
   /** Show an `×` affordance and call this when clicked. */
@@ -66,10 +79,11 @@ export interface GChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * on the body button so form-library refs keep working unchanged.
  */
 export const GChip = forwardRef<HTMLButtonElement, GChipProps>(function GChip(
-  { variant = "default", active = false, onRemove, className, children, type, ...rest },
+  { variant = "default", size = "md", active = false, onRemove, className, children, type, ...rest },
   ref,
 ) {
   const variantCls = active ? CHIP_ACTIVE : VARIANT_CLS[variant];
+  const sizeCls = CHIP_SIZE[size];
 
   if (!onRemove) {
     return (
@@ -77,7 +91,7 @@ export const GChip = forwardRef<HTMLButtonElement, GChipProps>(function GChip(
         ref={ref}
         type={type ?? "button"}
         aria-pressed={active}
-        className={cn(CHIP_BASE, variantCls, className)}
+        className={cn(CHIP_BASE, sizeCls, variantCls, className)}
         {...rest}
       >
         {children}
@@ -90,6 +104,7 @@ export const GChip = forwardRef<HTMLButtonElement, GChipProps>(function GChip(
       role="group"
       className={cn(
         CHIP_BASE,
+        sizeCls,
         variantCls,
         // Re-tighten the right padding — the × button supplies its own
         // visual breathing room so we don't want the wrapper's default.
