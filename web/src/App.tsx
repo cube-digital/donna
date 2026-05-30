@@ -10,7 +10,7 @@
 //   - views/WorkspacePicker.tsx + components/Shell/AppShell.tsx
 //   - views/Channel.tsx, Personal.tsx, ComingSoon.tsx
 
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import { setUnauthorizedHandler } from "./api/client";
@@ -26,7 +26,33 @@ import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
 import IntegrationDetail from "./views/IntegrationDetail";
-import Showcase from "./views/Showcase";
+
+// The Showcase route pulls in the entire Goofy library — split it out
+// of the main chunk via React.lazy so users who never visit /showcase
+// don't pay for the gallery. See Vercel rule `bundle-dynamic-imports`.
+const Showcase = lazy(() => import("./views/Showcase"));
+
+// Tiny placeholder rendered while the Showcase chunk streams in.
+// Re-uses only the design tokens, no Goofy components, so the fallback
+// itself stays inside the main bundle.
+function ShowcaseFallback() {
+  return (
+    <div
+      className="min-h-screen grid place-items-center bg-bg-0 text-text-2"
+      style={{ fontFamily: "'Caveat', cursive", fontSize: 22, fontWeight: 700 }}
+    >
+      loading the sticker book…
+    </div>
+  );
+}
+
+function LazyShowcase() {
+  return (
+    <Suspense fallback={<ShowcaseFallback />}>
+      <Showcase />
+    </Suspense>
+  );
+}
 
 export default function App() {
   const isAuthenticated = useAuth((s) => s.isAuthenticated);
@@ -46,7 +72,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/showcase" element={<Showcase />} />
+        <Route path="/showcase" element={<LazyShowcase />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/oauth/return" element={<OAuthReturn />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
@@ -57,7 +83,7 @@ export default function App() {
   if (!activeId) {
     return (
       <Routes>
-        <Route path="/showcase" element={<Showcase />} />
+        <Route path="/showcase" element={<LazyShowcase />} />
         <Route path="/workspaces" element={<WorkspacePicker />} />
         <Route path="/oauth/return" element={<OAuthReturn />} />
         <Route path="*" element={<Navigate to="/workspaces" replace />} />
@@ -67,7 +93,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/showcase" element={<Showcase />} />
+      <Route path="/showcase" element={<LazyShowcase />} />
       <Route path="/oauth/return" element={<OAuthReturn />} />
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/channels" replace />} />
