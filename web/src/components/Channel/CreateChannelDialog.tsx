@@ -11,9 +11,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useChannels } from "../../state/channels";
 import type { Channel } from "../../types";
-import { Button } from "../Ui/Button";
-import { Field } from "../Ui/Field";
-import { Toggle } from "../Ui/Toggle";
+import { GButton, GFormField, GSwitch } from "../Goofy";
 
 interface CreateChannelDialogProps {
   open: boolean;
@@ -129,7 +127,7 @@ export function CreateChannelDialog({
             </div>
           )}
 
-          <Field
+          <GFormField
             label="Channel name"
             htmlFor="channel-name"
             required
@@ -147,15 +145,15 @@ export function CreateChannelDialog({
                 className="flex-1 bg-transparent outline-none text-text-0 placeholder:text-text-3"
               />
             </div>
-          </Field>
+          </GFormField>
 
-          <Field
+          <GFormField
             label="Private channel"
             hint="Invite-only. Public channels are visible to anyone in the workspace."
           >
             <div className="flex items-center gap-2">
-              <Toggle
-                checked={isPrivate}
+              <GSwitch
+                on={isPrivate}
                 onChange={setIsPrivate}
                 aria-label="Make channel private"
               />
@@ -163,21 +161,21 @@ export function CreateChannelDialog({
                 {isPrivate ? "Private" : "Public"}
               </span>
             </div>
-          </Field>
+          </GFormField>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 py-3 px-4 border-t border-border-soft">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={busy}>
+          <GButton type="button" variant="ghost" onClick={onClose} disabled={busy}>
             Cancel
-          </Button>
-          <Button
+          </GButton>
+          <GButton
             type="submit"
-            variant="primary"
+            variant="blue"
             disabled={busy || !finalName}
           >
             {busy ? "Creating…" : "Create"}
-          </Button>
+          </GButton>
         </div>
       </form>
     </div>

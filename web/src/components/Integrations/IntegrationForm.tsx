@@ -19,7 +19,7 @@ import type {
   ConfigSchema,
   IntegrationProvider,
 } from "../../types";
-import { Button } from "../Ui/Button";
+import { GButton } from "../Goofy";
 
 import { MultiSelectField } from "./fields/MultiSelectField";
 import { NumberField } from "./fields/NumberField";
@@ -294,11 +294,11 @@ export function IntegrationForm({ provider, connection, onSaved }: IntegrationFo
       })}
 
       <div className="flex items-center gap-2 pt-2 border-t border-border-soft">
-        <Button type="submit" variant="primary" disabled={!dirty || saving}>
+        <GButton type="submit" variant="blue" disabled={!dirty || saving}>
           {saving ? "Saving…" : "Save changes"}
-        </Button>
+        </GButton>
         {dirty && (
-          <Button
+          <GButton
             type="button"
             variant="ghost"
             onClick={() => {
@@ -308,7 +308,7 @@ export function IntegrationForm({ provider, connection, onSaved }: IntegrationFo
             }}
           >
             Discard
-          </Button>
+          </GButton>
         )}
       </div>
     </form>

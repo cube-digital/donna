@@ -22,13 +22,12 @@
 // `margin-left: -6px` + a 2px `--bg-0` border, with the first child
 // reset to `margin-left: 0`. We reproduce that with `[&>*]:-ml-1.5
 // [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0` on the
-// stack container so the children keep their generic `<Av/>` markup.
+// stack container so the children keep their generic `<GAvatar/>` markup.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import Av from "../Ui/Av";
-import { Ic } from "../Ui/Ic";
+import { GAvatar, GlyphSlot } from "../Goofy";
 import { useChannels } from "../../state/channels";
 import type { AgentRef, Channel, Message, User } from "../../types";
 
@@ -124,7 +123,7 @@ export default function ChannelHeader({
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5 text-[15px] font-semibold text-text-0 tracking-[-0.01em]">
           {isDM ? (
-            <Ic.at className="text-text-3" />
+            <GlyphSlot name="at" className="text-text-3" />
           ) : (
             <span className="text-text-3">#</span>
           )}
@@ -138,7 +137,7 @@ export default function ChannelHeader({
               /* v1: no star endpoint yet */
             }}
           >
-            <Ic.star width={14} height={14} />
+            <GlyphSlot name="star" size={14} />
           </button>
         </div>
         <div className="text-text-3 text-[12px]">{metaParts.join(" · ")}</div>
@@ -153,14 +152,15 @@ export default function ChannelHeader({
           className={PILL_AI}
           title="Agents on this channel"
         >
-          <Ic.sparkle width={12} height={12} />
+          <GlyphSlot name="sparkle" size={12} />
           <div className="flex ml-0.5 [&>*]:-ml-1.5 [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0">
             {visibleAgents.map((a) => (
-              <Av
+              <GAvatar
                 key={a.id}
                 kind="agent"
                 size="sm"
-                agent={{ name: a.name || "A", hue: hueForAgent(a.id) }}
+                name={a.name || "A"}
+                hue={hueForAgent(a.id)}
               />
             ))}
           </div>
@@ -172,7 +172,7 @@ export default function ChannelHeader({
           className={PILL_AI}
           title="No agents in this channel yet"
         >
-          <Ic.sparkle width={12} height={12} />
+          <GlyphSlot name="sparkle" size={12} />
           AI on standby
         </button>
       )}
@@ -182,14 +182,11 @@ export default function ChannelHeader({
         <div className="flex items-center gap-1.5">
           <div className="flex [&>*]:-ml-1.5 [&>*:first-child]:ml-0 [&>*]:border-2 [&>*]:border-bg-0">
             {visibleHumans.map((u) => (
-              <Av
+              <GAvatar
                 key={u.id}
-                kind="human"
                 size="sm"
-                who={{
-                  name: u.full_name || u.email || "?",
-                  color: colorForUser(u.id),
-                }}
+                name={u.full_name || u.email || "?"}
+                color={colorForUser(u.id)}
               />
             ))}
           </div>
@@ -207,7 +204,7 @@ export default function ChannelHeader({
         title="Notification settings"
         aria-label="Notification settings"
       >
-        <Ic.bell width={12} height={12} />
+        <GlyphSlot name="bell" size={12} />
         Notifications
       </button>
       <ChannelActionsMenu channel={channel} pillClass={PILL} />
@@ -313,7 +310,7 @@ function ChannelActionsMenu({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <Ic.more width={12} height={12} />
+        <GlyphSlot name="more" size={12} />
       </button>
       {open && (
         <div

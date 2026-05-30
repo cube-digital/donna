@@ -11,14 +11,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../state/auth";
 import { useWorkspace } from "../../state/workspace";
-import { Ic } from "../Ui/Ic";
+import { GlyphSlot, type IconName } from "../Goofy";
 
 type NavKey = "workspace" | "dms" | "personal" | "search" | "files";
 
 interface NavItem {
   key: NavKey;
   label: string;
-  icon: keyof typeof Ic;
+  icon: IconName;
   ai?: boolean;
   href?: string;
   matcher?: (pathname: string) => boolean;
@@ -110,13 +110,12 @@ export default function WsRail() {
         title="Add workspace"
         aria-label="Add workspace"
       >
-        <Ic.plus />
+        <GlyphSlot name="plus" />
       </button>
 
       <div className="w-6 h-px bg-border-soft my-1" />
 
       {NAV.map((item) => {
-        const Icon = Ic[item.icon];
         const isActive = item.matcher ? item.matcher(pathname) : false;
         const isAi = !!item.ai;
         const className = cls(
@@ -137,7 +136,7 @@ export default function WsRail() {
               if (item.href) navigate(item.href);
             }}
           >
-            <Icon />
+            <GlyphSlot name={item.icon} />
           </button>
         );
       })}
@@ -150,7 +149,7 @@ export default function WsRail() {
         title="Toggle theme"
         aria-label="Toggle theme"
       >
-        <Ic.sun />
+        <GlyphSlot name="sun" />
       </button>
       <button
         type="button"

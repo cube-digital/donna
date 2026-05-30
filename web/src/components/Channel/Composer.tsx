@@ -31,7 +31,7 @@ import {
 
 import { getChatWs } from "../../lib/ws";
 import { useMessages } from "../../state/messages";
-import { Ic } from "../Ui/Ic";
+import { GlyphSlot } from "../Goofy";
 import type { Message } from "../../types";
 
 interface ComposerProps {
@@ -197,7 +197,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
           tabIndex={0}
           title="Link"
         >
-          <Ic.link />
+          <GlyphSlot name="link" />
         </button>
         <div className="w-px h-4 bg-border-soft mx-1" />
         <button
@@ -248,7 +248,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
           aria-label="Attach file"
           onClick={() => alert("Attachments coming soon")}
         >
-          <Ic.plus />
+          <GlyphSlot name="plus" />
         </button>
         <button
           type="button"
@@ -257,7 +257,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
           aria-label="Mention agent"
           onClick={() => alert("Agent mention coming soon")}
         >
-          <Ic.at />
+          <GlyphSlot name="at" />
         </button>
         <button
           type="button"
@@ -266,10 +266,10 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
           aria-label="Emoji"
           onClick={() => alert("Emoji picker coming soon")}
         >
-          <Ic.smile />
+          <GlyphSlot name="smile" />
         </button>
         <div className="flex items-center gap-1.5 ml-1 px-2 h-6 rounded-md text-[11.5px] text-ai bg-ai-bg border border-ai-glow">
-          <Ic.sparkle width={12} height={12} />
+          <GlyphSlot name="sparkle" size={12} />
           Agents on standby
         </div>
         <div className="flex-1" />
@@ -285,7 +285,7 @@ export default function Composer({ channelId, placeholder }: ComposerProps) {
           aria-label="Send message"
           title="Send"
         >
-          <Ic.send width={14} height={14} />
+          <GlyphSlot name="send" size={14} />
         </button>
       </div>
     </div>

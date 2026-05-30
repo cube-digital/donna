@@ -33,7 +33,7 @@
 import { useState } from "react";
 
 import type { AgentRunStep, Message } from "../../types";
-import { Ic } from "../Ui/Ic";
+import { GlyphSlot } from "../Goofy";
 
 interface AgentRunCardProps {
   msg: Message;
@@ -42,14 +42,14 @@ interface AgentRunCardProps {
 function stepIcon(kind: AgentRunStep["kind"]) {
   switch (kind) {
     case "read":
-      return <Ic.doc />;
+      return <GlyphSlot name="doc" />;
     case "write":
-      return <Ic.edit />;
+      return <GlyphSlot name="edit" />;
     case "think":
-      return <Ic.brain />;
+      return <GlyphSlot name="brain" />;
     case "tool":
     default:
-      return <Ic.bolt />;
+      return <GlyphSlot name="bolt" />;
   }
 }
 
@@ -152,7 +152,7 @@ export default function AgentRunCard({ msg }: AgentRunCardProps) {
                   className="mt-2 flex items-center gap-2 border border-border-soft bg-bg-1 rounded-md px-2.5 py-1.5 w-max max-w-full"
                 >
                   <span className="text-text-2">
-                    <Ic.link />
+                    <GlyphSlot name="link" />
                   </span>
                   <span className="text-text-0 text-[12.5px]">{a.name}</span>
                   {a.size ? (
@@ -178,7 +178,7 @@ export default function AgentRunCard({ msg }: AgentRunCardProps) {
                 key={i}
                 className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-2 border border-border-soft text-[11px] text-text-2 font-mono"
               >
-                <Ic.brain width={11} height={11} />
+                <GlyphSlot name="brain" size={11} />
                 {m}
               </span>
             ))}

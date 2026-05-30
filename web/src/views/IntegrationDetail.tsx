@@ -15,9 +15,7 @@ import {
 } from "../api/integrations";
 import { IntegrationForm } from "../components/Integrations/IntegrationForm";
 import { useOAuthConnect } from "../components/Integrations/useOAuthConnect";
-import { Button } from "../components/Ui/Button";
-import { ConnectorIcon } from "../components/Ui/BrandIc";
-import { Ic } from "../components/Ui/Ic";
+import { GButton, GConnectorIcon, GlyphSlot } from "../components/Goofy";
 import { useIntegrations } from "../state/integrations";
 import type { Connection, IntegrationProvider } from "../types";
 
@@ -137,14 +135,14 @@ export default function IntegrationDetail() {
           onClick={() => navigate("/integrations")}
           className="flex items-center gap-1 text-[12px] text-text-3 hover:text-text-0 w-fit"
         >
-          <Ic.caret className="rotate-90" />
+          <GlyphSlot name="caret" className="rotate-90" />
           Integrations
         </button>
 
         {/* Header */}
         <header className="flex items-center gap-3">
           <span className="w-10 h-10 grid place-items-center rounded-lg bg-bg-2 border border-border-soft">
-            <ConnectorIcon slug={provider.slug} label={provider.display_name} />
+            <GConnectorIcon slug={provider.slug} label={provider.display_name} />
           </span>
           <div className="flex-1 flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
@@ -164,9 +162,9 @@ export default function IntegrationDetail() {
             </div>
           </div>
           {(status === "live" || status === "error" || status === "read-only") && (
-            <Button variant="danger" onClick={handleDisconnect} disabled={busy}>
+            <GButton variant="coral" onClick={handleDisconnect} disabled={busy}>
               Disconnect
-            </Button>
+            </GButton>
           )}
         </header>
 
@@ -186,9 +184,9 @@ export default function IntegrationDetail() {
               You'll be sent to {provider.display_name}'s authorization screen. After
               approving, Donna will start ingesting data into this workspace.
             </p>
-            <Button variant="primary" onClick={connect} disabled={connecting}>
+            <GButton variant="blue" onClick={connect} disabled={connecting}>
               {connecting ? "Opening OAuth…" : `Connect ${provider.display_name}`}
-            </Button>
+            </GButton>
           </section>
         ) : conn ? (
           <>

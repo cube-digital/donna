@@ -24,8 +24,7 @@
 // "ai" buttons are no-ops in v1; we keep them in markup for design
 // fidelity.
 
-import Av from "../Ui/Av";
-import { Ic } from "../Ui/Ic";
+import { GAvatar, GlyphSlot } from "../Goofy";
 import type { Message as MessageT } from "../../types";
 
 import AgentRunCard from "./AgentRunCard";
@@ -84,20 +83,15 @@ export default function Message({ msg }: MessageProps) {
     <div className="group relative flex gap-2.5 px-[18px] py-1 hover:bg-[oklch(1_0_0_/0.018)]">
       <div className="w-8 pt-0.5">
         {isAgent ? (
-          <Av
+          <GAvatar
             kind="agent"
             pulsing={isRunningAgentRun}
-            agent={{
-              name: msg.author_agent?.name ?? "A",
-              hue: hueForAgent(msg.author_agent?.id),
-            }}
+            name={msg.author_agent?.name ?? "A"}
+            hue={hueForAgent(msg.author_agent?.id)}
           />
         ) : (
-          <Av
-            kind="human"
-            who={{
-              name: displayName,
-            }}
+          <GAvatar
+            name={displayName}
           />
         )}
       </div>
@@ -136,7 +130,7 @@ export default function Message({ msg }: MessageProps) {
             /* v1: reactions not wired */
           }}
         >
-          <Ic.smile />
+          <GlyphSlot name="smile" />
         </button>
         <button
           type="button"
@@ -145,7 +139,7 @@ export default function Message({ msg }: MessageProps) {
           aria-label="Reply in thread"
           onClick={() => alert("Threads coming soon")}
         >
-          <Ic.thread />
+          <GlyphSlot name="thread" />
         </button>
         <button
           type="button"
@@ -156,7 +150,7 @@ export default function Message({ msg }: MessageProps) {
             /* v1: no-op */
           }}
         >
-          <Ic.share />
+          <GlyphSlot name="share" />
         </button>
         <button
           type="button"
@@ -165,7 +159,7 @@ export default function Message({ msg }: MessageProps) {
           aria-label="Ask an agent"
           onClick={() => alert("Ask-an-agent coming soon")}
         >
-          <Ic.sparkle />
+          <GlyphSlot name="sparkle" />
         </button>
         <button
           type="button"
@@ -176,7 +170,7 @@ export default function Message({ msg }: MessageProps) {
             /* v1: no-op */
           }}
         >
-          <Ic.more />
+          <GlyphSlot name="more" />
         </button>
       </div>
     </div>

@@ -8,9 +8,7 @@ import { Link } from "react-router-dom";
 
 import { useIntegrations } from "../state/integrations";
 import type { IntegrationProvider } from "../types";
-import { ConnectorIcon } from "../components/Ui/BrandIc";
-import { Ic } from "../components/Ui/Ic";
-import { Input } from "../components/Ui/Input";
+import { GConnectorIcon, GInput } from "../components/Goofy";
 
 type Tab = "all" | "connected" | "available";
 
@@ -88,15 +86,12 @@ export default function Integrations() {
             ))}
           </div>
           <div className="ml-auto pb-1.5">
-            <div className="flex items-center gap-1.5 h-7 px-2.5 bg-bg-2 border border-border-soft rounded-md text-text-2 text-[12.5px] w-[280px]">
-              <Ic.search />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search integrations…"
-                className="flex-1 bg-transparent border-0 px-0 h-5 focus:border-transparent"
-              />
-            </div>
+            <GInput
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search integrations…"
+              shellClassName="w-[280px]"
+            />
           </div>
         </div>
 
@@ -117,7 +112,7 @@ export default function Integrations() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="w-6 h-6 grid place-items-center">
-                      <ConnectorIcon slug={p.slug} label={p.display_name} />
+                      <GConnectorIcon slug={p.slug} label={p.display_name} />
                     </span>
                     <span className="flex-1 text-[13px] font-medium text-text-0 truncate">
                       {p.display_name}

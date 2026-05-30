@@ -29,8 +29,7 @@ import {
   MemoryStub,
 } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
-import { Av } from "../components/Ui/Av";
-import { Ic } from "../components/Ui/Ic";
+import { GAvatar, GlyphSlot } from "../components/Goofy";
 import { hueForAgent } from "../lib/hueForAgent";
 import { getChatWs } from "../lib/ws";
 import { useChannels } from "../state/channels";
@@ -175,7 +174,7 @@ export default function Personal() {
             )
           }
         >
-          <Ic.plus />
+          <GlyphSlot name="plus" />
           <span>New chat with Donna</span>
         </button>
 
@@ -205,7 +204,7 @@ export default function Personal() {
                     {c.topic || "—"}
                   </div>
                   <div className="text-[10.5px] text-text-3 mt-0.5 flex gap-1.5 items-center">
-                    <Av kind="agent" agent={agentIdentity} size="sm" />
+                    <GAvatar kind="agent" name={agentIdentity.name} hue={agentIdentity.hue} size="sm" />
                     <span>{agentIdentity.name}</span>
                   </div>
                 </button>
@@ -219,7 +218,7 @@ export default function Personal() {
         {active ? (
           <>
             <header className="flex items-center gap-3 px-[22px] py-3 border-b border-border-soft">
-              <Av kind="agent" agent={agentIdentity} pulsing />
+              <GAvatar kind="agent" name={agentIdentity.name} hue={agentIdentity.hue} pulsing />
               <div>
                 <div className="font-semibold text-text-0 text-[14px]">
                   {agentIdentity.name}
@@ -235,7 +234,7 @@ export default function Personal() {
                 title="Coming soon"
                 onClick={() => alert("Memory inspector coming soon.")}
               >
-                <Ic.brain />
+                <GlyphSlot name="brain" />
                 <span>Memory · 0 items</span>
               </button>
               <button
@@ -244,7 +243,7 @@ export default function Personal() {
                 onClick={() => alert("Agent switcher coming soon.")}
               >
                 <span>Switch agent</span>
-                <Ic.caret />
+                <GlyphSlot name="caret" />
               </button>
             </header>
 

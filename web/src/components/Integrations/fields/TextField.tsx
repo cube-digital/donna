@@ -1,7 +1,6 @@
 // JSON Schema `string` (no enum) → Input.
 
-import { Field } from "../../Ui/Field";
-import { Input } from "../../Ui/Input";
+import { GFormField, GInput } from "../../Goofy";
 
 interface TextFieldProps {
   name: string;
@@ -18,22 +17,23 @@ interface TextFieldProps {
 
 export function TextField(p: TextFieldProps) {
   return (
-    <Field
+    <GFormField
       label={p.label}
       hint={p.hint}
       error={p.error}
       required={p.required}
       htmlFor={p.name}
     >
-      <Input
+      <GInput
         id={p.name}
         name={p.name}
+        icon={null}
         value={p.value ?? ""}
         placeholder={p.placeholder}
         disabled={p.disabled}
         maxLength={p.maxLength}
         onChange={(e) => p.onChange(e.target.value)}
       />
-    </Field>
+    </GFormField>
   );
 }

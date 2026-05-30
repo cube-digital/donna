@@ -17,7 +17,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError } from "../api/client";
 import { googleStartUrl, signin, signup } from "../api/auth";
 import { useAuth } from "../state/auth";
-import { Sparkle } from "../components/Ui/Ic";
+import { Sparkle } from "../components/Goofy";
 
 type Mode = "signin" | "signup";
 

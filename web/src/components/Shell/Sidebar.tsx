@@ -23,9 +23,7 @@ import { useIntegrations } from "../../state/integrations";
 import { useMessages } from "../../state/messages";
 import { useWorkspace } from "../../state/workspace";
 import type { AgentRef, Channel, IntegrationProvider } from "../../types";
-import { ConnectorIcon } from "../Ui/BrandIc";
-import { Av } from "../Ui/Av";
-import { Ic } from "../Ui/Ic";
+import { GAvatar, GConnectorIcon, GlyphSlot } from "../Goofy";
 import { CreateChannelDialog } from "../Channel/CreateChannelDialog";
 
 // Tailwind class fragments for the sidebar row variants. Hoisted so
@@ -111,7 +109,7 @@ function GroupHeader({
           aria-label={`Add ${label}`}
           onClick={onAdd}
         >
-          <Ic.plus />
+          <GlyphSlot name="plus" />
         </button>
       ) : null}
     </div>
@@ -187,7 +185,7 @@ export default function Sidebar() {
             title="Workspace settings"
             aria-label="Workspace settings"
           >
-            <Ic.edit />
+            <GlyphSlot name="edit" />
           </button>
         </div>
       </header>
@@ -200,7 +198,7 @@ export default function Sidebar() {
           ariaLabel="Search"
         >
           <span className={HASH_SLOT}>
-            <Ic.search />
+            <GlyphSlot name="search" />
           </span>
           <span className={NAME_SLOT}>Search</span>
           <kbd className="font-mono text-[10.5px] text-text-3 px-[5px] py-px rounded-sm bg-bg-2 border border-border-soft">
@@ -213,7 +211,7 @@ export default function Sidebar() {
           ariaLabel="Personal AI"
         >
           <span className={HASH_SLOT}>
-            <Ic.sparkle />
+            <GlyphSlot name="sparkle" />
           </span>
           <span className={cls(NAME_SLOT, "text-text-0")}>
             Personal · Donna
@@ -222,13 +220,13 @@ export default function Sidebar() {
         </NavRow>
         <NavRow ariaLabel="Activity">
           <span className={HASH_SLOT}>
-            <Ic.bell />
+            <GlyphSlot name="bell" />
           </span>
           <span className={NAME_SLOT}>Activity</span>
         </NavRow>
         <NavRow ariaLabel="Threads">
           <span className={HASH_SLOT}>
-            <Ic.thread />
+            <GlyphSlot name="thread" />
           </span>
           <span className={NAME_SLOT}>Threads</span>
         </NavRow>
@@ -251,10 +249,9 @@ export default function Sidebar() {
               active={activeChannelId === c.id}
               ariaLabel={c.name}
             >
-              <Av
-                kind="human"
+              <GAvatar
                 size="sm"
-                who={{ name: c.name, initials: c.name.slice(0, 2).toUpperCase() }}
+                name={c.name}
               />
               <span className={NAME_SLOT}>{c.name}</span>
             </NavRow>
@@ -268,7 +265,7 @@ export default function Sidebar() {
         <GroupHeader label="AI Teammates" ai />
         {teammates.length === 0 ? (
           <NavRow ariaLabel="Donna">
-            <Av kind="agent" size="sm" agent={{ name: "Donna", hue: 282 }} />
+            <GAvatar kind="agent" size="sm" name="Donna" hue={282} />
             <span className={cls(NAME_SLOT, "text-text-0")}>Donna</span>
             <span className="w-1.5 h-1.5 rounded-full bg-ai shadow-[0_0_6px_var(--ai-glow)]" />
           </NavRow>
@@ -280,10 +277,11 @@ export default function Sidebar() {
               active={activeAgentId === a.id}
               ariaLabel={a.name}
             >
-              <Av
+              <GAvatar
                 kind="agent"
                 size="sm"
-                agent={{ name: a.name, hue: hueForAgent(a.id) }}
+                name={a.name}
+                hue={hueForAgent(a.id)}
               />
               <span className={cls(NAME_SLOT, "text-text-0")}>{a.name}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-ai shadow-[0_0_6px_var(--ai-glow)]" />
@@ -335,7 +333,7 @@ export default function Sidebar() {
           className={cls(ROW_BASE, "text-text-2 cursor-default hover:bg-transparent hover:text-text-2")}
         >
           <span className={HASH_SLOT}>
-            <Ic.bolt />
+            <GlyphSlot name="bolt" />
           </span>
           <span className={NAME_SLOT}>Workflows</span>
         </div>
@@ -394,7 +392,7 @@ function ConnectionRow({ provider }: { provider: IntegrationProvider }) {
       className={cls(ROW_BASE, active && ROW_ACTIVE)}
     >
       <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
-        <ConnectorIcon slug={provider.slug} label={provider.display_name} />
+        <GConnectorIcon slug={provider.slug} label={provider.display_name} />
       </span>
       <span className={cls(NAME_SLOT, "text-text-0")}>
         {provider.display_name}

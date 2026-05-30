@@ -13,8 +13,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Ic } from "../Ui/Ic";
-import { ConnectorIcon } from "../Ui/BrandIc";
+import { GlyphSlot, GConnectorIcon } from "../Goofy";
 import { apiFetch } from "../../api/client";
 import { getSubscription } from "../../api/integrations";
 import { getNotificationsSse } from "../../lib/sse";
@@ -84,7 +83,7 @@ export function DocsSection({ channelId }: DocsSectionProps) {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <Ic.doc />
+        <GlyphSlot name="doc" />
         <span>Docs{list.length ? ` · ${list.length}` : ""}</span>
         <span className="flex-1" />
         <button
@@ -92,13 +91,13 @@ export function DocsSection({ channelId }: DocsSectionProps) {
           aria-label="New doc"
           className="grid place-items-center p-0.5 bg-transparent border-0 text-text-3 cursor-pointer hover:text-text-0"
         >
-          <Ic.plus />
+          <GlyphSlot name="plus" />
         </button>
       </div>
       <div className="flex flex-col gap-0.5 mt-1">
         {list.length === 0 ? (
           <div className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-3">
-            <Ic.doc className="text-text-3" />
+            <GlyphSlot name="doc" className="text-text-3" />
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               No docs yet
             </span>
@@ -110,7 +109,7 @@ export function DocsSection({ channelId }: DocsSectionProps) {
               key={d.id ?? `${d.name}-${i}`}
               className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-1 hover:bg-bg-2 hover:text-text-0"
             >
-              <Ic.doc className="text-text-3" />
+              <GlyphSlot name="doc" className="text-text-3" />
               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                 {d.name}
               </span>
@@ -187,7 +186,7 @@ export function ContextSection() {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <Ic.link />
+        <GlyphSlot name="link" />
         <span>Context</span>
         <span className="flex-1" />
       </div>
@@ -211,7 +210,7 @@ export function ContextSection() {
             className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] w-full hover:bg-bg-2"
           >
             <span className="w-[18px] h-[18px] flex items-center justify-center flex-shrink-0">
-              <ConnectorIcon slug={p.slug} label={p.display_name} />
+              <GConnectorIcon slug={p.slug} label={p.display_name} />
             </span>
             <span className="flex-1 min-w-0 text-text-0 overflow-hidden text-ellipsis whitespace-nowrap">
               {p.display_name}
@@ -256,7 +255,7 @@ export function DonnaToday() {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_AI_CLS}>
-        <Ic.sparkle />
+        <GlyphSlot name="sparkle" />
         <span>Donna today</span>
         <span className="flex-1" />
       </div>
@@ -293,7 +292,7 @@ export function MemoryStub({ scope }: MemoryStubProps) {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_AI_CLS}>
-        <Ic.brain />
+        <GlyphSlot name="brain" />
         <span>Memory</span>
         <span className="flex-1" />
       </div>
@@ -314,7 +313,7 @@ export function ProgressStub() {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <Ic.bolt />
+        <GlyphSlot name="bolt" />
         <span>Progress</span>
         <span className="flex-1" />
       </div>

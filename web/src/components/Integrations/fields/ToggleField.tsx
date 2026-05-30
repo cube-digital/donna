@@ -1,7 +1,6 @@
 // JSON Schema `boolean` → Toggle.
 
-import { Field } from "../../Ui/Field";
-import { Toggle } from "../../Ui/Toggle";
+import { GFormField, GSwitch } from "../../Goofy";
 
 interface ToggleFieldProps {
   name: string;
@@ -15,10 +14,10 @@ interface ToggleFieldProps {
 
 export function ToggleField(p: ToggleFieldProps) {
   return (
-    <Field label={p.label} hint={p.hint} error={p.error}>
+    <GFormField label={p.label} hint={p.hint} error={p.error}>
       <div className="flex items-center gap-2">
-        <Toggle
-          checked={!!p.value}
+        <GSwitch
+          on={!!p.value}
           disabled={p.disabled}
           onChange={p.onChange}
           aria-label={p.label || p.name}
@@ -27,6 +26,6 @@ export function ToggleField(p: ToggleFieldProps) {
           {p.value ? "On" : "Off"}
         </span>
       </div>
-    </Field>
+    </GFormField>
   );
 }

@@ -12,10 +12,10 @@ import { useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { useChannels } from "../../state/channels";
 import { useNotifications } from "../../state/notifications";
-import { Ic } from "../Ui/Ic";
+import { GlyphSlot, type IconName } from "../Goofy";
 
 interface Crumb {
-  icon: keyof typeof Ic;
+  icon: IconName;
   label: string;
   hashed?: boolean;
 }
@@ -60,8 +60,6 @@ export default function TopBar() {
     channelsById,
   ]);
 
-  const CrumbIcon = Ic[crumb.icon];
-
   // Electron window drag — the whole top bar acts as the OS title bar.
   // Interactive children opt out via `no-drag`. No-ops in normal browsers.
   const dragStyle = { WebkitAppRegion: "drag" } as React.CSSProperties;
@@ -74,7 +72,7 @@ export default function TopBar() {
     >
       {/* pl-20 reserves space for macOS traffic-light controls under hiddenInset */}
       <div className="flex items-center gap-2 text-text-2 text-[12.5px] pl-20">
-        <CrumbIcon />
+        <GlyphSlot name={crumb.icon} />
         {crumb.hashed ? (
           <>
             <span className="text-text-3">#</span>
@@ -95,7 +93,7 @@ export default function TopBar() {
         role="search"
         aria-label="Search"
       >
-        <Ic.search />
+        <GlyphSlot name="search" />
         <input
           type="text"
           className="flex-1"
@@ -124,7 +122,7 @@ export default function TopBar() {
           }
           onClick={() => navigate("/search")}
         >
-          <Ic.bell />
+          <GlyphSlot name="bell" />
           {unreadCount > 0 && (
             <span
               aria-hidden="true"
@@ -140,7 +138,7 @@ export default function TopBar() {
           title="More"
           aria-label="More options"
         >
-          <Ic.more />
+          <GlyphSlot name="more" />
         </button>
       </div>
     </div>
