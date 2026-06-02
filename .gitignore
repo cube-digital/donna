@@ -231,3 +231,4 @@ __marimo__/
 
 # Claude Code local worktrees / agent state
 .claude/worktrees/
+server/env/.env.docker
