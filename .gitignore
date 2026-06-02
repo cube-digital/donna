@@ -7,20 +7,25 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+#
+# These names are generic enough to collide with non-Python subprojects
+# in this monorepo (e.g. /web/src/lib, /web/dist, /desktop/dist). Anchor
+# each rule with a leading `/` so it only matches at the repo root.
+# Subproject build outputs are ignored by their own .gitignore.
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
+/build/
+/develop-eggs/
+/dist/
+/downloads/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
+/wheels/
+/share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -73,7 +78,7 @@ docs/_build/
 
 # PyBuilder
 .pybuilder/
-target/
+/target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -148,14 +153,18 @@ activemq-data/
 *.sage.py
 
 # Environments
+#
+# Anchored to repo root for the same reason as the packaging block:
+# `env/` was silently hiding /server/env on case-insensitive
+# filesystems (the rule that matched was `ENV/`).
 .env
 .envrc
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+/env/
+/venv/
+/ENV/
+/env.bak/
+/venv.bak/
 
 # Spyder project settings
 .spyderproject
