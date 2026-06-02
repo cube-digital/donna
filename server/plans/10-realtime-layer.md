@@ -153,9 +153,12 @@ reconnect).
 
 ```python
 async def notifications_sse_view(request):
-    user = await get_user(request)        # JWT-authed
-    if not user.is_authenticated:
-        return _401_sse_response()
+    # Inline JWT auth — AuthenticationMiddleware doesn't run DRF auth
+    # on async views, so request.user is anonymous here. Reuse the
+    # WS subprotocol helper so we have a single JWT validation path.
+    user = await _authenticate_sse_request(request)   # → donna.chat.auth.resolve_jwt_user
+    if user is None or not user.is_authenticated:
+        return _unauthenticated_sse_response()
 
     workspace_ids = await get_user_workspace_ids(user.id)   # async DB call
     channels = [f"user-{user.id}-notifications"]
@@ -472,10 +475,22 @@ POST   /api/v1/chat/channels/{id}/read-state/   body: {message_id} — advance p
 ## Authentication + authorization flow
 
 ### SSE
-- Existing `JWTAuthentication` runs in DRF stack.
-- View resolves user, reads `WorkspaceMembership` set, builds channel list.
-- No per-channel authz at subscribe — workspace membership is the
-  authorization (you see workspace events because you're a member).
+- The `/api/v1/notifications/stream` endpoint is a **plain async Django
+  view**, not DRF — Django's `AuthenticationMiddleware` does not run
+  DRF authenticators on async views, so `request.user` is always
+  `AnonymousUser` here.
+- The view therefore decodes `Authorization: Bearer <jwt>` itself and
+  resolves the user via `donna.chat.auth.resolve_jwt_user` — the
+  same helper the WS subprotocol middleware uses. Single JWT
+  validation path across both async transports.
+- A missing or invalid bearer header returns a single `event: error`
+  SSE frame with HTTP 401 (`_unauthenticated_sse_response`). Frontend
+  reconnects with exponential backoff; the loop also tolerates a
+  not-yet-hydrated access token at boot.
+- Once authenticated, the view reads `WorkspaceMembership` set and
+  builds the channel list. No per-channel authz at subscribe —
+  workspace membership is the authorization (you see workspace events
+  because you're a member).
 
 ### WS connect
 - `SubprotocolJWTAuthMiddlewareStack` reads `bearer.<token>` from

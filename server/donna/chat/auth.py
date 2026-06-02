@@ -1,18 +1,27 @@
 """
-WebSocket authentication — JWT in ``Sec-WebSocket-Protocol`` subprotocol.
+JWT authentication helpers for async transports.
 
-Frontend opens::
+Two consumers today:
 
-    new WebSocket("wss://api.donna/ws/", ["bearer", "<access-token>"])
+* ``SubprotocolJWTAuthMiddleware`` — WebSocket handshake. Frontend opens::
 
-The two-element subprotocol list is the documented browser-portable
-way to ship a token through a WS handshake. Server reads
-``scope["subprotocols"]``, validates the second value as a simplejwt
-access token, attaches the resolved User to ``scope["user"]``, and
-accepts the negotiated subprotocol so the handshake succeeds.
+      new WebSocket("wss://api.donna/ws/", ["bearer", "<access-token>"])
 
-Anonymous connections get ``scope["user"] = AnonymousUser()`` — consumer
-decides whether to close (typically 4401).
+  The two-element subprotocol list is the documented browser-portable
+  way to ship a token through a WS handshake. Server reads
+  ``scope["subprotocols"]``, validates the second value as a simplejwt
+  access token, attaches the resolved User to ``scope["user"]``, and
+  accepts the negotiated subprotocol so the handshake succeeds.
+
+  Anonymous connections get ``scope["user"] = AnonymousUser()`` — the
+  consumer decides whether to close (typically 4401).
+
+* :func:`resolve_jwt_user` — also reused by the SSE notifications view
+  (``donna/notifications/api/v1/views.py``). Django's
+  ``AuthenticationMiddleware`` doesn't run DRF authenticators on async
+  views, so ``request.user`` is always ``AnonymousUser`` there. The
+  async view reads ``Authorization: Bearer <jwt>`` directly and calls
+  this helper to resolve the user.
 """
 from __future__ import annotations
 
@@ -27,12 +36,16 @@ logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
-def _resolve_user(raw_token: str):
+def resolve_jwt_user(raw_token: str):
     """
     Validate a JWT access token and return the matching User instance.
 
-    Lazy-imports to avoid loading rest_framework before Django apps are
-    ready (this module is imported from ``donna/asgi.py``).
+    Returns ``AnonymousUser`` (never raises) on any validation failure,
+    so callers can do a single ``user.is_authenticated`` check.
+
+    Lazy-imports rest_framework_simplejwt to avoid loading rest_framework
+    before Django apps are ready — this module is imported from
+    ``donna/asgi.py`` at startup.
     """
     from rest_framework_simplejwt.authentication import JWTAuthentication
     from rest_framework_simplejwt.exceptions import (
@@ -46,8 +59,12 @@ def _resolve_user(raw_token: str):
         validated = authenticator.get_validated_token(raw_token)
         return authenticator.get_user(validated)
     except (InvalidToken, TokenError, AuthenticationFailed) as exc:
-        logger.info("ws_jwt_invalid", extra={"error": str(exc)})
+        logger.info("jwt_invalid", extra={"error": str(exc)})
         return AnonymousUser()
+
+
+# Backward-compat alias — keep until external callers migrate.
+_resolve_user = resolve_jwt_user
 
 
 class SubprotocolJWTAuthMiddleware(BaseMiddleware):
@@ -64,7 +81,7 @@ class SubprotocolJWTAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
         token = _extract_token(scope.get("subprotocols") or [])
         if token:
-            scope["user"] = await _resolve_user(token)
+            scope["user"] = await resolve_jwt_user(token)
             # Record so the consumer can accept the matching subprotocol.
             scope["jwt_subprotocol"] = (
                 "bearer" if " " not in token and "." not in token else None

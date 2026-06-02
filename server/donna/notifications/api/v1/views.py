@@ -9,6 +9,14 @@ Notifications API views.
 ``stream`` is an async view that streams Redis pubsub messages over
 SSE. Requires an ASGI server (uvicorn — already in deps). The other
 endpoints are plain sync DRF views.
+
+**SSE auth note.** Django's ``AuthenticationMiddleware`` doesn't run
+DRF authenticators on async views, so ``request.user`` is always
+``AnonymousUser`` here. The view decodes ``Authorization: Bearer
+<jwt>`` itself, reusing :func:`donna.chat.auth.resolve_jwt_user` (the
+same helper the WS subprotocol middleware uses). See
+``server/plans/10-realtime-layer.md`` § "Authentication + authorization
+flow / SSE" for the design.
 """
 from __future__ import annotations
 
@@ -21,6 +29,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from donna.chat.auth import resolve_jwt_user
 
 from ...models import Notification
 from ...services import NotificationService
@@ -37,6 +47,34 @@ def _get_user_workspace_ids(user_id) -> list[str]:
         for wid in WorkspaceMembership.objects.filter(user_id=user_id)
         .values_list("workspace_id", flat=True)
     ]
+
+
+async def _authenticate_sse_request(request):
+    """
+    Resolve a User from ``Authorization: Bearer <jwt>``.
+
+    Returns the User (possibly ``AnonymousUser``) — callers should
+    check ``user.is_authenticated``. We don't raise on a missing or
+    malformed header so the caller can return a single, uniform SSE
+    error frame regardless of failure mode.
+    """
+    auth_header = request.headers.get("Authorization", "") or ""
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header[len("Bearer "):].strip()
+    if not token:
+        return None
+    return await resolve_jwt_user(token)
+
+
+def _unauthenticated_sse_response() -> StreamingHttpResponse:
+    return StreamingHttpResponse(
+        iter([
+            "event: error\ndata: {\"error\": \"unauthenticated\"}\n\n",
+        ]),
+        status=int(HTTPStatus.UNAUTHORIZED),
+        content_type="text/event-stream",
+    )
 
 
 logger = logging.getLogger(__name__)
@@ -91,16 +129,14 @@ async def notifications_sse_view(request):
     - ``user-{uid}-notifications``         — personal
     - ``workspace-{wid}-notifications``    — for every wid the user belongs to
     - ``user-{uid}-workspace-{wid}-feed``  — for every wid the user belongs to
+
+    Authentication is performed inline (see ``_authenticate_sse_request``
+    above) because Django's ``AuthenticationMiddleware`` doesn't run DRF
+    authenticators on async views.
     """
-    user = getattr(request, "user", None)
+    user = await _authenticate_sse_request(request)
     if user is None or not user.is_authenticated:
-        return StreamingHttpResponse(
-            iter([
-                f"event: error\ndata: {{\"error\": \"unauthenticated\"}}\n\n",
-            ]),
-            status=int(HTTPStatus.UNAUTHORIZED),
-            content_type="text/event-stream",
-        )
+        return _unauthenticated_sse_response()
 
     workspace_ids = await _get_user_workspace_ids(user.id)
 
