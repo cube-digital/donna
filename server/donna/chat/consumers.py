@@ -222,9 +222,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         message = await _fetch_message(mid)
         if message is None:
             raise ValueError("message not found")
-        if message.author_user_id != self.user.id:
-            # TODO: allow channel admins to delete others' messages.
-            raise PermissionError("only the author can delete a message")
+        # Authorization is shared with REST via ChannelService — author
+        # OR a channel admin may delete. Wrapped because the admin lookup
+        # is a sync ORM query.
+        await database_sync_to_async(ChannelService.authorize_delete_message)(
+            user=self.user, message=message
+        )
         await database_sync_to_async(ChannelService.delete_message)(message=message)
 
     async def _action_typing(self, content):
@@ -252,13 +255,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def _action_open_dm(self, content):
         peer_id = content.get("peer_user_id")
+        # workspace_id disambiguates when caller + peer share multiple
+        # workspaces. Optional in this rollout — when omitted,
+        # ChannelService.get_or_create_dm logs a warning and falls back
+        # to "first overlapping workspace". Clients should send it.
+        workspace_id = content.get("workspace_id")
         if not peer_id:
             raise ValueError("peer_user_id required")
         peer = await _fetch_user(peer_id)
         if peer is None:
             raise ValueError("peer not found")
         channel = await database_sync_to_async(ChannelService.get_or_create_dm)(
-            self.user, peer
+            self.user, peer, workspace_id=workspace_id
         )
         # Auto-subscribe caller's WS to the DM.
         await self._group_add(channel_group(channel.id))
@@ -298,6 +306,20 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_channel_member_added(self, event):
         await self.send_json({"event": "channel.member.added", **event["payload"]})
+
+    async def chat_channel_member_removed(self, event):
+        await self.send_json({"event": "channel.member.removed", **event["payload"]})
+
+    async def chat_channel_added_to_you(self, event):
+        # Fired on presence-user-{uid} when the user is invited to a
+        # channel. Carries the full channel payload so the client can
+        # surface the new channel in the sidebar without an extra fetch.
+        await self.send_json({"event": "channel.added.to_you", **event["payload"]})
+
+    async def chat_channel_removed_from_you(self, event):
+        # Counterpart to channel.added.to_you — fired on the kicked /
+        # leaving user's presence group so their sidebar drops the row.
+        await self.send_json({"event": "channel.removed.from_you", **event["payload"]})
 
     async def chat_read_advanced(self, event):
         await self.send_json({"event": "read.advanced", **event["payload"]})

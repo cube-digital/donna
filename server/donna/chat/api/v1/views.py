@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -20,11 +21,14 @@ from rest_framework.views import APIView
 from ...models import Channel, ChannelMembership, ChannelReadState, Message
 from ...services import ChannelService
 from .serializers import (
+    AddMemberSerializer,
     AdvanceReadSerializer,
     ChannelCreateSerializer,
+    ChannelMembershipSerializer,
     ChannelSerializer,
     ChannelUpdateSerializer,
     DMOpenSerializer,
+    GroupDMOpenSerializer,
     MessageCreateSerializer,
     MessageEditSerializer,
     MessageSerializer,
@@ -50,14 +54,36 @@ class ChannelListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            Channel.objects.filter(
-                workspace=self.request.workspace,
-                memberships__user=self.request.user,
-            )
-            .distinct()
-            .order_by("name")
+        """
+        By default lists only channels the caller is a member of.
+
+        Pass ``?include_public=true`` to also surface public channels
+        in the workspace the caller hasn't joined yet (Slack-style
+        "browse"). Self-join is then a POST to
+        ``/chat/channels/{id}/members/``.
+
+        DMs (kind=DIRECT) are always excluded from the browse path —
+        public discovery wouldn't make sense for them.
+        """
+        user = self.request.user
+        workspace = self.request.workspace
+        include_public = (
+            self.request.query_params.get("include_public", "").lower()
+            in ("1", "true", "yes")
         )
+
+        base = Channel.objects.filter(workspace=workspace)
+        if include_public:
+            qs = base.filter(
+                Q(memberships__user=user)
+                | Q(
+                    visibility=Channel.Visibility.PUBLIC,
+                    kind=Channel.Kind.CHANNEL,
+                )
+            )
+        else:
+            qs = base.filter(memberships__user=user)
+        return qs.distinct().order_by("name")
 
     def create(self, request, *args, **kwargs):
         serializer = ChannelCreateSerializer(data=request.data)
@@ -96,9 +122,21 @@ class ChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return Channel.objects.filter(
-            workspace=self.request.workspace,
-            memberships__user=self.request.user,
+        """
+        Members see every channel they belong to. Non-members also see
+        PUBLIC named channels in the workspace (so GET works for the
+        browse-without-join flow). PATCH/DELETE are still gated by
+        ``_require_admin`` below, so visibility is read-only for non
+        members.
+        """
+        user = self.request.user
+        workspace = self.request.workspace
+        return Channel.objects.filter(workspace=workspace).filter(
+            Q(memberships__user=user)
+            | Q(
+                visibility=Channel.Visibility.PUBLIC,
+                kind=Channel.Kind.CHANNEL,
+            )
         ).distinct()
 
     def _require_admin(self, channel):
@@ -195,9 +233,129 @@ class MessageDetailView(APIView):
         message = get_object_or_404(
             Message, id=id, channel__workspace=request.workspace
         )
-        if message.author_user_id != request.user.id:
-            raise PermissionDenied("only the author can delete a message")
+        try:
+            ChannelService.authorize_delete_message(
+                user=request.user, message=message
+            )
+        except PermissionError as exc:
+            raise PermissionDenied(str(exc)) from exc
         ChannelService.delete_message(message=message)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ── Channel membership ──────────────────────────────────────────────────────
+def _get_workspace_channel(request, channel_id) -> Channel:
+    """Resolve a channel scoped to the active workspace, 404 otherwise."""
+    try:
+        return Channel.objects.get(id=channel_id, workspace=request.workspace)
+    except Channel.DoesNotExist as exc:
+        raise NotFound("channel not found") from exc
+
+
+class ChannelMembersView(APIView):
+    """
+    ``/chat/channels/{cid}/members/``
+
+    - ``GET``  — list memberships (caller must be a channel member).
+    - ``POST`` — admin-add (caller is channel admin, body ``{user_id, role?}``)
+                  or self-join (body empty / ``{user_id: <caller-id>}``,
+                  only on PUBLIC channels).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        channel = _get_workspace_channel(request, id)
+        _require_channel_membership(request.user, channel)
+        memberships = (
+            ChannelMembership.objects
+            .filter(channel=channel)
+            .order_by("role", "user_id")
+        )
+        return Response(ChannelMembershipSerializer(memberships, many=True).data)
+
+    def post(self, request, id):
+        channel = _get_workspace_channel(request, id)
+
+        serializer = AddMemberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_user_id = serializer.validated_data.get("user_id")
+        requested_role = serializer.validated_data.get(
+            "role", ChannelMembership.Role.MEMBER
+        )
+
+        is_self_join = (
+            target_user_id is None or str(target_user_id) == str(request.user.id)
+        )
+
+        if is_self_join:
+            # Self-join only on public channels — private channels require
+            # an admin to invite. (GUEST gating is Phase 2.)
+            if channel.visibility != Channel.Visibility.PUBLIC:
+                raise PermissionDenied(
+                    "self-join is only allowed on public channels"
+                )
+            target_user = request.user
+            role = ChannelMembership.Role.MEMBER
+        else:
+            # Admin-add — caller must hold ADMIN on the channel.
+            caller_membership = _require_channel_membership(request.user, channel)
+            if caller_membership.role != ChannelMembership.Role.ADMIN:
+                raise PermissionDenied(
+                    "channel admin role required to add members"
+                )
+            from donna.users.models import User
+            try:
+                target_user = User.objects.get(id=target_user_id)
+            except User.DoesNotExist as exc:
+                raise NotFound("target user not found") from exc
+            role = requested_role
+
+        try:
+            membership = ChannelService.add_member(
+                channel=channel,
+                user=target_user,
+                added_by=request.user,
+                role=role,
+            )
+        except PermissionError as exc:
+            raise PermissionDenied(str(exc)) from exc
+        return Response(
+            ChannelMembershipSerializer(membership).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ChannelMemberRemoveView(APIView):
+    """
+    ``DELETE /chat/channels/{cid}/members/{user_id}/``
+
+    Self-leave when ``user_id`` matches the caller; admin-kick otherwise.
+    Idempotent: returns 204 even if the user wasn't a member.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, id, user_id):
+        channel = _get_workspace_channel(request, id)
+        is_self = str(user_id) == str(request.user.id)
+
+        if not is_self:
+            caller_membership = _require_channel_membership(request.user, channel)
+            if caller_membership.role != ChannelMembership.Role.ADMIN:
+                raise PermissionDenied(
+                    "channel admin role required to remove other members"
+                )
+
+        from donna.users.models import User
+        try:
+            target_user = User.objects.get(id=user_id)
+        except User.DoesNotExist as exc:
+            raise NotFound("target user not found") from exc
+
+        ChannelService.remove_member(
+            channel=channel, user=target_user, removed_by=request.user
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -217,13 +375,54 @@ class DMOpenView(APIView):
         except User.DoesNotExist as exc:
             raise NotFound("peer not found") from exc
 
+        # Workspace is set by WorkspaceMiddleware from X-Workspace-Id.
+        # Always pass it explicitly so the legacy "first overlapping
+        # workspace" fallback never fires from REST callers.
         try:
-            channel = ChannelService.get_or_create_dm(request.user, peer)
+            channel = ChannelService.get_or_create_dm(
+                request.user, peer, workspace_id=request.workspace.id
+            )
         except PermissionError as exc:
             raise PermissionDenied(str(exc)) from exc
         except ValueError as exc:
             raise ValidationError({"peer_user_id": str(exc)}) from exc
         return Response(ChannelSerializer(channel).data)
+
+
+class GroupDMOpenView(APIView):
+    """
+    POST /chat/dms/group/ — open or create a group DM (N ≥ 3 distinct
+    members). Exact-set-match semantics: an existing group DM with the
+    same members is reused.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = GroupDMOpenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        peer_ids = serializer.validated_data["peer_user_ids"]
+
+        from donna.users.models import User
+        # Caller is always part of the group.
+        all_ids = {str(request.user.id), *(str(p) for p in peer_ids)}
+        if len(all_ids) < 2:
+            raise ValidationError(
+                {"peer_user_ids": "at least one distinct peer required"}
+            )
+        users = list(User.objects.filter(id__in=all_ids))
+        if {str(u.id) for u in users} != all_ids:
+            raise NotFound("one or more peers not found")
+
+        try:
+            channel = ChannelService.create_group_dm(
+                workspace=request.workspace, users=users
+            )
+        except PermissionError as exc:
+            raise PermissionDenied(str(exc)) from exc
+        except ValueError as exc:
+            raise ValidationError({"peer_user_ids": str(exc)}) from exc
+        return Response(ChannelSerializer(channel).data, status=status.HTTP_201_CREATED)
 
 
 # ── Read state ──────────────────────────────────────────────────────────────

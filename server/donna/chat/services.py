@@ -115,21 +115,50 @@ class ChannelService:
             },
         )
 
+    @staticmethod
+    def authorize_delete_message(*, user, message: Message) -> None:
+        """
+        Raise ``PermissionError`` unless ``user`` may delete ``message``.
+
+        Permitted callers:
+        - The message author.
+        - A ``ChannelMembership.Role.ADMIN`` on the message's channel.
+
+        Called from both ``MessageDetailView.delete`` (REST) and
+        ``ChatConsumer._action_delete_message`` (WS) so the two transports
+        always agree.
+        """
+        if message.author_user_id == user.id:
+            return
+        is_admin = ChannelMembership.objects.filter(
+            channel_id=message.channel_id,
+            user_id=user.id,
+            role=ChannelMembership.Role.ADMIN,
+        ).exists()
+        if not is_admin:
+            raise PermissionError(
+                "only the author or a channel admin can delete a message"
+            )
+
     # ── DMs ─────────────────────────────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def get_or_create_dm(caller, peer) -> Channel:
+    def get_or_create_dm(caller, peer, *, workspace_id=None) -> Channel:
         """
-        Return the DM Channel between caller and peer in any workspace
-        they both belong to. Creates one if none exists.
+        Return the 1:1 DM Channel between ``caller`` and ``peer``,
+        creating one if it doesn't exist.
 
-        v1 uses the first overlapping workspace; future iterations may
-        prompt the user when they share multiple workspaces.
+        ``workspace_id`` disambiguates when caller and peer share more
+        than one workspace. Clients should always pass it explicitly —
+        for backward compatibility, omitting it falls back to "first
+        overlapping workspace" with a warning log. Plan
+        ``04-roadmap.md`` flags removal of the legacy fallback after
+        the rollout window.
         """
         if caller.id == peer.id:
             raise ValueError("Cannot open a DM with yourself.")
 
-        # Find an overlapping workspace.
+        # Find overlapping workspaces.
         caller_ws_ids = set(
             WorkspaceMembership.objects
             .filter(user_id=caller.id)
@@ -144,13 +173,37 @@ class ChannelService:
         if not shared:
             raise PermissionError("Users do not share a workspace.")
 
-        workspace_id = next(iter(shared))
+        if workspace_id is not None:
+            from uuid import UUID
+            try:
+                wsid = UUID(str(workspace_id))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"invalid workspace_id: {workspace_id!r}"
+                ) from exc
+            if wsid not in shared:
+                raise PermissionError(
+                    "caller and peer do not both belong to the requested workspace"
+                )
+            target_wsid = wsid
+        else:
+            # Deprecated path — pick the first overlapping workspace. Log
+            # so we can track when clients still rely on this.
+            logger.warning(
+                "get_or_create_dm_without_workspace_id",
+                extra={
+                    "caller_id":    str(caller.id),
+                    "peer_id":      str(peer.id),
+                    "shared_count": len(shared),
+                },
+            )
+            target_wsid = next(iter(shared))
 
         # Look for an existing DM with exactly these two members.
         existing = (
             Channel.objects.filter(
                 kind=Channel.Kind.DIRECT,
-                workspace_id=workspace_id,
+                workspace_id=target_wsid,
                 memberships__user_id__in=[caller.id, peer.id],
             )
             .distinct()
@@ -167,7 +220,7 @@ class ChannelService:
             channel = Channel.objects.create(
                 kind=Channel.Kind.DIRECT,
                 visibility=Channel.Visibility.PRIVATE,
-                workspace_id=workspace_id,
+                workspace_id=target_wsid,
                 name="",
                 slug="",
             )
@@ -178,8 +231,11 @@ class ChannelService:
                 ]
             )
         except IntegrityError:
-            # Race — another transaction beat us to it. Re-query.
-            return ChannelService.get_or_create_dm(caller, peer)
+            # Race — another transaction beat us to it. Re-query (with
+            # the same workspace_id so we don't loop on a different one).
+            return ChannelService.get_or_create_dm(
+                caller, peer, workspace_id=target_wsid
+            )
 
         # Notify the peer's WS so a DM list refresh isn't needed.
         ChannelService._broadcast(
@@ -189,10 +245,89 @@ class ChannelService:
                 "payload": {
                     "channel_id":    str(channel.id),
                     "peer_user_id":  str(caller.id),
-                    "workspace_id":  str(workspace_id),
+                    "workspace_id":  str(target_wsid),
                 },
             },
         )
+        return channel
+
+    @staticmethod
+    @transaction.atomic
+    def create_group_dm(*, workspace, users: list) -> Channel:
+        """
+        Open a group DM (a ``Channel(kind=DIRECT)`` with N≥2 members).
+
+        Semantics — exact-set-match: if a DIRECT channel with *exactly*
+        this member set already exists in the workspace, return it.
+        Otherwise create a new one. We deliberately do not treat subsets
+        as a match (a group of {A, B, C} is distinct from {A, B}).
+
+        ``users`` must all belong to ``workspace``. The caller is
+        responsible for verifying authorization before calling.
+        """
+        if len(users) < 2:
+            raise ValueError("group DM needs at least 2 distinct members")
+        unique_ids = {u.id for u in users}
+        if len(unique_ids) != len(users):
+            raise ValueError("duplicate members not allowed")
+
+        # All members must belong to the workspace.
+        ws_member_ids = set(
+            WorkspaceMembership.objects
+            .filter(user_id__in=unique_ids, workspace_id=workspace.id)
+            .values_list("user_id", flat=True)
+        )
+        if ws_member_ids != unique_ids:
+            raise PermissionError(
+                "all members must belong to the target workspace"
+            )
+
+        # Look for an exact-set-match existing group DM.
+        candidates = (
+            Channel.objects.filter(
+                kind=Channel.Kind.DIRECT,
+                workspace=workspace,
+                memberships__user_id__in=unique_ids,
+            )
+            .distinct()
+        )
+        for ch in candidates:
+            member_ids = set(ch.memberships.values_list("user_id", flat=True))
+            if member_ids == unique_ids:
+                return ch
+
+        # Create
+        try:
+            channel = Channel.objects.create(
+                kind=Channel.Kind.DIRECT,
+                visibility=Channel.Visibility.PRIVATE,
+                workspace=workspace,
+                name="",
+                slug="",
+            )
+            ChannelMembership.objects.bulk_create(
+                [ChannelMembership(channel=channel, user_id=uid) for uid in unique_ids]
+            )
+        except IntegrityError:
+            # Race — re-query.
+            return ChannelService.create_group_dm(
+                workspace=workspace, users=users
+            )
+
+        # Notify every member's WS so their sidebar surfaces the room.
+        member_ids_str = sorted(str(uid) for uid in unique_ids)
+        for uid in unique_ids:
+            ChannelService._broadcast(
+                presence_group(uid),
+                {
+                    "type":    "chat.dm.opened",
+                    "payload": {
+                        "channel_id":   str(channel.id),
+                        "members":      member_ids_str,
+                        "workspace_id": str(workspace.id),
+                    },
+                },
+            )
         return channel
 
     # ── Read state ──────────────────────────────────────────────────────────
@@ -291,6 +426,104 @@ class ChannelService:
                 "payload": {"channel_id": str(channel.id), "user_id": str(user_id)},
             },
         )
+
+    # ── Membership mutations ────────────────────────────────────────────────
+    @staticmethod
+    @transaction.atomic
+    def add_member(
+        *,
+        channel: Channel,
+        user,
+        added_by,
+        role: str = ChannelMembership.Role.MEMBER,
+    ) -> ChannelMembership:
+        """
+        Add ``user`` to ``channel`` with ``role``. Idempotent: if the user
+        is already a member, the existing row is returned unchanged.
+
+        Validates the target user belongs to the channel's workspace. The
+        caller (view / consumer) is responsible for upstream authorization
+        (admin-add vs. self-join) before calling this.
+
+        Broadcasts on two groups (the "dual broadcast" pattern from
+        ``plans/10-realtime-layer.md``):
+
+        - ``chat-channel-{id}`` — existing members see ``channel.member.added``.
+        - ``presence-user-{new_member_uid}`` — the invitee's WS receives
+          ``channel.added.to_you`` with the full channel payload so the
+          sidebar can update without a refresh.
+        """
+        if not WorkspaceMembership.objects.filter(
+            user_id=user.id, workspace_id=channel.workspace_id
+        ).exists():
+            raise PermissionError("user does not belong to this workspace")
+
+        membership, created = ChannelMembership.objects.get_or_create(
+            channel=channel,
+            user=user,
+            defaults={"role": role},
+        )
+        if not created:
+            return membership
+
+        # 1. Broadcast to the channel group (existing members).
+        ChannelService.emit_member_added(channel, user.id)
+
+        # 2. Broadcast to the new member's presence group so their UI
+        #    learns about the channel without a list refetch.
+        ChannelService._broadcast(
+            presence_group(user.id),
+            {
+                "type":    "chat.channel.added.to_you",
+                "payload": {
+                    "channel":  _serialize_channel(channel),
+                    "added_by": str(added_by.id),
+                    "role":     role,
+                },
+            },
+        )
+        return membership
+
+    @staticmethod
+    @transaction.atomic
+    def remove_member(*, channel: Channel, user, removed_by) -> bool:
+        """
+        Remove ``user`` from ``channel``. Returns True if a membership
+        row was deleted, False if there was nothing to remove.
+
+        Caller is responsible for upstream authorization (self-leave vs.
+        admin-kick).
+        """
+        deleted, _ = ChannelMembership.objects.filter(
+            channel=channel, user=user
+        ).delete()
+        if deleted == 0:
+            return False
+
+        # Tell remaining channel members.
+        ChannelService._broadcast(
+            channel_group(channel.id),
+            {
+                "type":    "chat.channel.member.removed",
+                "payload": {
+                    "channel_id": str(channel.id),
+                    "user_id":    str(user.id),
+                    "removed_by": str(removed_by.id),
+                },
+            },
+        )
+        # Tell the removed user's WS so their sidebar can drop the channel.
+        ChannelService._broadcast(
+            presence_group(user.id),
+            {
+                "type":    "chat.channel.removed.from_you",
+                "payload": {
+                    "channel_id": str(channel.id),
+                    "removed_by": str(removed_by.id),
+                },
+            },
+        )
+        return True
 
     # ── Helpers ─────────────────────────────────────────────────────────────
     @staticmethod

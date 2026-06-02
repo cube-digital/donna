@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from ...models import Channel, ChannelReadState, Message
+from ...models import Channel, ChannelMembership, ChannelReadState, Message
 
 
 class ChannelSerializer(serializers.ModelSerializer):
@@ -72,6 +72,46 @@ class MessageEditSerializer(serializers.Serializer):
 
 class DMOpenSerializer(serializers.Serializer):
     peer_user_id = serializers.UUIDField()
+
+
+class GroupDMOpenSerializer(serializers.Serializer):
+    """
+    Body for POST /chat/dms/group/.
+
+    ``peer_user_ids`` are the *other* members; the caller is always
+    added implicitly. Final member count must be ≥ 2 (so at least one
+    peer is required — for a 2-person DM use /chat/dms/ instead).
+    """
+
+    peer_user_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        min_length=1,
+        allow_empty=False,
+    )
+
+
+class ChannelMembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChannelMembership
+        fields = ["id", "channel", "user", "role", "created_at"]
+        read_only_fields = ["id", "channel", "created_at"]
+
+
+class AddMemberSerializer(serializers.Serializer):
+    """
+    Body for POST /chat/channels/{cid}/members/.
+
+    Two call shapes:
+    - admin-add: ``{user_id, role?}`` — caller must be a channel ADMIN.
+    - self-join: ``{}`` (or ``{user_id: <caller-id>}``) — only valid on
+      PUBLIC channels.
+    """
+
+    user_id = serializers.UUIDField(required=False)
+    role = serializers.ChoiceField(
+        choices=ChannelMembership.Role.choices,
+        required=False,
+    )
 
 
 class ReadStateSerializer(serializers.ModelSerializer):
