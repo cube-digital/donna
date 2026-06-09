@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t14 d14">
+  <title id="t14">Figure 1.4 — DonnaAI end-to-end at the business level</title>
+  <desc id="d14">Three bands stacked vertically. Top: four enterprise sources (documents, EMS, CRM, partner memos). Middle: the context layer that ingests, anchors, reasons, and creates new data — Donna sits inside it. Bottom: four interchangeable output agents that consume the prepared context.</desc>
+  <rect width="1200" height="780" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots14" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+    <radialGradient id="grape14" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#C684E8"/>
+      <stop offset="100%" stop-color="#7A2EAE"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="780" fill="url(#dots14)"/>
+
+  <text x="60" y="44" font-size="22" font-weight="600" fill="#2A1F38">DonnaAI · end to end</text>
+  <text x="60" y="68" font-size="14" font-style="italic" fill="#46395A">Sources go in. Decision-ready context comes out. Output agents are interchangeable.</text>
+
+  <!-- ════════ TOP BAND — Enterprise sources ════════ -->
+  <text x="60" y="110" font-size="12" font-weight="700" fill="#46395A" letter-spacing="1">ENTERPRISE SOURCES (4)</text>
+
+  <!-- Source 1 — Documents (semantic, warm) -->
+  <g transform="translate(60,130)">
+    <rect x="0" y="0" width="240" height="100" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="100" rx="11" fill="#FBD8B8" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#7C3F12">Document corpus</text>
+    <text x="120" y="54" text-anchor="middle" font-size="12" fill="#7C3F12">methodology · deliverables</text>
+    <text x="120" y="72" text-anchor="middle" font-size="12" fill="#7C3F12">~10K pages</text>
+    <text x="120" y="92" text-anchor="middle" font-size="10" font-style="italic" fill="#7C3F12">semantic</text>
+  </g>
+
+  <!-- Source 2 — EMS (structural, cool) -->
+  <g transform="translate(330,130)">
+    <rect x="0" y="0" width="240" height="100" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="100" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#1F3D6E">EMS</text>
+    <text x="120" y="54" text-anchor="middle" font-size="12" fill="#1F3D6E">engagement-management</text>
+    <text x="120" y="72" text-anchor="middle" font-size="12" fill="#1F3D6E">staffing · hours · budget</text>
+    <text x="120" y="92" text-anchor="middle" font-size="10" font-style="italic" fill="#1F3D6E">structural</text>
+  </g>
+
+  <!-- Source 3 — CRM (structural) -->
+  <g transform="translate(600,130)">
+    <rect x="0" y="0" width="240" height="100" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="100" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#1F3D6E">Client CRM</text>
+    <text x="120" y="54" text-anchor="middle" font-size="12" fill="#1F3D6E">accounts · MSAs · SOWs</text>
+    <text x="120" y="72" text-anchor="middle" font-size="12" fill="#1F3D6E">billing terms</text>
+    <text x="120" y="92" text-anchor="middle" font-size="10" font-style="italic" fill="#1F3D6E">structural</text>
+  </g>
+
+  <!-- Source 4 — Partner memos (semantic) -->
+  <g transform="translate(870,130)">
+    <rect x="0" y="0" width="270" height="100" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="270" height="100" rx="11" fill="#FBD8B8" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="135" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#7C3F12">Partner memos &amp; market intel</text>
+    <text x="135" y="54" text-anchor="middle" font-size="12" fill="#7C3F12">irregular · supersedes methodology</text>
+    <text x="135" y="72" text-anchor="middle" font-size="12" fill="#7C3F12">highest stakes</text>
+    <text x="135" y="92" text-anchor="middle" font-size="10" font-style="italic" fill="#7C3F12">semantic</text>
+  </g>
+
+  <!-- 4 down arrows -->
+  <path d="M 180 235 L 180 270 M 172 262 L 180 272 L 188 262" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 450 235 L 450 270 M 442 262 L 450 272 L 458 262" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 720 235 L 720 270 M 712 262 L 720 272 L 728 262" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 1005 235 L 1005 270 M 997 262 L 1005 272 L 1013 262" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ════════ MIDDLE BAND — Context layer (the big box) ════════ -->
+  <g transform="translate(60,280)">
+    <!-- shadow -->
+    <rect x="0" y="0" width="1080" height="240" rx="16" fill="#2A1F38" transform="translate(6,6)"/>
+    <!-- bg light grape -->
+    <rect x="0" y="0" width="1080" height="240" rx="16" fill="#ECDDF6" stroke="#9A4DD0" stroke-width="3"/>
+
+    <!-- header -->
+    <text x="20" y="32" font-size="12" font-weight="700" fill="#7A2EAE" letter-spacing="1.5">CONTEXT LAYER · the middle box</text>
+    <text x="20" y="52" font-size="13" font-style="italic" fill="#46395A">ingests · anchors · reasons · creates new data that exists in no source system</text>
+
+    <!-- 4 sub-components -->
+    <!-- Ingest -->
+    <g transform="translate(40,80)">
+      <rect x="0" y="0" width="170" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+      <rect x="0" y="0" width="170" height="120" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+      <text x="85" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#2A1F38">Ingest</text>
+      <text x="85" y="56" text-anchor="middle" font-size="11" fill="#46395A">deterministic</text>
+      <text x="85" y="74" text-anchor="middle" font-size="11" fill="#46395A">no LLM here</text>
+      <!-- chip -->
+      <rect x="20" y="90" width="130" height="20" rx="4" fill="#85D5B0" stroke="#2A1F38" stroke-width="1.5"/>
+      <text x="85" y="105" text-anchor="middle" font-size="9" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">RawEvent · S3</text>
+    </g>
+
+    <!-- Anchor & structure -->
+    <g transform="translate(240,80)">
+      <rect x="0" y="0" width="200" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+      <rect x="0" y="0" width="200" height="120" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+      <text x="100" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#2A1F38">Anchor &amp; structure</text>
+      <text x="100" y="54" text-anchor="middle" font-size="11" fill="#46395A">engagement code →</text>
+      <text x="100" y="70" text-anchor="middle" font-size="11" fill="#46395A">MSA · memo · segment</text>
+      <rect x="20" y="90" width="160" height="20" rx="4" fill="#C8DEF9" stroke="#2A1F38" stroke-width="1.5"/>
+      <text x="100" y="105" text-anchor="middle" font-size="9" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">ENG-2024-1187</text>
+    </g>
+
+    <!-- Reason (LLM patterns) -->
+    <g transform="translate(470,80)">
+      <rect x="0" y="0" width="200" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+      <rect x="0" y="0" width="200" height="120" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+      <text x="100" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#2A1F38">Reason</text>
+      <text x="100" y="54" text-anchor="middle" font-size="11" fill="#46395A">LLM patterns ·</text>
+      <text x="100" y="70" text-anchor="middle" font-size="11" fill="#46395A">evidence-cited</text>
+      <rect x="20" y="90" width="160" height="20" rx="4" fill="#ECDDF6" stroke="#9A4DD0" stroke-width="1.5"/>
+      <text x="100" y="105" text-anchor="middle" font-size="9" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">cluster · extract</text>
+    </g>
+
+    <!-- Creates new data — ACCENT -->
+    <g transform="translate(700,80)">
+      <rect x="0" y="0" width="220" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+      <rect x="0" y="0" width="220" height="120" rx="11" fill="#F4D34A" stroke="#2A1F38" stroke-width="3"/>
+      <text x="110" y="30" text-anchor="middle" font-size="14" font-weight="800" fill="#2A1F38">Creates new data</text>
+      <text x="110" y="50" text-anchor="middle" font-size="10" fill="#46395A">entity links</text>
+      <text x="110" y="66" text-anchor="middle" font-size="10" fill="#46395A">engagement-at-risk score</text>
+      <text x="110" y="82" text-anchor="middle" font-size="10" fill="#46395A">freshness signals</text>
+      <text x="110" y="106" text-anchor="middle" font-size="11" font-weight="700" fill="#7C3F12">★ the moat</text>
+    </g>
+
+    <!-- Donna featured — pops out of the layer top-right -->
+    <g transform="translate(990,30)">
+      <!-- shadow stack -->
+      <g transform="translate(4,4)">
+        <path d="M -38 110 Q -38 78 0 78 Q 38 78 38 110 L 46 178 L -46 178 Z" fill="#2A1F38"/>
+        <ellipse cx="0" cy="20" rx="44" ry="48" fill="#2A1F38"/>
+        <path d="M -44 18 Q -47 -22 -26 -34 Q -4 -50 22 -38 Q 47 -26 47 14 Q 47 25 43 42 L 43 53 Q 30 65 11 60 L 8 42 Q -4 46 -16 42 L -19 56 Q -34 65 -44 45 Z" fill="#2A1F38"/>
+      </g>
+      <!-- blazer -->
+      <path d="M -38 110 Q -38 78 0 78 Q 38 78 38 110 L 46 178 L -46 178 Z" fill="url(#grape14)" stroke="#2A1F38" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M -8 84 L 0 108 L 8 84" fill="none" stroke="#2A1F38" stroke-width="2"/>
+      <path d="M -12 86 L 0 102 L 12 86 L 12 80 L -12 80 Z" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+      <!-- neck -->
+      <rect x="-8" y="65" width="16" height="16" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2"/>
+      <!-- face -->
+      <ellipse cx="0" cy="20" rx="44" ry="48" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2.5"/>
+      <!-- hair -->
+      <path d="M -44 18 Q -47 -22 -26 -34 Q -4 -50 22 -38 Q 47 -26 47 14 Q 47 25 43 42 L 43 53 Q 30 65 11 60 L 8 42 Q -4 46 -16 42 L -19 56 Q -34 65 -44 45 Z" fill="#C84B3A" stroke="#2A1F38" stroke-width="2.5"/>
+      <!-- eyes -->
+      <ellipse cx="-14" cy="22" rx="3.5" ry="4" fill="#2A1F38"/>
+      <ellipse cx="14" cy="22" rx="3.5" ry="4" fill="#2A1F38"/>
+      <circle cx="-13" cy="21" r="1" fill="#FEFCF3"/>
+      <circle cx="15" cy="21" r="1" fill="#FEFCF3"/>
+      <!-- brows — confident -->
+      <path d="M -22 12 Q -17 9 -8 12" stroke="#2A1F38" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M 8 9 Q 16 6 22 12" stroke="#2A1F38" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- smile -->
+      <path d="M -10 40 Q 0 46 12 40" stroke="#2A1F38" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M -10 40 Q 0 44 12 40 Q 0 43 -10 40 Z" fill="#D63A2E"/>
+      <circle cx="23" cy="38" r="1.3" fill="#2A1F38"/>
+    </g>
+
+    <!-- Sparkle above Donna -->
+    <g transform="translate(1040,-10)">
+      <path d="M 0 -18 L 5 -5 L 18 0 L 5 5 L 0 18 L -5 5 L -18 0 L -5 -5 Z" fill="#2A1F38" transform="translate(3,3)"/>
+      <path d="M 0 -18 L 5 -5 L 18 0 L 5 5 L 0 18 L -5 5 L -18 0 L -5 -5 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- Caption under context layer -->
+  <text x="600" y="558" text-anchor="middle" font-size="13" font-style="italic" fill="#46395A">This layer creates data that exists in no single source. Week over week, it becomes more valuable than the sum of its sources.</text>
+
+  <!-- 4 down arrows to outputs -->
+  <path d="M 180 580 L 180 615 M 172 607 L 180 617 L 188 607" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 450 580 L 450 615 M 442 607 L 450 617 L 458 607" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 720 580 L 720 615 M 712 607 L 720 617 L 728 607" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 1005 580 L 1005 615 M 997 607 L 1005 617 L 1013 607" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ════════ BOTTOM BAND — Output agents ════════ -->
+  <text x="60" y="640" font-size="12" font-weight="700" fill="#46395A" letter-spacing="1">OUTPUT AGENTS · interchangeable</text>
+
+  <g transform="translate(60,660)">
+    <rect x="0" y="0" width="240" height="90" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="90" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1E5C3D">Conversational</text>
+    <text x="120" y="52" text-anchor="middle" font-size="12" fill="#1E5C3D">associate Q&amp;A</text>
+    <text x="120" y="74" text-anchor="middle" font-size="11" fill="#1E5C3D">"what's the right benchmark?"</text>
+  </g>
+
+  <g transform="translate(330,660)">
+    <rect x="0" y="0" width="240" height="90" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="90" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1E5C3D">Proactive alert</text>
+    <text x="120" y="52" text-anchor="middle" font-size="12" fill="#1E5C3D">engagement-at-risk →</text>
+    <text x="120" y="74" text-anchor="middle" font-size="11" fill="#1E5C3D">engagement manager</text>
+  </g>
+
+  <g transform="translate(600,660)">
+    <rect x="0" y="0" width="240" height="90" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="90" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1E5C3D">CRM action</text>
+    <text x="120" y="52" text-anchor="middle" font-size="12" fill="#1E5C3D">updates SOW status</text>
+    <text x="120" y="74" text-anchor="middle" font-size="11" fill="#1E5C3D">approve-gated</text>
+  </g>
+
+  <g transform="translate(870,660)">
+    <rect x="0" y="0" width="270" height="90" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="270" height="90" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="135" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1E5C3D">Partner briefing</text>
+    <text x="135" y="52" text-anchor="middle" font-size="12" fill="#1E5C3D">pipeline · follow-on signals</text>
+    <text x="135" y="74" text-anchor="middle" font-size="11" fill="#1E5C3D">cited weekly</text>
+  </g>
+</svg>

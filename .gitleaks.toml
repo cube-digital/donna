@@ -1,0 +1,44 @@
+# gitleaks config for Donna
+# https://github.com/gitleaks/gitleaks
+#
+# We extend the default ruleset and add allowlists for known-safe patterns.
+
+title = "Donna gitleaks config"
+
+[extend]
+useDefault = true
+
+# Files / paths to skip during scanning.
+# Add patterns here if you hit a confirmed false positive.
+[allowlist]
+description = "Allowlist for known-safe paths and patterns"
+
+paths = [
+  '''(^|/)\.gitleaks\.toml$''',
+  '''(^|/)SECURITY\.md$''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)CHANGELOG\.md$''',
+  '''(^|/)server/plans/.*\.md$''',
+  '''(^|/)docs/.*\.html$''',
+  '''(^|/)docs/.*\.md$''',
+  '''(^|/)docs/checkpoints/.*$''',
+]
+
+# Substring matches that should never trigger.
+# Keep this list tight — anything here is exempt from ALL rules.
+stopwords = [
+  "replace-me-in-production",
+  "your-client-id",
+  "your-client-secret",
+  "example.com",
+  "noreply@donna.local",
+]
+
+# Regex allowlist for patterns that look like secrets but are not.
+# Used for docs / migrations / generated UUIDs.
+regexes = [
+  # Migration class names like ClientCredentials are not secrets.
+  '''ClientCredentials''',
+  # UUID v4 placeholders in docs.
+  '''[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}''',
+]

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roadmap, Donna</title>
+<meta name="description" content="What's built, what's next, what's coming after. The Donna launch path as a git graph." />
+<link rel="icon" href="assets/character.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand"><span>Donna</span><img src="assets/character.svg" alt="" /></a>
+    <nav class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="motivation.html">Motivation</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="changelog.html">Changelog</a>
+      <a href="docs.html">Docs</a>
+    </nav>
+    <a class="nav-cta" href="https://github.com/cube-digital/donna" target="_blank" rel="noopener">GitHub →</a>
+  </div>
+</header>
+
+<main>
+
+  <section class="section">
+    <p class="eyebrow">Roadmap</p>
+    <h1>What's built, what's next, what's coming after.</h1>
+    <p style="max-width: 65ch; color: var(--navy-soft);">
+      Each milestone is a branch off the spine. Click a card to expand its scope.
+      Shipped, in progress, planned, colour-coded so you can see where we are at a
+      glance. We're building in the open and we'd rather show the honest state than
+      over-promise.
+    </p>
+
+    <div style="display:flex; gap:18px; margin: 24px 0 0; flex-wrap:wrap;">
+      <span class="card" style="padding:8px 14px; box-shadow:none; background:var(--mint);">● shipped</span>
+      <span class="card" style="padding:8px 14px; box-shadow:none; background:var(--yellow);">● in progress</span>
+      <span class="card" style="padding:8px 14px; box-shadow:none; background:var(--cream);">○ planned</span>
+    </div>
+  </section>
+
+  <div class="roadmap">
+    <div class="git-graph">
+      <div class="git-spine"></div>
+
+      <!-- M0, Foundations -->
+      <div class="milestone shipped">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">shipped</span>
+          <h3>M0 · Foundations</h3>
+          <div class="when">2026</div>
+          <p class="summary">The base everything else stands on: multi-tenant chat workspace, connector framework, raw ingestion.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Multi-tenant workspace model, channels, threads, direct messages, membership</li>
+              <li>Connector framework: a single contract every integration follows</li>
+              <li>Bronze ingestion layer, raw artifacts land safely and idempotently</li>
+              <li>Fathom connector (meetings) and Gmail connector (mail) wired end-to-end</li>
+              <li>Usual chat application functionality, the surface your team already understands</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M1, Silver / Cortex -->
+      <div class="milestone active">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">in progress</span>
+          <h3>M1 · Silver layer, the Cortex</h3>
+          <div class="when">Now</div>
+          <p class="summary">The smart context map under everything. A structured LLM-aware wiki that connects information in a way agents can actually use.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Normalise every source, meeting, email, document, ticket, into one queryable shape</li>
+              <li>Closed entity types so the structure stays trustworthy</li>
+              <li>Smart cross-references between people, projects, decisions, and the artifacts that mention them</li>
+              <li>Files are the source of truth; the database is a derived index that can be rebuilt</li>
+              <li>Anti-hallucination by construction, bodies stay verbatim, only navigation fields are LLM-filled</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M2, Retrieval chat agent -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M2 · Retrieval chat agent</h3>
+          <div class="when">Next</div>
+          <p class="summary">The main feature. Mention an agent in any channel. Ask a question. Get an answer grounded in your team's work, with sources.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>@-mention any agent in any channel and ask a real question</li>
+              <li>Answers cite the meetings, emails, documents, and tickets they came from</li>
+              <li>Agent respects channel permissions, it only sees what the channel can see</li>
+              <li>Streaming responses inside the conversation, not in a separate window</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M3, Google Drive -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M3 · Google Drive, documents</h3>
+          <div class="when">Then</div>
+          <p class="summary">Bring your team's documents into the Cortex so the retrieval agent can answer questions about what's in them.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Hybrid Google Picker + custom folder browser for selecting what's in scope</li>
+              <li>Coverage for the file types that actually matter: docs, sheets, slides, PDFs</li>
+              <li>Shared Drives included from day one</li>
+              <li>Progressive OAuth scope, start narrow, upgrade only when you need more</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M4, Draft / generation agent -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M4 · Draft &amp; generation agent</h3>
+          <div class="when">Then</div>
+          <p class="summary">Generate drafts and documents inside the chat session. Anybody can see them, read them, and modify them in the same thread.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Co-write a document with an agent inside the channel where the conversation lives</li>
+              <li>The draft is visible to everyone in the channel and editable in place</li>
+              <li>Grounded on the Cortex layer, drafts cite the work they're built on</li>
+              <li>Versioning so you can see how the doc evolved</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M5, WhatsApp -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M5 · WhatsApp, chat ingestion</h3>
+          <div class="when">Then</div>
+          <p class="summary">Bring WhatsApp conversations into the Cortex so client chats stop disappearing into someone's personal phone.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Read-side integration, chats land in the workspace's knowledge layer</li>
+              <li>Per-chat opt-in so personal conversations stay personal</li>
+              <li>Cross-user deduplication so the same thread isn't ingested five times</li>
+              <li>Mitigations around ban-risk and identity boundaries</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M6, Linear + GitHub -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M6 · Linear &amp; GitHub</h3>
+          <div class="when">Then</div>
+          <p class="summary">Close the loop with the tools where delivery actually happens, tickets, pull requests, releases.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Linear: tickets, comments, state transitions, project context</li>
+              <li>GitHub: issues, pull requests, reviews, releases</li>
+              <li>So the agent can answer "what's the status of the Acme integration?" without you opening four tabs</li>
+              <li>For tech-aligned teams: the substrate that helps engineering ship the right thing</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M7, Private DMs with agents -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M7 · Private DMs with agents</h3>
+          <div class="when">Then</div>
+          <p class="summary">Any member of the company can DM an agent privately, exactly like messaging a colleague.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>One-on-one conversations with any agent, in a private DM thread</li>
+              <li>Agent keeps a per-user memory, your style, your projects, your preferences</li>
+              <li>For sensitive prep, drafting, decisions you don't want a whole channel watching</li>
+              <li>Same access rules as a human colleague, the agent only sees what you'd let a teammate see</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- M8, Learning personalities -->
+      <div class="milestone planned">
+        <div class="milestone-marker"></div>
+        <div class="branch-line"></div>
+        <div class="milestone-card">
+          <span class="status">planned</span>
+          <h3>M8 · Learning personalities</h3>
+          <div class="when">After 1.0</div>
+          <p class="summary">The small but magical detail. Agents that can read the room and jump into a conversation when it's useful, to calm a thread, clarify confusion, or share what they know.</p>
+          <span class="toggle">+ expand details</span>
+          <div class="details">
+            <ul>
+              <li>Agents learn the people they work with, tone, context, what each person cares about</li>
+              <li>An agent can voluntarily step into a multi-person conversation when there's signal it can help</li>
+              <li>Defuse confusion: pull up the actual decision when two people remember it differently</li>
+              <li>Tailor responses per recipient, the same answer, framed for the person reading it</li>
+              <li>The detail that turns "an AI in the chat" into "a colleague"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p>Donna · open chat + AI workspace for any business · license TBD</p>
+    <p>Made with care by <a href="https://github.com/cube-digital">Cube Digital</a></p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

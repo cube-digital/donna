@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Motivation, how Donna started</title>
+<meta name="description" content="The story behind Donna, a real problem inside our agency, a tool we built to solve it, and a vision that kept expanding." />
+<link rel="icon" href="assets/character.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand"><span>Donna</span><img src="assets/character.svg" alt="" /></a>
+    <nav class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="motivation.html">Motivation</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="changelog.html">Changelog</a>
+      <a href="docs.html">Docs</a>
+    </nav>
+    <a class="nav-cta" href="https://github.com/cube-digital/donna" target="_blank" rel="noopener">GitHub →</a>
+  </div>
+</header>
+
+<main>
+  <article class="prose">
+
+    <p class="eyebrow">Motivation</p>
+    <h1>How Donna started.</h1>
+    <p style="font-size: 1.2rem; color: var(--navy-soft);">
+      A real problem inside our own agency. A tool we built to solve it. A vision that
+      kept expanding once we saw what it could do.
+    </p>
+
+    <h2>1. The pain we lived with.</h2>
+    <p>
+      We run an agency. Like most agencies, our biggest job is to build the right thing
+      for the client, not the thing the client said in the kickoff, but the thing they
+      actually need three weeks later when reality has changed twice.
+    </p>
+    <p>
+      That meant our engineering team needed context. Real context. The kind that lives
+      in a Fathom recording from last Tuesday, an email reply nobody copied to the team
+      channel, a Google Doc someone edited at 11pm, a WhatsApp message from the client's
+      PM, a Linear ticket comment from yesterday.
+    </p>
+    <p>
+      The context was always there. It was just scattered. And every time engineering
+      had to make a real decision, someone had to spend half a day reassembling it.
+      Multiply that across five clients and twenty engineers, and you have a quiet,
+      expensive friction that nobody puts in the budget.
+    </p>
+
+    <p class="pull">
+      We weren't missing information. We were missing a place where the information
+      could live together.
+    </p>
+
+    <h2>2. The first solve, for engineering.</h2>
+    <p>
+      We built a tool that pulled everything into one organised vault. Meetings, mail,
+      drive files, chats, tickets, all normalised into a single shape, organised by
+      who, what, when, and how things connected. Our engineers used Claude Code, which
+      could now read from that vault and write code that reflected what the business
+      actually decided.
+    </p>
+    <p>
+      It worked. The friction dropped. Code shipped that actually matched what the
+      client meant. We had finally bridged the gap between business and tech, the one
+      every agency complains about and almost nobody fixes.
+    </p>
+
+    <h2>3. The second solve, for the business side.</h2>
+    <p>
+      Then a question kept nagging at us: why is this only for engineering?
+    </p>
+    <p>
+      The same context layer that helps engineers ship the right code can help sales
+      write the right proposal, help ops write the right runbook, help an executive
+      assistant draft the right follow-up email. The friction isn't unique to tech
+      teams, it's everywhere there's a gap between "what the business decided" and
+      "what someone is about to write or say."
+    </p>
+    <p>
+      So we built it so the engineering team could create governed documentation , 
+      under strict rules, with provenance, and the business team could read it,
+      refine it, and use it as a real source of truth. Not a wiki nobody updates.
+      Not a Notion graveyard. A living layer with shape.
+    </p>
+    <p>
+      We built an MCP server so any coding agent on any engineer's machine could plug
+      into Donna and generate or update that documentation, under whatever rules the
+      team wants to enforce. The substrate is the same. The audience is wider.
+    </p>
+
+    <h2>4. The third solve, for everyone else.</h2>
+    <p>
+      Then the bigger question: most companies in the world aren't tech companies. They
+      sell services. They consult. They run a clinic, a studio, a small business with
+      five employees and twenty years of know-how locked in someone's head.
+    </p>
+    <p>
+      What if those companies could have AI colleagues, designed agents that actually
+      know the company, the offer, the customers, the way decisions get made? Not a
+      chatbot that hallucinates. A teammate that draws on years of real material the
+      company has been quietly accumulating, and uses it to support marketing, sales,
+      finance, operations.
+    </p>
+    <p>
+      What if a solopreneur could run a company where most of the "team" is a handful
+      of well-designed agents that hand work to each other like real collaborators , 
+      taking decisions, analysing the market, helping the human stay strategic instead
+      of buried in execution?
+    </p>
+
+    <blockquote>
+      That's the version of Donna we want to ship. The chat workspace where the
+      colleagues happen to be partly human and partly AI, and you can't always tell
+      from the answer which is which, because both are working from the same well-kept
+      knowledge.
+    </blockquote>
+
+    <h2>5. Why open. Why self-hostable.</h2>
+    <p>
+      Your company's knowledge is the most valuable thing you own. It's also the thing
+      you should never rent. We made Donna open source so you can read the code, and
+      we made it self-hostable so you can run it on infrastructure you control. Cloud
+      and on-premise run the same code path, different deployment, identical product.
+    </p>
+    <p>
+      Bring your own OAuth credentials. Bring your own storage bucket. Bring your own
+      language model. The substrate stays inside your perimeter unless you choose
+      otherwise.
+    </p>
+
+    <h2>6. Where we are.</h2>
+    <p>
+      Donna is early. The foundations are shipped, multi-tenant chat, the connector
+      framework, the Bronze ingestion layer for Fathom and Gmail. The next pieces are
+      the ones that turn it from "a chat tool with integrations" into "a chat workspace
+      with agent colleagues":
+    </p>
+    <ul style="color: var(--navy); line-height: 1.7;">
+      <li>The Cortex layer, the smart context map under everything.</li>
+      <li>The retrieval agent, the one you mention in any channel and it actually answers.</li>
+      <li>More connectors, Drive, WhatsApp, Linear, GitHub.</li>
+      <li>The draft / generation agent, for writing documents together in a thread.</li>
+      <li>Private DMs with agents, the personal-style way to work with a teammate.</li>
+      <li>Agents that learn personalities, the small but magical detail that makes them feel like real colleagues.</li>
+    </ul>
+    <p>
+      The full sequence is on the <a href="roadmap.html">roadmap</a>. None of it is
+      shipped yet, we're building in the open, and we'd rather show you the honest
+      state than over-promise.
+    </p>
+
+    <p class="pull">
+      The product is a chat workspace. The bet is that the chat is just the surface , 
+      and the real value is the layer underneath that keeps your company's knowledge
+      working for you.
+    </p>
+
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p>Donna · open chat + AI workspace for any business · license TBD</p>
+    <p>Made with care by <a href="https://github.com/cube-digital">Cube Digital</a></p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 760" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t21 d21">
+  <title id="t21">Figure 2.1 — The Process Archaeologist Framework</title>
+  <desc id="d21">Four phases laid out left to right with the activity at the center of each (reading, talking, drawing, validating), the artifact each produces, and the structural output each contributes to the contract. A red curved loop arrow returns from Phase 4 to Phase 2 on validation failure — never to architecture.</desc>
+  <rect width="1300" height="760" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots21" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+    <radialGradient id="grape21" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#C684E8"/>
+      <stop offset="100%" stop-color="#7A2EAE"/>
+    </radialGradient>
+  </defs>
+  <rect width="1300" height="760" fill="url(#dots21)"/>
+
+  <text x="60" y="44" font-size="22" font-weight="600" fill="#2A1F38">The Process Archaeologist Framework · four phases · two artifacts each</text>
+
+  <!-- ─── Phase 1 — Domain Immersion ─── -->
+  <g transform="translate(70,140)">
+    <!-- main phase card -->
+    <rect x="0" y="0" width="260" height="240" rx="14" fill="#2A1F38" transform="translate(5,5)"/>
+    <rect x="0" y="0" width="260" height="240" rx="14" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <!-- phase number -->
+    <circle cx="40" cy="40" r="22" fill="#2A1F38" transform="translate(3,3)"/>
+    <circle cx="40" cy="40" r="22" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="40" y="46" text-anchor="middle" font-size="16" font-weight="800" fill="#1F3D6E">1</text>
+    <text x="80" y="46" font-size="15" font-weight="700" fill="#1F3D6E">Domain Immersion</text>
+    <!-- activity -->
+    <text x="130" y="92" text-anchor="middle" font-size="13" font-weight="600" fill="#46395A">activity:</text>
+    <text x="130" y="118" text-anchor="middle" font-size="20" font-weight="700" fill="#1F3D6E">📖 reading</text>
+    <text x="130" y="148" text-anchor="middle" font-size="11" fill="#46395A">methodology library ·</text>
+    <text x="130" y="164" text-anchor="middle" font-size="11" fill="#46395A">vendor docs · training</text>
+    <!-- artifact chip -->
+    <rect x="30" y="186" width="200" height="36" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+    <text x="130" y="201" text-anchor="middle" font-size="10" font-weight="700" fill="#1F3D6E" letter-spacing="0.8">ARTIFACT</text>
+    <text x="130" y="216" text-anchor="middle" font-size="11" fill="#2A1F38">Domain Context Document</text>
+  </g>
+  <!-- Structural output chip -->
+  <g transform="translate(80,395)">
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#F4D34A" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="23" text-anchor="middle" font-size="12" font-weight="700" fill="#2A1F38">anchor + cost surface</text>
+  </g>
+
+  <!-- arrow → phase 2 -->
+  <path d="M 340 260 L 380 260 M 370 254 L 382 260 L 370 266" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ─── Phase 2 — Workflow Excavation ─── -->
+  <g transform="translate(390,140)">
+    <rect x="0" y="0" width="260" height="240" rx="14" fill="#2A1F38" transform="translate(5,5)"/>
+    <rect x="0" y="0" width="260" height="240" rx="14" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <circle cx="40" cy="40" r="22" fill="#2A1F38" transform="translate(3,3)"/>
+    <circle cx="40" cy="40" r="22" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="40" y="46" text-anchor="middle" font-size="16" font-weight="800" fill="#1E5C3D">2</text>
+    <text x="80" y="46" font-size="15" font-weight="700" fill="#1E5C3D">Workflow Excavation</text>
+    <text x="130" y="92" text-anchor="middle" font-size="13" font-weight="600" fill="#46395A">activity:</text>
+    <text x="130" y="118" text-anchor="middle" font-size="20" font-weight="700" fill="#1E5C3D">🎙 talking + watching</text>
+    <text x="130" y="148" text-anchor="middle" font-size="11" fill="#46395A">associate · EM · partner</text>
+    <text x="130" y="164" text-anchor="middle" font-size="11" fill="#46395A">3 personas · 3 days</text>
+    <rect x="30" y="186" width="200" height="36" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+    <text x="130" y="201" text-anchor="middle" font-size="10" font-weight="700" fill="#1E5C3D" letter-spacing="0.8">ARTIFACT</text>
+    <text x="130" y="216" text-anchor="middle" font-size="11" fill="#2A1F38">User Insights + Pain Points</text>
+  </g>
+  <g transform="translate(400,395)">
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#F4D34A" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="23" text-anchor="middle" font-size="12" font-weight="700" fill="#2A1F38">source classification + query bands</text>
+  </g>
+
+  <!-- arrow → phase 3 -->
+  <path d="M 660 260 L 700 260 M 690 254 L 702 260 L 690 266" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ─── Phase 3 — Artifact Creation ─── -->
+  <g transform="translate(710,140)">
+    <rect x="0" y="0" width="260" height="240" rx="14" fill="#2A1F38" transform="translate(5,5)"/>
+    <rect x="0" y="0" width="260" height="240" rx="14" fill="#FBD8B8" stroke="#2A1F38" stroke-width="2.5"/>
+    <circle cx="40" cy="40" r="22" fill="#2A1F38" transform="translate(3,3)"/>
+    <circle cx="40" cy="40" r="22" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="40" y="46" text-anchor="middle" font-size="16" font-weight="800" fill="#7C3F12">3</text>
+    <text x="80" y="46" font-size="15" font-weight="700" fill="#7C3F12">Artifact Creation</text>
+    <text x="130" y="92" text-anchor="middle" font-size="13" font-weight="600" fill="#46395A">activity:</text>
+    <text x="130" y="118" text-anchor="middle" font-size="20" font-weight="700" fill="#7C3F12">✎ drawing</text>
+    <text x="130" y="148" text-anchor="middle" font-size="11" fill="#46395A">journey map + info-flow</text>
+    <text x="130" y="164" text-anchor="middle" font-size="11" fill="#46395A">one representative query</text>
+    <rect x="30" y="186" width="200" height="36" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+    <text x="130" y="201" text-anchor="middle" font-size="10" font-weight="700" fill="#7C3F12" letter-spacing="0.8">ARTIFACT</text>
+    <text x="130" y="216" text-anchor="middle" font-size="11" fill="#2A1F38">Journey map + diagram</text>
+  </g>
+  <g transform="translate(720,395)">
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#F4D34A" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="23" text-anchor="middle" font-size="12" font-weight="700" fill="#2A1F38">identity resolution + provenance</text>
+  </g>
+
+  <!-- arrow → phase 4 -->
+  <path d="M 980 260 L 1020 260 M 1010 254 L 1022 260 L 1010 266" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ─── Phase 4 — Validation ─── -->
+  <g transform="translate(1030,140)">
+    <rect x="0" y="0" width="240" height="240" rx="14" fill="#2A1F38" transform="translate(5,5)"/>
+    <rect x="0" y="0" width="240" height="240" rx="14" fill="#F8D8CF" stroke="#2A1F38" stroke-width="2.5"/>
+    <circle cx="40" cy="40" r="22" fill="#2A1F38" transform="translate(3,3)"/>
+    <circle cx="40" cy="40" r="22" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="40" y="46" text-anchor="middle" font-size="16" font-weight="800" fill="#A23929">4</text>
+    <text x="80" y="46" font-size="15" font-weight="700" fill="#A23929">Validation</text>
+    <text x="120" y="92" text-anchor="middle" font-size="13" font-weight="600" fill="#46395A">activity:</text>
+    <text x="120" y="118" text-anchor="middle" font-size="18" font-weight="700" fill="#A23929">✓ show back / listen</text>
+    <text x="120" y="148" text-anchor="middle" font-size="11" fill="#46395A">"where am I wrong?"</text>
+    <text x="120" y="164" text-anchor="middle" font-size="11" fill="#46395A">the email-folder finding</text>
+    <rect x="20" y="186" width="200" height="36" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+    <text x="120" y="201" text-anchor="middle" font-size="10" font-weight="700" fill="#A23929" letter-spacing="0.8">ARTIFACT</text>
+    <text x="120" y="216" text-anchor="middle" font-size="11" fill="#2A1F38">Validated map + corrections</text>
+  </g>
+  <g transform="translate(1030,395)">
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="240" height="36" rx="18" fill="#F4D34A" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="23" text-anchor="middle" font-size="12" font-weight="700" fill="#2A1F38">freshness + determinism boundary</text>
+  </g>
+
+  <!-- ── Validation-failure loop arrow (back to Phase 2) ── -->
+  <path d="M 1150 460 Q 1150 540 770 540 Q 520 540 520 460 M 525 470 L 519 458 L 530 456" stroke="#E0594C" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4"/>
+  <g transform="translate(700,560)">
+    <rect x="0" y="0" width="280" height="36" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="280" height="36" rx="9" fill="#FEFCF3" stroke="#E0594C" stroke-width="2.5"/>
+    <text x="140" y="23" text-anchor="middle" font-size="13" font-weight="700" fill="#A23929">on validation failure → re-excavate</text>
+  </g>
+
+  <!-- ── Forward arrow to "architecture" — ONLY after validation holds ── -->
+  <path d="M 1270 260 L 1300 260" stroke="#46395A" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="3 3"/>
+
+  <!-- ── Bottom label ── -->
+  <text x="650" y="490" text-anchor="middle" font-size="13" font-weight="700" fill="#A23929">never forward to architecture · always back to excavation</text>
+
+  <!-- ─── DONNA in scene at Phase 2 (interviewing) — small, beside the phase ─── -->
+  <g transform="translate(485,640)">
+    <g transform="translate(4,4)">
+      <path d="M -32 70 Q -32 45 0 45 Q 32 45 32 70 L 38 120 L -38 120 Z" fill="#2A1F38"/>
+      <ellipse cx="0" cy="10" rx="36" ry="40" fill="#2A1F38"/>
+      <path d="M -36 8 Q -38 -22 -20 -32 Q -2 -42 18 -33 Q 36 -22 36 6 Q 36 16 32 32 L 32 42 Q 22 52 8 48 L 6 32 Q -2 36 -12 32 L -14 44 Q -26 52 -36 36 Z" fill="#2A1F38"/>
+    </g>
+    <path d="M -32 70 Q -32 45 0 45 Q 32 45 32 70 L 38 120 L -38 120 Z" fill="url(#grape21)" stroke="#2A1F38" stroke-width="2.5"/>
+    <rect x="-6" y="36" width="12" height="12" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2"/>
+    <ellipse cx="0" cy="10" rx="36" ry="40" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <path d="M -36 8 Q -38 -22 -20 -32 Q -2 -42 18 -33 Q 36 -22 36 6 Q 36 16 32 32 L 32 42 Q 22 52 8 48 L 6 32 Q -2 36 -12 32 L -14 44 Q -26 52 -36 36 Z" fill="#C84B3A" stroke="#2A1F38" stroke-width="2.5"/>
+    <ellipse cx="-10" cy="12" rx="2.8" ry="3.5" fill="#2A1F38"/>
+    <ellipse cx="10" cy="12" rx="2.8" ry="3.5" fill="#2A1F38"/>
+    <circle cx="-9" cy="11" r="0.9" fill="#FEFCF3"/>
+    <circle cx="11" cy="11" r="0.9" fill="#FEFCF3"/>
+    <path d="M -16 3 Q -10 0 -4 3" stroke="#2A1F38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 4 0 Q 10 -3 16 3" stroke="#2A1F38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M -9 28 Q 0 33 11 28" stroke="#2A1F38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M -9 28 Q 0 31 11 28 Q 0 30 -9 28 Z" fill="#D63A2E"/>
+  </g>
+
+  <!-- Speech bubble from Donna at the bottom -->
+  <g transform="translate(540,640)">
+    <rect x="0" y="0" width="380" height="78" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="380" height="78" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <path d="M -16 24 L 0 14 L 0 34 Z" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="190" y="28" text-anchor="middle" font-size="14" font-weight="600" fill="#2A1F38">The tools don't produce the insight.</text>
+    <text x="190" y="48" text-anchor="middle" font-size="13" font-style="italic" fill="#46395A">The human contact in the middle does.</text>
+    <text x="190" y="66" text-anchor="middle" font-size="13" font-family="'Caveat','Comic Sans MS',cursive" font-style="italic" fill="#9A4DD0">— this is where discovery fails most often.</text>
+  </g>
+
+  <!-- Sparkle near Donna -->
+  <g transform="translate(540,620)" opacity="0.7">
+    <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+
+  <!-- Structural-output legend -->
+  <text x="60" y="447" font-size="11" font-weight="700" fill="#46395A">↑ structural outputs · these become the 7 invariants in §2.5</text>
+</svg>

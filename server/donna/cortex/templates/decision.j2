@@ -1,0 +1,18 @@
+---
+type: decision
+title: {{ title }}
+{% if occurred_at %}occurred_at: {{ occurred_at }}{% endif %}
+parent_path: {{ data.parent_path }}
+slug: {{ data.slug }}
+template_version: decision@v1
+adr_status: {{ data.adr_status }}
+{% if data.deciders %}deciders: [{% for d in data.deciders %}"{{ d }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% endif %}
+{% if data.context_sources %}context_sources: [{% for c in data.context_sources %}"{{ c }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% endif %}
+{% if data.supersedes_adr %}supersedes_adr: "{{ data.supersedes_adr }}"{% endif %}
+---
+
+# {{ title }}
+
+{{ body }}
+
+Source: {{ source_uri }} ({{ bronze_storage_key }})

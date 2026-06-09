@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 660" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t1 d1">
+  <title id="t1">Figure 1.1 — Standard RAG pipeline + six failure modes</title>
+  <desc id="d1">A horizontal pipeline of seven stages from source corpus through chunker, embedding, vector store, query embed, retrieval, and LLM generation. Six failure mode tags are pinned above the stages where each failure originates, color-coded into three groups: data-model (red), retrieval-control (orange), surface (yellow).</desc>
+  <rect width="1100" height="660" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots11" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <rect width="1100" height="660" fill="url(#dots11)"/>
+
+  <!-- Title -->
+  <text x="60" y="50" font-size="22" font-weight="600" fill="#2A1F38">Standard RAG · one pass · six places it breaks</text>
+
+  <!-- ─── FM tags row, aligned ABOVE their pipeline stage centers ─── -->
+  <!-- FM1 — above Chunker (center 300) -->
+  <g transform="translate(240,90)">
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#F8D8CF" stroke="#E0594C" stroke-width="2.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#A23929">FM1</text>
+    <text x="60" y="42" text-anchor="middle" font-size="11" fill="#A23929">Broken structure</text>
+  </g>
+
+  <!-- FM6 — above Embed (center 460) -->
+  <g transform="translate(400,90)">
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#FBEFB4" stroke="#C9A33B" stroke-width="2.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#7E6420">FM6</text>
+    <text x="60" y="42" text-anchor="middle" font-size="11" fill="#7E6420">Embedding ceiling</text>
+  </g>
+
+  <!-- FM4 — above Vector store (center 615) -->
+  <g transform="translate(555,90)">
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#F8D8CF" stroke="#E0594C" stroke-width="2.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#A23929">FM4</text>
+    <text x="60" y="42" text-anchor="middle" font-size="11" fill="#A23929">Static index</text>
+  </g>
+
+  <!-- FM5 — above Query embed (center 780) -->
+  <g transform="translate(720,90)">
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#FBEFB4" stroke="#C9A33B" stroke-width="2.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#7E6420">FM5</text>
+    <text x="60" y="42" text-anchor="middle" font-size="11" fill="#7E6420">Query surface</text>
+  </g>
+
+  <!-- FM2 — above Top-N (center 940) -->
+  <g transform="translate(880,90)">
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#FBD8B8" stroke="#C66A2A" stroke-width="2.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#7C3F12">FM2</text>
+    <text x="60" y="42" text-anchor="middle" font-size="11" fill="#7C3F12">Single-hop</text>
+  </g>
+
+  <!-- ─── Pin lines from FM tags down to their stage centers ─── -->
+  <line x1="300" y1="150" x2="300" y2="290" stroke="#E0594C" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="460" y1="150" x2="460" y2="290" stroke="#C9A33B" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="615" y1="150" x2="615" y2="290" stroke="#E0594C" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="780" y1="150" x2="780" y2="290" stroke="#C9A33B" stroke-width="2" stroke-dasharray="4 4"/>
+  <line x1="940" y1="150" x2="940" y2="290" stroke="#C66A2A" stroke-width="2" stroke-dasharray="4 4"/>
+
+  <!-- ─── PIPELINE ROW ─── -->
+  <!-- Source corpus (cylinder) -->
+  <g transform="translate(60,290)">
+    <ellipse cx="55" cy="14" rx="48" ry="12" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="7" y="14" width="96" height="60" fill="#2A1F38" transform="translate(4,4)"/>
+    <ellipse cx="55" cy="74" rx="48" ry="12" fill="#2A1F38" transform="translate(4,4)"/>
+    <ellipse cx="55" cy="14" rx="48" ry="12" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <rect x="7" y="14" width="96" height="60" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <ellipse cx="55" cy="74" rx="48" ry="12" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <ellipse cx="55" cy="14" rx="48" ry="12" fill="#FEFCF3" stroke="#2A1F38" stroke-width="1"/>
+    <text x="55" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="#2A1F38">corpus</text>
+    <text x="55" y="64" text-anchor="middle" font-size="10" fill="#46395A">~10K pages</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 180 332 L 232 332 M 222 326 L 234 332 L 222 338" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Chunker (center 300) -->
+  <g transform="translate(240,300)">
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="60" y="32" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">Chunker</text>
+    <text x="60" y="52" text-anchor="middle" font-size="11" fill="#46395A">512 tokens</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 360 332 L 392 332 M 382 326 L 394 332 L 382 338" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Embedding model (center 460) -->
+  <g transform="translate(400,300)">
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="60" y="32" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">Embed</text>
+    <text x="60" y="52" text-anchor="middle" font-size="11" fill="#46395A">dense vector</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 520 332 L 552 332 M 542 326 L 554 332 L 542 338" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Vector store (cylinder, center 615) -->
+  <g transform="translate(560,290)">
+    <ellipse cx="55" cy="14" rx="48" ry="12" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="7" y="14" width="96" height="60" fill="#2A1F38" transform="translate(4,4)"/>
+    <ellipse cx="55" cy="74" rx="48" ry="12" fill="#2A1F38" transform="translate(4,4)"/>
+    <ellipse cx="55" cy="14" rx="48" ry="12" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+    <rect x="7" y="14" width="96" height="60" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+    <ellipse cx="55" cy="74" rx="48" ry="12" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+    <ellipse cx="55" cy="14" rx="48" ry="12" fill="#ECDDF6" stroke="#2A1F38" stroke-width="1"/>
+    <text x="55" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="#2A1F38">vector</text>
+    <text x="55" y="64" text-anchor="middle" font-size="10" fill="#46395A">store</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 678 332 L 712 332 M 702 326 L 714 332 L 702 338" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Query embed (center 780) -->
+  <g transform="translate(720,300)">
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="60" y="32" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">Query embed</text>
+    <text x="60" y="52" text-anchor="middle" font-size="11" fill="#46395A">cosine match</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M 840 332 L 872 332 M 862 326 L 874 332 L 862 338" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Top-N retrieval (center 940) -->
+  <g transform="translate(880,300)">
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="64" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="60" y="32" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">Top-N</text>
+    <text x="60" y="52" text-anchor="middle" font-size="11" fill="#46395A">single hop</text>
+  </g>
+
+  <!-- Bent arrow from Top-N down to LLM gen -->
+  <path d="M 1000 332 L 1018 332 L 1018 432 L 642 432 M 654 426 L 642 432 L 654 438" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- LLM gen (center 560, at y=440) -->
+  <g transform="translate(480,440)">
+    <rect x="0" y="0" width="160" height="64" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="160" height="64" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="80" y="32" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">LLM generation</text>
+    <text x="80" y="52" text-anchor="middle" font-size="11" fill="#46395A">no check · one pass</text>
+  </g>
+
+  <!-- FM3 — beside LLM gen, with pin pointing into it -->
+  <line x1="660" y1="472" x2="700" y2="472" stroke="#C66A2A" stroke-width="2" stroke-dasharray="4 4"/>
+  <g transform="translate(700,444)">
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="120" height="56" rx="9" fill="#FBD8B8" stroke="#C66A2A" stroke-width="2.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#7C3F12">FM3</text>
+    <text x="60" y="42" text-anchor="middle" font-size="11" fill="#7C3F12">No self-eval</text>
+  </g>
+
+  <!-- Bracket: "one pass — no decision point" -->
+  <path d="M 60 540 L 60 558 L 1020 558 L 1020 540" stroke="#46395A" stroke-width="1.5" fill="none" opacity="0.4"/>
+  <text x="540" y="578" text-anchor="middle" font-size="13" font-style="italic" fill="#46395A">one pass · no decision point</text>
+
+  <!-- Legend (bottom row, below bracket caption) -->
+  <g transform="translate(60,615)">
+    <text x="0" y="0" font-size="11" font-weight="600" fill="#2A1F38">Failure groups:</text>
+    <rect x="100" y="-10" width="14" height="14" rx="3" fill="#F8D8CF" stroke="#E0594C" stroke-width="1.5"/>
+    <text x="118" y="2" font-size="10" fill="#A23929">data-model</text>
+    <rect x="200" y="-10" width="14" height="14" rx="3" fill="#FBD8B8" stroke="#C66A2A" stroke-width="1.5"/>
+    <text x="218" y="2" font-size="10" fill="#7C3F12">retrieval-control</text>
+    <rect x="328" y="-10" width="14" height="14" rx="3" fill="#FBEFB4" stroke="#C9A33B" stroke-width="1.5"/>
+    <text x="346" y="2" font-size="10" fill="#7E6420">surface</text>
+  </g>
+</svg>

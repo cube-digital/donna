@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 760" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t23 d23">
+  <title id="t23">Figure 2.3 — Two views of one system</title>
+  <desc id="d23">On the left, the compiled-context lifecycle: raw → deterministic enrichment → patterns → narrative. On the right, the six-layer runtime stack, with the bottom two layers (data and memory) highlighted. A bold arrow connects the narrative output of the lifecycle into the data and memory layers of the stack, showing that the lifecycle builds the bottom of the stack while the stack is what the agent touches at query time.</desc>
+  <rect width="1400" height="760" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots23" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <rect width="1400" height="760" fill="url(#dots23)"/>
+
+  <!-- Title -->
+  <text x="60" y="44" font-size="22" font-weight="600" fill="#2A1F38">Two views of one system</text>
+  <text x="60" y="68" font-size="14" font-style="italic" fill="#46395A">The compiled-context lifecycle (build view) feeds the six-layer stack (runtime view).</text>
+
+  <!-- ════════════ LEFT: COMPILED-CONTEXT LIFECYCLE ════════════ -->
+  <!-- Header chip -->
+  <rect x="60" y="100" width="280" height="36" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+  <rect x="60" y="100" width="280" height="36" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+  <text x="200" y="123" text-anchor="middle" font-size="13" font-weight="700" fill="#2A1F38">BUILD VIEW · the lifecycle</text>
+
+  <text x="60" y="160" font-size="12" font-style="italic" fill="#46395A">Cost scales with how much data changes, not how many questions are asked.</text>
+
+  <!-- Lifecycle stages horizontal -->
+  <!-- 1. Raw -->
+  <g transform="translate(60,200)">
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#EFE6CB" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="11" font-weight="800" fill="#46395A" letter-spacing="1">STAGE 1</text>
+    <text x="95" y="56" text-anchor="middle" font-size="16" font-weight="700" fill="#2A1F38">Raw</text>
+    <text x="95" y="86" text-anchor="middle" font-size="11" fill="#46395A">immutable raw layer</text>
+    <text x="95" y="102" text-anchor="middle" font-size="11" fill="#46395A">events + S3 payloads</text>
+    <rect x="20" y="124" width="150" height="22" rx="5" fill="#FEFCF3" stroke="#2A1F38" stroke-width="1.5"/>
+    <text x="95" y="139" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">on insert</text>
+    <rect x="20" y="152" width="150" height="20" rx="4" fill="#46395A" fill-opacity="0.08" stroke="#46395A" stroke-width="1"/>
+    <text x="95" y="167" text-anchor="middle" font-size="10" font-style="italic" fill="#46395A">cold storage</text>
+  </g>
+
+  <path d="M 250 290 L 290 290 M 280 284 L 292 290 L 280 296" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 2. Deterministic enrichment -->
+  <g transform="translate(295,200)">
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="11" font-weight="800" fill="#1F3D6E" letter-spacing="1">STAGE 2</text>
+    <text x="95" y="56" text-anchor="middle" font-size="14" font-weight="700" fill="#1F3D6E">Deterministic</text>
+    <text x="95" y="74" text-anchor="middle" font-size="14" font-weight="700" fill="#1F3D6E">enrichment</text>
+    <text x="95" y="102" text-anchor="middle" font-size="11" fill="#1F3D6E">anchor · embed · link</text>
+    <rect x="20" y="124" width="150" height="22" rx="5" fill="#FEFCF3" stroke="#2A1F38" stroke-width="1.5"/>
+    <text x="95" y="139" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">deterministic</text>
+    <rect x="20" y="152" width="150" height="20" rx="4" fill="#F8D8CF" stroke="#E0594C" stroke-width="1.5"/>
+    <text x="95" y="167" text-anchor="middle" font-size="10" font-weight="700" fill="#A23929">NO LLM HERE</text>
+  </g>
+
+  <path d="M 485 290 L 525 290 M 515 284 L 527 290 L 515 296" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 3. Patterns -->
+  <g transform="translate(530,200)">
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#F4D34A" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="11" font-weight="800" fill="#7E6420" letter-spacing="1">STAGE 3</text>
+    <text x="95" y="56" text-anchor="middle" font-size="16" font-weight="700" fill="#2A1F38">Patterns</text>
+    <text x="95" y="86" text-anchor="middle" font-size="11" fill="#46395A">LLM cluster + extract</text>
+    <text x="95" y="102" text-anchor="middle" font-size="11" fill="#46395A">evidence quotes verbatim</text>
+    <rect x="20" y="124" width="150" height="22" rx="5" fill="#FEFCF3" stroke="#2A1F38" stroke-width="1.5"/>
+    <text x="95" y="139" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">on trigger</text>
+    <rect x="20" y="152" width="150" height="20" rx="4" fill="#ECDDF6" stroke="#9A4DD0" stroke-width="1.5"/>
+    <text x="95" y="167" text-anchor="middle" font-size="10" font-weight="600" fill="#7A2EAE">one call per cluster</text>
+  </g>
+
+  <path d="M 720 290 L 760 290 M 750 284 L 762 290 L 750 296" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 4. Narrative -->
+  <g transform="translate(765,200)">
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="190" height="180" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="11" font-weight="800" fill="#1E5C3D" letter-spacing="1">STAGE 4</text>
+    <text x="95" y="56" text-anchor="middle" font-size="16" font-weight="700" fill="#1E5C3D">Narrative</text>
+    <text x="95" y="86" text-anchor="middle" font-size="11" fill="#1E5C3D">synthesized markdown</text>
+    <text x="95" y="102" text-anchor="middle" font-size="11" fill="#1E5C3D">every line cited</text>
+    <rect x="20" y="124" width="150" height="22" rx="5" fill="#FEFCF3" stroke="#2A1F38" stroke-width="1.5"/>
+    <text x="95" y="139" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">on click / scheduled</text>
+    <rect x="20" y="152" width="150" height="20" rx="4" fill="#F4D34A" stroke="#2A1F38" stroke-width="1"/>
+    <text x="95" y="167" text-anchor="middle" font-size="10" font-weight="700" fill="#2A1F38">Karpathy synth</text>
+  </g>
+
+  <!-- Karpathy framing annotation under lifecycle -->
+  <text x="510" y="412" text-anchor="middle" font-size="13" font-family="'Caveat','Comic Sans MS',cursive" font-style="italic" fill="#9A4DD0" font-weight="500">the LLM as a compiler — not a chatter</text>
+
+  <!-- ════════ BIG CONNECTING ARROW (lifecycle → stack) ════════ -->
+  <g transform="translate(960,260)">
+    <!-- shadow -->
+    <path d="M 0 30 L 130 30 L 130 0 L 200 60 L 130 120 L 130 90 L 0 90 Z" fill="#2A1F38" transform="translate(5,5)"/>
+    <!-- arrow — extended so tip touches Memory layer at x=1160 -->
+    <path d="M 0 30 L 130 30 L 130 0 L 200 60 L 130 120 L 130 90 L 0 90 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="2.5" stroke-linejoin="round"/>
+    <text x="80" y="48" text-anchor="middle" font-size="10" font-weight="800" fill="#FEFCF3" letter-spacing="0.5">LIFECYCLE</text>
+    <text x="80" y="62" text-anchor="middle" font-size="10" font-weight="800" fill="#FEFCF3" letter-spacing="0.5">OUTPUT</text>
+    <text x="80" y="78" text-anchor="middle" font-size="10" font-weight="800" fill="#FEFCF3" letter-spacing="0.5">FEEDS THE</text>
+    <text x="80" y="92" text-anchor="middle" font-size="10" font-weight="800" fill="#FEFCF3" letter-spacing="0.5">BOTTOM</text>
+  </g>
+
+  <!-- ════════════ RIGHT: SIX-LAYER STACK ════════════ -->
+  <!-- Header chip -->
+  <rect x="1130" y="100" width="240" height="36" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+  <rect x="1130" y="100" width="240" height="36" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+  <text x="1250" y="123" text-anchor="middle" font-size="13" font-weight="700" fill="#2A1F38">RUNTIME VIEW · the stack</text>
+
+  <text x="1130" y="160" font-size="12" font-style="italic" fill="#46395A">What the agent touches at query time.</text>
+
+  <!-- Ops wrapper -->
+  <rect x="1140" y="180" width="240" height="460" rx="14" fill="none" stroke="#2A1F38" stroke-width="2.5" stroke-dasharray="4 4"/>
+  <rect x="1140" y="180" width="240" height="460" rx="14" fill="#46395A" fill-opacity="0.05"/>
+
+  <!-- Layer 5 — Agentic (smallest, top) -->
+  <g transform="translate(1170,200)">
+    <rect x="0" y="0" width="180" height="44" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="180" height="44" rx="9" fill="#9A4DD0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="90" y="20" text-anchor="middle" font-size="12" font-weight="800" fill="#FEFCF3">AGENTIC</text>
+    <text x="90" y="36" text-anchor="middle" font-size="9" fill="#ECDDF6">decisions in a loop</text>
+  </g>
+
+  <!-- Layer 4 — Memory (HIGHLIGHTED — lifecycle feeds here) -->
+  <g transform="translate(1160,254)">
+    <rect x="0" y="0" width="200" height="60" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="200" height="60" rx="9" fill="#D9C7F4" stroke="#9A4DD0" stroke-width="4"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="800" fill="#2A1F38">MEMORY</text>
+    <text x="100" y="40" text-anchor="middle" font-size="10" fill="#46395A">working · decision-trace · semantic</text>
+    <text x="100" y="54" text-anchor="middle" font-size="9" font-weight="700" fill="#7A2EAE">← lifecycle lands here</text>
+  </g>
+
+  <!-- Layer 3 — Tool -->
+  <g transform="translate(1170,324)">
+    <rect x="0" y="0" width="180" height="56" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="180" height="56" rx="9" fill="#BFE8FF" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="90" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#2A1F38">TOOL</text>
+    <text x="90" y="40" text-anchor="middle" font-size="10" fill="#46395A">retrieval · calc · web fallback</text>
+  </g>
+
+  <!-- Layer 2 — Retrieval -->
+  <g transform="translate(1170,390)">
+    <rect x="0" y="0" width="180" height="56" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="180" height="56" rx="9" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="90" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#1E5C3D">RETRIEVAL</text>
+    <text x="90" y="40" text-anchor="middle" font-size="10" fill="#1E5C3D">multiple query interfaces</text>
+  </g>
+
+  <!-- Layer 1 — Data (HIGHLIGHTED — lifecycle feeds here) -->
+  <g transform="translate(1160,456)">
+    <rect x="0" y="0" width="200" height="76" rx="9" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="200" height="76" rx="9" fill="#F4D34A" stroke="#9A4DD0" stroke-width="4"/>
+    <text x="100" y="22" text-anchor="middle" font-size="13" font-weight="800" fill="#7E6420">DATA</text>
+    <text x="100" y="40" text-anchor="middle" font-size="10" fill="#7E6420">corpus · EMS · CRM · op DB</text>
+    <text x="100" y="56" text-anchor="middle" font-size="10" fill="#7E6420">anchored · resolved</text>
+    <text x="100" y="70" text-anchor="middle" font-size="9" font-weight="700" fill="#7A2EAE">← lifecycle lands here</text>
+  </g>
+
+  <!-- Ops label -->
+  <g transform="translate(1180,548)">
+    <rect x="0" y="0" width="160" height="30" rx="6" fill="#2A1F38" transform="translate(2,2)"/>
+    <rect x="0" y="0" width="160" height="30" rx="6" fill="#46395A" stroke="#2A1F38" stroke-width="2"/>
+    <text x="80" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="#FEFCF3">OPERATIONS · wraps all</text>
+  </g>
+
+  <!-- ════════ Naming caution banner ════════ -->
+  <g transform="translate(220,470)">
+    <rect x="0" y="0" width="700" height="76" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="700" height="76" rx="11" fill="#F8D8CF" stroke="#E0594C" stroke-width="3"/>
+    <text x="350" y="28" text-anchor="middle" font-size="14" font-weight="800" fill="#A23929">⚠  NAMING CAUTION</text>
+    <text x="350" y="50" text-anchor="middle" font-size="13" font-weight="600" fill="#A23929">The compiled-context layer is NOT "agentic."</text>
+    <text x="350" y="66" text-anchor="middle" font-size="12" font-style="italic" fill="#A23929">It's a compiler. Reserve "agentic" for the runtime loop and the system as a whole.</text>
+  </g>
+
+  <!-- Bottom annotation -->
+  <text x="700" y="660" text-anchor="middle" font-size="14" font-style="italic" fill="#46395A">Same system · two views. The lifecycle builds the bottom of the stack. The stack is what the agent touches.</text>
+
+  <!-- Footer file-ext chips -->
+  <g transform="translate(60,700)">
+    <text x="0" y="14" font-size="11" font-weight="700" fill="#46395A">Real files in the companion repo:</text>
+    <g transform="translate(220,0)">
+      <rect x="0" y="0" width="160" height="22" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="1.8"/>
+      <text x="80" y="15" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">discovery-contract.md</text>
+    </g>
+    <g transform="translate(395,0)">
+      <rect x="0" y="0" width="100" height="22" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="1.8"/>
+      <text x="50" y="15" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">CLAUDE.md</text>
+    </g>
+    <g transform="translate(510,0)">
+      <rect x="0" y="0" width="100" height="22" rx="11" fill="#F4D34A" stroke="#2A1F38" stroke-width="1.8"/>
+      <text x="50" y="15" text-anchor="middle" font-size="10" font-family="'Geist Mono',monospace" font-weight="600" fill="#2A1F38">AGENTS.md</text>
+    </g>
+  </g>
+</svg>

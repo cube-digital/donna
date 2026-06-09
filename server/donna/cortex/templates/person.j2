@@ -1,0 +1,18 @@
+---
+type: person
+title: {{ title }}
+{% if occurred_at %}occurred_at: {{ occurred_at }}{% endif %}
+parent_path: {{ data.parent_path }}
+slug: {{ data.slug }}
+template_version: person@v1
+{% if data.full_name %}full_name: "{{ data.full_name }}"{% endif %}
+{% if data.primary_email %}primary_email: "{{ data.primary_email }}"{% endif %}
+{% if data.role %}role: "{{ data.role }}"{% endif %}
+{% if data.cross_workspace_aliases %}aliases: [{% for a in data.cross_workspace_aliases %}"{{ a }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% endif %}
+---
+
+# {{ title }}
+
+{{ body }}
+
+Source: {{ source_uri }} ({{ bronze_storage_key }})

@@ -1,0 +1,19 @@
+---
+type: project
+title: {{ title }}
+{% if occurred_at %}occurred_at: {{ occurred_at }}{% endif %}
+parent_path: {{ data.parent_path }}
+slug: {{ data.slug }}
+template_version: project@v1
+status: {{ data.status }}
+{% if data.target_ship_date %}target_ship_date: {{ data.target_ship_date }}{% endif %}
+{% if data.repo_url %}repo_url: "{{ data.repo_url }}"{% endif %}
+{% if data.deployed_url %}deployed_url: "{{ data.deployed_url }}"{% endif %}
+{% if data.stack %}stack: [{% for s in data.stack %}"{{ s }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% endif %}
+---
+
+# {{ title }}
+
+{{ body }}
+
+Source: {{ source_uri }} ({{ bronze_storage_key }})

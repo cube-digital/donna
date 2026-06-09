@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "donna.integrations",
     "donna.notifications",
     "donna.status",
+    "donna.cortex",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -282,6 +283,19 @@ CELERY_BEAT_SCHEDULE = {
     "drive-fanout-sync": {
         "task":     "integrations.google.drive.fanout_sync",
         "schedule": env.int("DONNA_DRIVE_SYNC_INTERVAL", default=300),  # 5 min
+    },
+    "cortex-recluster-fanout": {
+        "task":     "cortex.recluster_fanout",
+        # 24h default — clusters drift slowly; pick longer for big
+        # workspaces.
+        "schedule": env.int("DONNA_CORTEX_RECLUSTER_INTERVAL", default=86400),
+    },
+    "cortex-reap-orphan-bodies": {
+        # Nightly reaper for SilverStorage body files whose
+        # CortexEntity row no longer exists (rare; only when PG
+        # commit fails after storage write succeeded). Idempotent.
+        "task":     "cortex.reap_orphan_bodies",
+        "schedule": env.int("DONNA_CORTEX_REAP_INTERVAL", default=86400),
     },
 }
 

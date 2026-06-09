@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t12 d12">
+  <title id="t12">Figure 1.2 — Enterprise data in motion</title>
+  <desc id="d12">Two side-by-side panels: at T=0 the index is clean and complete; at T+12 months partner memos, methodology updates, and new benchmarks float around the unchanged index as red items the index doesn't see. The index returns stale answers with full confidence.</desc>
+  <rect width="1100" height="620" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots12" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <rect width="1100" height="620" fill="url(#dots12)"/>
+
+  <text x="60" y="50" font-size="22" font-weight="600" fill="#2A1F38">The index doesn't know what it doesn't know</text>
+  <text x="60" y="75" font-size="14" font-style="italic" fill="#46395A">High similarity to an outdated document is still high similarity.</text>
+
+  <!-- Time axis between panels -->
+  <path d="M 480 320 L 620 320 M 610 314 L 622 320 L 610 326" stroke="#2A1F38" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="550" y="305" text-anchor="middle" font-size="13" font-style="italic" fill="#46395A">12 months</text>
+
+  <!-- ─── LEFT PANEL: T=0 ─── -->
+  <g transform="translate(60,110)">
+    <!-- panel shadow + border -->
+    <rect x="0" y="0" width="400" height="450" rx="14" fill="#2A1F38" transform="translate(5,5)"/>
+    <rect x="0" y="0" width="400" height="450" rx="14" fill="#F4ECD8" stroke="#2A1F38" stroke-width="2.5"/>
+
+    <!-- header chip -->
+    <rect x="20" y="-16" width="120" height="34" rx="17" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="20" y="-16" width="120" height="34" rx="17" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="80" y="6" text-anchor="middle" font-size="14" font-weight="700" fill="#2A1F38">T = 0</text>
+
+    <text x="200" y="50" text-anchor="middle" font-size="15" font-weight="600" fill="#2A1F38">Index built · corpus snapshot · complete</text>
+
+    <!-- index disk (centered, large) -->
+    <g transform="translate(100,90)">
+      <ellipse cx="100" cy="14" rx="92" ry="20" fill="#2A1F38" transform="translate(4,4)"/>
+      <rect x="8" y="14" width="184" height="220" fill="#2A1F38" transform="translate(4,4)"/>
+      <ellipse cx="100" cy="234" rx="92" ry="20" fill="#2A1F38" transform="translate(4,4)"/>
+      <ellipse cx="100" cy="14" rx="92" ry="20" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+      <rect x="8" y="14" width="184" height="220" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+      <ellipse cx="100" cy="234" rx="92" ry="20" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+      <ellipse cx="100" cy="14" rx="92" ry="20" fill="#ECDDF6" stroke="#2A1F38" stroke-width="1"/>
+
+      <text x="100" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#46395A" opacity="0.7">INDEX</text>
+
+      <!-- inside the disk: 3 contents -->
+      <rect x="22" y="50" width="156" height="34" rx="6" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+      <text x="100" y="71" text-anchor="middle" font-size="11" font-weight="600" fill="#2A1F38">Methodology v2024.1</text>
+
+      <rect x="22" y="98" width="156" height="34" rx="6" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+      <text x="100" y="119" text-anchor="middle" font-size="11" font-weight="600" fill="#2A1F38">Benchmarks Q1-2024</text>
+
+      <rect x="22" y="146" width="156" height="34" rx="6" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+      <text x="100" y="167" text-anchor="middle" font-size="11" font-weight="600" fill="#2A1F38">Prior deliverables</text>
+    </g>
+
+    <!-- status — green checkmark -->
+    <g transform="translate(160,395)">
+      <circle cx="0" cy="0" r="14" fill="#2A1F38" transform="translate(3,3)"/>
+      <circle cx="0" cy="0" r="14" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+      <path d="M -6 0 L -2 5 L 6 -5" stroke="#2A1F38" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="200" y="400" font-size="13" font-weight="600" fill="#1E5C3D">Indexed · complete · confident</text>
+  </g>
+
+  <!-- ─── RIGHT PANEL: T+12 ─── -->
+  <g transform="translate(640,110)">
+    <rect x="0" y="0" width="400" height="450" rx="14" fill="#2A1F38" transform="translate(5,5)"/>
+    <rect x="0" y="0" width="400" height="450" rx="14" fill="#F4ECD8" stroke="#2A1F38" stroke-width="2.5"/>
+
+    <!-- header chip -->
+    <rect x="20" y="-16" width="140" height="34" rx="17" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="20" y="-16" width="140" height="34" rx="17" fill="#E0594C" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="90" y="6" text-anchor="middle" font-size="14" font-weight="700" fill="#FEFCF3">T + 12 months</text>
+
+    <text x="200" y="50" text-anchor="middle" font-size="15" font-weight="600" fill="#2A1F38">Same index · the world moved</text>
+
+    <!-- index disk (same as left, but now stale) -->
+    <g transform="translate(100,90)">
+      <ellipse cx="100" cy="14" rx="92" ry="20" fill="#2A1F38" transform="translate(4,4)"/>
+      <rect x="8" y="14" width="184" height="220" fill="#2A1F38" transform="translate(4,4)"/>
+      <ellipse cx="100" cy="234" rx="92" ry="20" fill="#2A1F38" transform="translate(4,4)"/>
+      <ellipse cx="100" cy="14" rx="92" ry="20" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+      <rect x="8" y="14" width="184" height="220" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+      <ellipse cx="100" cy="234" rx="92" ry="20" fill="#ECDDF6" stroke="#2A1F38" stroke-width="2.5"/>
+      <ellipse cx="100" cy="14" rx="92" ry="20" fill="#ECDDF6" stroke="#2A1F38" stroke-width="1"/>
+
+      <text x="100" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#46395A" opacity="0.7">INDEX</text>
+
+      <!-- same contents, but now stale -->
+      <rect x="22" y="50" width="156" height="34" rx="6" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2" opacity="0.6"/>
+      <text x="100" y="71" text-anchor="middle" font-size="11" font-weight="600" fill="#46395A" opacity="0.7">Methodology v2024.1</text>
+
+      <rect x="22" y="98" width="156" height="34" rx="6" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2" opacity="0.6"/>
+      <text x="100" y="119" text-anchor="middle" font-size="11" font-weight="600" fill="#46395A" opacity="0.7">Benchmarks Q1-2024</text>
+
+      <rect x="22" y="146" width="156" height="34" rx="6" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2" opacity="0.6"/>
+      <text x="100" y="167" text-anchor="middle" font-size="11" font-weight="600" fill="#46395A" opacity="0.7">Prior deliverables</text>
+    </g>
+
+    <!-- Floating red items the index doesn't know — repositioned outside the disk -->
+    <!-- top-left -->
+    <g transform="translate(2,80)">
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#2A1F38" transform="translate(3,3)"/>
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#F8D8CF" stroke="#E0594C" stroke-width="2"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#A23929">Partner memo</text>
+      <text x="45" y="32" text-anchor="middle" font-size="9" fill="#A23929">cost-to-serve v2</text>
+    </g>
+
+    <!-- top-right -->
+    <g transform="translate(308,80)">
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#2A1F38" transform="translate(3,3)"/>
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#F8D8CF" stroke="#E0594C" stroke-width="2"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#A23929">Methodology</text>
+      <text x="45" y="32" text-anchor="middle" font-size="9" fill="#A23929">v2024.2</text>
+    </g>
+
+    <!-- middle-left (between disk top and bottom) -->
+    <g transform="translate(2,200)">
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#2A1F38" transform="translate(3,3)"/>
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#F8D8CF" stroke="#E0594C" stroke-width="2"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#A23929">Benchmark set</text>
+      <text x="45" y="32" text-anchor="middle" font-size="9" fill="#A23929">Q3-2024</text>
+    </g>
+
+    <!-- middle-right -->
+    <g transform="translate(308,200)">
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#2A1F38" transform="translate(3,3)"/>
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#F8D8CF" stroke="#E0594C" stroke-width="2"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#A23929">3 new</text>
+      <text x="45" y="32" text-anchor="middle" font-size="9" fill="#A23929">deliverables</text>
+    </g>
+
+    <!-- bottom-left (extra one to fill space) -->
+    <g transform="translate(2,310)">
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#2A1F38" transform="translate(3,3)"/>
+      <rect x="0" y="0" width="90" height="40" rx="7" fill="#F8D8CF" stroke="#E0594C" stroke-width="2"/>
+      <text x="45" y="18" text-anchor="middle" font-size="10" font-weight="600" fill="#A23929">Reg update</text>
+      <text x="45" y="32" text-anchor="middle" font-size="9" fill="#A23929">SEC ruling</text>
+    </g>
+
+    <!-- "doesn't see" hand-drawn arrows from floating items toward (but stopping before) disk -->
+    <path d="M 92 100 Q 100 110 96 118" stroke="#E0594C" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="3 3"/>
+    <path d="M 308 100 Q 300 110 304 118" stroke="#E0594C" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="3 3"/>
+    <path d="M 92 220 Q 100 220 96 220" stroke="#E0594C" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="3 3"/>
+    <path d="M 308 220 Q 300 220 304 220" stroke="#E0594C" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="3 3"/>
+
+    <!-- status — red warning -->
+    <g transform="translate(140,395)">
+      <path d="M 0 -14 L 14 12 L -14 12 Z" fill="#2A1F38" transform="translate(3,3)"/>
+      <path d="M 0 -14 L 14 12 L -14 12 Z" fill="#E0594C" stroke="#2A1F38" stroke-width="2.5"/>
+      <text x="0" y="8" text-anchor="middle" font-size="14" font-weight="800" fill="#FEFCF3">!</text>
+    </g>
+    <text x="170" y="402" font-size="13" font-weight="600" fill="#A23929">Stale answer · full confidence</text>
+  </g>
+
+  <!-- bottom annotation -->
+  <text x="550" y="600" text-anchor="middle" font-size="13" font-style="italic" fill="#46395A">Documents are time-bounded facts. A flat index treats them as eternal — and that's FM4.</text>
+</svg>

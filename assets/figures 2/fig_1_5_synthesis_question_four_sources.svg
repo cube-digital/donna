@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 760" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t15 d15">
+  <title id="t15">Figure 1.5 — One synthesis question, four sources</title>
+  <desc id="d15">A single high-stakes question sits in the center. Four sources arrayed around it (documents and partner memos in warm semantic colors; EMS and CRM in cool structural colors) each contribute a different piece of evidence through a different query language.</desc>
+  <rect width="1100" height="760" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots15" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+    <radialGradient id="grape15" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#C684E8"/>
+      <stop offset="100%" stop-color="#7A2EAE"/>
+    </radialGradient>
+  </defs>
+  <rect width="1100" height="760" fill="url(#dots15)"/>
+
+  <text x="60" y="44" font-size="22" font-weight="600" fill="#2A1F38">One synthesis question · four sources · no shared query language</text>
+
+  <!-- ── Central question card ── -->
+  <g transform="translate(280,290)">
+    <rect x="0" y="0" width="540" height="170" rx="16" fill="#2A1F38" transform="translate(6,6)"/>
+    <rect x="0" y="0" width="540" height="170" rx="16" fill="#F4D34A" stroke="#2A1F38" stroke-width="3"/>
+    <text x="270" y="34" text-anchor="middle" font-size="13" font-weight="700" fill="#7E6420" letter-spacing="1">THE SYNTHESIS QUESTION</text>
+    <text x="270" y="74" text-anchor="middle" font-size="18" font-weight="700" fill="#2A1F38">"Is this benchmark current enough, and</text>
+    <text x="270" y="100" text-anchor="middle" font-size="18" font-weight="700" fill="#2A1F38">applicable enough, to put in the client deck</text>
+    <text x="270" y="126" text-anchor="middle" font-size="18" font-weight="700" fill="#2A1F38">— and is the analysis still in scope?"</text>
+    <text x="270" y="156" text-anchor="middle" font-size="12" font-style="italic" fill="#46395A">no single retrieval pipeline can answer this</text>
+  </g>
+
+  <!-- ── Four sources around the question ── -->
+
+  <!-- TOP-LEFT — Documents (semantic, vector search) -->
+  <g transform="translate(60,100)">
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#FBD8B8" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#7C3F12">Document corpus</text>
+    <text x="120" y="52" text-anchor="middle" font-size="11" fill="#7C3F12">methodology · how the</text>
+    <text x="120" y="68" text-anchor="middle" font-size="11" fill="#7C3F12">benchmark is computed</text>
+    <!-- query lang chip -->
+    <rect x="50" y="84" width="140" height="22" rx="11" fill="#2A1F38"/>
+    <text x="120" y="100" text-anchor="middle" font-size="11" font-family="'Geist Mono',monospace" font-weight="600" fill="#F4D34A">vector search</text>
+  </g>
+
+  <!-- TOP-RIGHT — EMS (structural, SQL) -->
+  <g transform="translate(800,100)">
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1F3D6E">EMS</text>
+    <text x="120" y="52" text-anchor="middle" font-size="11" fill="#1F3D6E">client segment · growth stage</text>
+    <text x="120" y="68" text-anchor="middle" font-size="11" fill="#1F3D6E">budget remaining</text>
+    <rect x="50" y="84" width="140" height="22" rx="11" fill="#2A1F38"/>
+    <text x="120" y="100" text-anchor="middle" font-size="11" font-family="'Geist Mono',monospace" font-weight="600" fill="#F4D34A">SQL</text>
+  </g>
+
+  <!-- BOTTOM-LEFT — Partner memos (semantic, graph) -->
+  <g transform="translate(60,540)">
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#FBD8B8" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#7C3F12">Partner memos</text>
+    <text x="120" y="52" text-anchor="middle" font-size="11" fill="#7C3F12">has the benchmark</text>
+    <text x="120" y="68" text-anchor="middle" font-size="11" fill="#7C3F12">been superseded?</text>
+    <rect x="40" y="84" width="160" height="22" rx="11" fill="#2A1F38"/>
+    <text x="120" y="100" text-anchor="middle" font-size="11" font-family="'Geist Mono',monospace" font-weight="600" fill="#F4D34A">graph traversal</text>
+  </g>
+
+  <!-- BOTTOM-RIGHT — CRM (structural, SQL) -->
+  <g transform="translate(800,540)">
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="240" height="120" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="120" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1F3D6E">Client CRM</text>
+    <text x="120" y="52" text-anchor="middle" font-size="11" fill="#1F3D6E">MSA · SOW status</text>
+    <text x="120" y="68" text-anchor="middle" font-size="11" fill="#1F3D6E">billing terms</text>
+    <rect x="50" y="84" width="140" height="22" rx="11" fill="#2A1F38"/>
+    <text x="120" y="100" text-anchor="middle" font-size="11" font-family="'Geist Mono',monospace" font-weight="600" fill="#F4D34A">SQL</text>
+  </g>
+
+  <!-- Arrows pointing INTO question -->
+  <path d="M 290 220 Q 330 260 408 295 M 396 287 L 412 297 L 402 305" stroke="#7C3F12" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 810 220 Q 770 260 692 295 M 698 305 L 688 297 L 704 287" stroke="#1F3D6E" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 290 540 Q 330 500 408 460 M 402 450 L 412 458 L 396 466" stroke="#7C3F12" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 810 540 Q 770 500 692 460 M 704 466 L 688 458 L 698 450" stroke="#1F3D6E" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ── Donna mascot + speech bubble, between the top sources ── -->
+  <!-- Donna character -->
+  <g transform="translate(380,150)">
+    <g transform="translate(4,4)">
+      <path d="M -32 70 Q -32 45 0 45 Q 32 45 32 70 L 38 120 L -38 120 Z" fill="#2A1F38"/>
+      <ellipse cx="0" cy="10" rx="36" ry="40" fill="#2A1F38"/>
+      <path d="M -36 8 Q -38 -22 -20 -32 Q -2 -42 18 -33 Q 36 -22 36 6 Q 36 16 32 32 L 32 42 Q 22 52 8 48 L 6 32 Q -2 36 -12 32 L -14 44 Q -26 52 -36 36 Z" fill="#2A1F38"/>
+    </g>
+    <path d="M -32 70 Q -32 45 0 45 Q 32 45 32 70 L 38 120 L -38 120 Z" fill="url(#grape15)" stroke="#2A1F38" stroke-width="2.5"/>
+    <path d="M -8 50 L 0 68 L 8 50" fill="none" stroke="#2A1F38" stroke-width="2"/>
+    <path d="M -10 51 L 0 63 L 10 51 L 10 46 L -10 46 Z" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+    <rect x="-6" y="36" width="12" height="12" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2"/>
+    <ellipse cx="0" cy="10" rx="36" ry="40" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <path d="M -36 8 Q -38 -22 -20 -32 Q -2 -42 18 -33 Q 36 -22 36 6 Q 36 16 32 32 L 32 42 Q 22 52 8 48 L 6 32 Q -2 36 -12 32 L -14 44 Q -26 52 -36 36 Z" fill="#C84B3A" stroke="#2A1F38" stroke-width="2.5"/>
+    <ellipse cx="-10" cy="12" rx="2.8" ry="3.5" fill="#2A1F38"/>
+    <ellipse cx="10" cy="12" rx="2.8" ry="3.5" fill="#2A1F38"/>
+    <circle cx="-9" cy="11" r="0.9" fill="#FEFCF3"/>
+    <circle cx="11" cy="11" r="0.9" fill="#FEFCF3"/>
+    <path d="M -16 3 Q -10 0 -4 3" stroke="#2A1F38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M 4 0 Q 10 -3 16 3" stroke="#2A1F38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M -9 28 Q 0 33 11 28" stroke="#2A1F38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M -9 28 Q 0 31 11 28 Q 0 30 -9 28 Z" fill="#D63A2E"/>
+    <circle cx="18" cy="27" r="1.2" fill="#2A1F38"/>
+  </g>
+
+  <!-- Sparkle next to Donna -->
+  <g transform="translate(345,120)" opacity="0.85">
+    <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+
+  <!-- Speech bubble — to the RIGHT of Donna, in the gap between top sources -->
+  <g transform="translate(440,140)">
+    <rect x="0" y="0" width="340" height="92" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="340" height="92" rx="11" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <!-- tail pointing LEFT toward Donna's face (Donna at translate 380,150 — face center around (380, 160)) -->
+    <path d="M 0 18 L -20 22 L 0 30 Z" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="22" font-size="10" font-weight="800" fill="#9A4DD0" letter-spacing="0.8">DONNA SAYS</text>
+    <text x="170" y="46" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">No single source can answer this.</text>
+    <text x="170" y="66" text-anchor="middle" font-size="14" font-style="italic" font-family="'Caveat','Comic Sans MS',cursive" fill="#9A4DD0">composition happens at query time.</text>
+    <text x="170" y="84" text-anchor="middle" font-size="11" font-style="italic" fill="#46395A">— that's the whole point of an agentic loop</text>
+  </g>
+
+  <!-- Sparkle around the question -->
+  <g transform="translate(835,295)" opacity="0.7">
+    <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(265,455)" opacity="0.7">
+    <path d="M 0 -8 L 2 -2 L 8 0 L 2 2 L 0 8 L -2 2 L -8 0 L -2 -2 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+
+  <!-- Legend bottom -->
+  <g transform="translate(440,700)">
+    <rect x="0" y="0" width="20" height="14" rx="3" fill="#FBD8B8" stroke="#2A1F38" stroke-width="1.5"/>
+    <text x="28" y="11" font-size="11" fill="#7C3F12" font-weight="600">semantic</text>
+    <text x="92" y="11" font-size="11" font-style="italic" fill="#46395A">(embed + extract)</text>
+    <rect x="200" y="0" width="20" height="14" rx="3" fill="#C8DEF9" stroke="#2A1F38" stroke-width="1.5"/>
+    <text x="228" y="11" font-size="11" fill="#1F3D6E" font-weight="600">structural</text>
+    <text x="290" y="11" font-size="11" font-style="italic" fill="#46395A">(query directly · never embed)</text>
+  </g>
+
+  <text x="550" y="740" text-anchor="middle" font-size="12" font-style="italic" fill="#46395A">The semantic / structural split is decided in discovery — Chapter 2.</text>
+</svg>

@@ -105,8 +105,28 @@ def ingest_fathom_meeting(
         },
     )
 
+    # Cortex hop — best-effort. Bronze write must not be blocked by
+    # downstream Cortex failures; log + continue. The cortex_entity
+    # row is recreated on next ingest via the (workspace, content_hash)
+    # idempotency key.
+    cortex_entity_id: str | None = None
+    try:
+        from donna.cortex.pipeline import CortexWriter
+
+        cortex_entity = CortexWriter().write(package)
+        cortex_entity_id = str(cortex_entity.id)
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "cortex_write_failed",
+            extra={
+                "workspace_id":        workspace_id,
+                "delivery_package_id": str(package.id),
+            },
+        )
+
     return {
         "storage_key":         storage_key,
         "delivery_package_id": str(package.id),
+        "cortex_entity_id":    cortex_entity_id,
         "created":             created,
     }

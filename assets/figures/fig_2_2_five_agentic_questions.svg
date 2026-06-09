@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 820" font-family="'Fredoka','Trebuchet MS',sans-serif" role="img" aria-labelledby="t22 d22">
+  <title id="t22">Figure 2.2 — Five agentic questions overlaid on four phases</title>
+  <desc id="d22">The four phases sit slim at the bottom. Above them, four small question cards point down to their phase. A fifth question, drawn larger and in grape, spans the whole row and fans down to all four phases — labeled as "the one this book turns on". Donna stands beside Q5 with a sparkle-aha expression.</desc>
+  <rect width="1300" height="820" fill="#FAF6E8"/>
+  <defs>
+    <pattern id="dots22" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#2A1F38" fill-opacity="0.05"/>
+    </pattern>
+    <radialGradient id="grape22" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#C684E8"/>
+      <stop offset="100%" stop-color="#7A2EAE"/>
+    </radialGradient>
+  </defs>
+  <rect width="1300" height="820" fill="url(#dots22)"/>
+
+  <text x="60" y="44" font-size="22" font-weight="600" fill="#2A1F38">Generic discovery + five agentic questions</text>
+  <text x="60" y="68" font-size="14" font-style="italic" fill="#46395A">Standard methods ask the first four. Agentic discovery also asks the fifth — and the fifth decides the architecture.</text>
+
+  <!-- ═══════ ROW 1: Q1-Q4 question cards ═══════ -->
+  <!-- Q1 -->
+  <g transform="translate(70,120)">
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#C8DEF9" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="12" font-weight="800" fill="#1F3D6E">Q1</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Where does a wrong answer</text>
+    <text x="125" y="64" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">turn into a costly decision?</text>
+    <text x="125" y="92" text-anchor="middle" font-size="11" font-style="italic" fill="#46395A">→ cost surface</text>
+    <text x="125" y="108" text-anchor="middle" font-size="10" fill="#46395A">drives abstention (Ch 7)</text>
+  </g>
+
+  <!-- Q2 -->
+  <g transform="translate(340,120)">
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#85D5B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="12" font-weight="800" fill="#1E5C3D">Q2</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Which queries need evidence from</text>
+    <text x="125" y="64" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">sources w/o shared query language?</text>
+    <text x="125" y="92" text-anchor="middle" font-size="11" font-style="italic" fill="#46395A">→ do you have an agentic</text>
+    <text x="125" y="108" text-anchor="middle" font-size="11" font-style="italic" fill="#46395A">problem at all?</text>
+  </g>
+
+  <!-- Q3 -->
+  <g transform="translate(610,120)">
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#FBD8B8" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="12" font-weight="800" fill="#7C3F12">Q3</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Which decisions need</text>
+    <text x="125" y="64" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">evidence fresh at query time?</text>
+    <text x="125" y="92" text-anchor="middle" font-size="11" font-style="italic" fill="#46395A">→ freshness model</text>
+    <text x="125" y="108" text-anchor="middle" font-size="10" fill="#46395A">drives reconciliation (Ch 5)</text>
+  </g>
+
+  <!-- Q4 -->
+  <g transform="translate(880,120)">
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="250" height="120" rx="11" fill="#F8D8CF" stroke="#2A1F38" stroke-width="2.5"/>
+    <text x="14" y="26" font-size="12" font-weight="800" fill="#A23929">Q4</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">What does a confident-wrong</text>
+    <text x="125" y="64" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">answer cost, specifically?</text>
+    <text x="125" y="92" text-anchor="middle" font-size="11" font-style="italic" fill="#46395A">→ cost-of-loop budget</text>
+    <text x="125" y="108" text-anchor="middle" font-size="10" fill="#46395A">$5-8/q · only when worth it</text>
+  </g>
+
+  <!-- ═══════ ROW 2: Q5 — large, spanning, accent ═══════ -->
+  <g transform="translate(70,290)">
+    <rect x="0" y="0" width="1060" height="180" rx="16" fill="#2A1F38" transform="translate(6,6)"/>
+    <rect x="0" y="0" width="1060" height="180" rx="16" fill="url(#grape22)" stroke="#2A1F38" stroke-width="3"/>
+
+    <!-- big Q5 label -->
+    <text x="40" y="44" font-size="20" font-weight="800" fill="#FEFCF3">Q5</text>
+    <text x="40" y="68" font-size="12" font-style="italic" fill="#ECDDF6">— the one this book turns on</text>
+
+    <!-- the question -->
+    <text x="530" y="56" text-anchor="middle" font-size="24" font-weight="800" fill="#FEFCF3">When must reasoning happen —</text>
+    <text x="530" y="88" text-anchor="middle" font-size="24" font-weight="800" fill="#FEFCF3">at query time, or prepared in advance?</text>
+
+    <!-- two buckets -->
+    <g transform="translate(140,110)">
+      <rect x="0" y="0" width="340" height="56" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+      <text x="170" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#2A1F38">compile-time layer</text>
+      <text x="170" y="42" text-anchor="middle" font-size="11" fill="#46395A">stable answers · methodology · history</text>
+    </g>
+    <text x="495" y="146" text-anchor="middle" font-size="22" font-weight="700" fill="#F4D34A">vs</text>
+    <g transform="translate(540,110)">
+      <rect x="0" y="0" width="340" height="56" rx="9" fill="#FEFCF3" stroke="#2A1F38" stroke-width="2"/>
+      <text x="170" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#2A1F38">query-time loop</text>
+      <text x="170" y="42" text-anchor="middle" font-size="11" fill="#46395A">live state · SOW · judgment calls</text>
+    </g>
+
+    <!-- forward ref tag -->
+    <g transform="translate(910,128)">
+      <rect x="0" y="0" width="120" height="22" rx="6" fill="#F4D34A" stroke="#2A1F38" stroke-width="2"/>
+      <text x="60" y="15" text-anchor="middle" font-size="10" font-weight="700" fill="#2A1F38">unpacked in §2.6</text>
+    </g>
+  </g>
+
+  <!-- Arrows: Q1→Q5 banner (short, do not cross Q5) -->
+  <path d="M 195 240 L 195 282 M 187 274 L 195 284 L 203 274" stroke="#1F3D6E" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+  <path d="M 465 240 L 465 282 M 457 274 L 465 284 L 473 274" stroke="#1E5C3D" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+  <path d="M 735 240 L 735 282 M 727 274 L 735 284 L 743 274" stroke="#7C3F12" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+  <path d="M 1005 240 L 1005 282 M 997 274 L 1005 284 L 1013 274" stroke="#A23929" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+
+  <!-- Q5 fanning arrows to ALL phases (thick, grape) -->
+  <path d="M 250 470 L 195 540 M 195 530 L 197 543 L 207 535" stroke="#9A4DD0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 430 470 L 465 540 M 466 530 L 469 543 L 459 540" stroke="#9A4DD0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 700 470 L 735 540 M 736 530 L 739 543 L 729 540" stroke="#9A4DD0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 920 470 L 1005 540 M 1006 530 L 1009 543 L 999 540" stroke="#9A4DD0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ═══════ ROW 3: Four phase boxes (slim, deemphasized) ═══════ -->
+  <g transform="translate(70,545)">
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#EFE6CB" stroke="#46395A" stroke-width="2"/>
+    <text x="125" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#46395A">PHASE 1</text>
+    <text x="125" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Domain Immersion</text>
+  </g>
+
+  <g transform="translate(340,545)">
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#EFE6CB" stroke="#46395A" stroke-width="2"/>
+    <text x="125" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#46395A">PHASE 2</text>
+    <text x="125" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Workflow Excavation</text>
+  </g>
+
+  <g transform="translate(610,545)">
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#EFE6CB" stroke="#46395A" stroke-width="2"/>
+    <text x="125" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#46395A">PHASE 3</text>
+    <text x="125" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Artifact Creation</text>
+  </g>
+
+  <g transform="translate(880,545)">
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#2A1F38" transform="translate(3,3)"/>
+    <rect x="0" y="0" width="250" height="62" rx="9" fill="#EFE6CB" stroke="#46395A" stroke-width="2"/>
+    <text x="125" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#46395A">PHASE 4</text>
+    <text x="125" y="46" text-anchor="middle" font-size="12" font-weight="600" fill="#2A1F38">Validation</text>
+  </g>
+
+  <!-- ═══════ DONNA — beside Q5, sparkle-aha expression ═══════ -->
+  <g transform="translate(1180,360)">
+    <g transform="translate(4,4)">
+      <path d="M -32 75 Q -32 50 0 50 Q 32 50 32 75 L 38 130 L -38 130 Z" fill="#2A1F38"/>
+      <ellipse cx="0" cy="12" rx="38" ry="42" fill="#2A1F38"/>
+      <path d="M -38 10 Q -40 -24 -22 -34 Q -2 -45 22 -36 Q 38 -24 38 8 Q 38 18 34 36 L 34 44 Q 22 56 6 50 L 4 36 Q -4 40 -14 36 L -16 47 Q -28 56 -38 38 Z" fill="#2A1F38"/>
+    </g>
+    <path d="M -32 75 Q -32 50 0 50 Q 32 50 32 75 L 38 130 L -38 130 Z" fill="url(#grape22)" stroke="#2A1F38" stroke-width="2.5"/>
+    <rect x="-7" y="40" width="14" height="14" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2"/>
+    <ellipse cx="0" cy="12" rx="38" ry="42" fill="#F2C9B0" stroke="#2A1F38" stroke-width="2.5"/>
+    <path d="M -38 10 Q -40 -24 -22 -34 Q -2 -45 22 -36 Q 38 -24 38 8 Q 38 18 34 36 L 34 44 Q 22 56 6 50 L 4 36 Q -4 40 -14 36 L -16 47 Q -28 56 -38 38 Z" fill="#C84B3A" stroke="#2A1F38" stroke-width="2.5"/>
+    <!-- WIDE eyes (sparkle aha) -->
+    <circle cx="-11" cy="13" r="4.5" fill="#2A1F38"/>
+    <circle cx="11" cy="13" r="4.5" fill="#2A1F38"/>
+    <circle cx="-10" cy="11" r="1.5" fill="#FEFCF3"/>
+    <circle cx="12" cy="11" r="1.5" fill="#FEFCF3"/>
+    <!-- raised brows -->
+    <path d="M -19 -2 Q -13 -6 -5 -2" stroke="#2A1F38" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M 5 -2 Q 13 -6 19 -2" stroke="#2A1F38" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- O mouth (aha) -->
+    <ellipse cx="0" cy="32" rx="5" ry="6.5" fill="#2A1F38"/>
+  </g>
+
+  <!-- Multiple sparkles around Donna's head — "aha" -->
+  <g transform="translate(1130,330)">
+    <path d="M 0 -12 L 3 -3 L 12 0 L 3 3 L 0 12 L -3 3 L -12 0 L -3 -3 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(1230,300)">
+    <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(1245,400)" opacity="0.75">
+    <path d="M 0 -8 L 2 -2 L 8 0 L 2 2 L 0 8 L -2 2 L -8 0 L -2 -2 Z" fill="#9A4DD0" stroke="#2A1F38" stroke-width="1.5"/>
+  </g>
+
+  <!-- Donna sidebar — below phase row, no misleading tail (sparkle dots connect her visually) -->
+  <g transform="translate(870,640)">
+    <rect x="0" y="0" width="380" height="100" rx="11" fill="#2A1F38" transform="translate(4,4)"/>
+    <rect x="0" y="0" width="380" height="100" rx="11" fill="#FEFCF3" stroke="#9A4DD0" stroke-width="2.5"/>
+    <text x="16" y="22" font-size="10" font-weight="800" fill="#9A4DD0" letter-spacing="0.8">DONNA SAYS ✦</text>
+    <text x="190" y="48" text-anchor="middle" font-size="13" font-weight="600" fill="#2A1F38">Standard discovery never asks Q5.</text>
+    <text x="190" y="68" text-anchor="middle" font-size="12" font-style="italic" fill="#46395A">That's why the architecture gets decided</text>
+    <text x="190" y="84" text-anchor="middle" font-size="12" font-style="italic" fill="#46395A">by code defaults instead.</text>
+  </g>
+  <!-- trail of small sparkles connecting Donna at (1180,360) → sidebar at (870,640) -->
+  <g transform="translate(1170,540)" opacity="0.4">
+    <path d="M 0 -5 L 1.5 -1.5 L 5 0 L 1.5 1.5 L 0 5 L -1.5 1.5 L -5 0 L -1.5 -1.5 Z" fill="#9A4DD0"/>
+  </g>
+  <g transform="translate(1110,605)" opacity="0.5">
+    <path d="M 0 -5 L 1.5 -1.5 L 5 0 L 1.5 1.5 L 0 5 L -1.5 1.5 L -5 0 L -1.5 -1.5 Z" fill="#9A4DD0"/>
+  </g>
+  <g transform="translate(1050,635)" opacity="0.6">
+    <path d="M 0 -6 L 2 -2 L 6 0 L 2 2 L 0 6 L -2 2 L -6 0 L -2 -2 Z" fill="#9A4DD0"/>
+  </g>
+
+  <!-- Bottom annotation -->
+  <text x="600" y="775" text-anchor="middle" font-size="13" font-style="italic" fill="#46395A">Generic methods surface what the user does. Agentic discovery also surfaces: defer · route · abstain · prepare in advance.</text>
+</svg>

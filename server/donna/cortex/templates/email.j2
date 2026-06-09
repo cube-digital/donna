@@ -1,0 +1,19 @@
+---
+type: email
+title: {{ title }}
+{% if occurred_at %}occurred_at: {{ occurred_at }}{% endif %}
+parent_path: {{ data.parent_path }}
+slug: {{ data.slug }}
+template_version: email@v1
+{% if data.thread_id %}thread_id: "{{ data.thread_id }}"{% endif %}
+{% if data.participants_emails %}participants_emails:
+{% for p in data.participants_emails %}  - "{{ p.name or '' }} <{{ p.addr }}>{% if p.role %} ({{ p.role }}){% endif %}"
+{% endfor %}{% endif %}
+{% if data.cluster_name %}cluster_name: "{{ data.cluster_name }}"{% endif %}
+---
+
+# {{ title }}
+
+{{ body }}
+
+Source: {{ source_uri }} ({{ bronze_storage_key }})

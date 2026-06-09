@@ -23,7 +23,10 @@
 
 services:
   database:
-    image: postgres:17-alpine
+    # Bundles pgvector so the Cortex layer's `vector(384)` column +
+    # IVFFLAT index can be created. Same PG17 wire protocol + on-disk
+    # format as ``postgres:17-alpine`` → existing volumes mount as-is.
+    image: pgvector/pgvector:pg17
     container_name: donna-database
     environment:
       POSTGRES_DB:       ${DATABASE_NAME:-donna}

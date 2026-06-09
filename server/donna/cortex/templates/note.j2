@@ -1,0 +1,18 @@
+---
+type: note
+title: {{ title }}
+{% if occurred_at %}occurred_at: {{ occurred_at }}{% endif %}
+parent_path: {{ data.parent_path }}
+slug: {{ data.slug }}
+template_version: note@v1
+note_type: {{ data.note_type }}
+{% if data.why %}why: "{{ data.why }}"{% endif %}
+{% if data.is_open_question %}is_open_question: true{% endif %}
+{% if data.cluster_name %}cluster_name: "{{ data.cluster_name }}"{% endif %}
+---
+
+# {{ title }}
+
+{{ body }}
+
+Source: {{ source_uri }} ({{ bronze_storage_key }})

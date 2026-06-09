@@ -1,0 +1,20 @@
+---
+type: meeting
+title: {{ title }}
+{% if occurred_at %}occurred_at: {{ occurred_at }}{% endif %}
+parent_path: {{ data.parent_path }}
+slug: {{ data.slug }}
+template_version: meeting@v1
+{% if data.attendees %}attendees:
+{% for a in data.attendees %}  - "{{ a.name or a.email }}{% if a.email %} <{{ a.email }}>{% endif %}{% if a.role %} ({{ a.role }}){% endif %}"
+{% endfor %}{% endif %}
+{% if data.duration_min %}duration_min: {{ data.duration_min }}{% endif %}
+{% if data.recording_url %}recording_url: "{{ data.recording_url }}"{% endif %}
+{% if data.cluster_name %}cluster_name: "{{ data.cluster_name }}"{% endif %}
+---
+
+# {{ title }}
+
+{{ body }}
+
+Source: {{ source_uri }} ({{ bronze_storage_key }})
