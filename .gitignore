@@ -24,6 +24,7 @@ __pycache__/
 /parts/
 /sdist/
 /var/
+server/var/
 /wheels/
 /share/python-wheels/
 *.egg-info/
