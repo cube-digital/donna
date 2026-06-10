@@ -39,6 +39,11 @@ INSTALLED_APPS = [
 
     # Third-party
     "rest_framework",
+    # simplejwt token blacklist — required for POST /api/auth/token/blacklist
+    # (and /api/auth/logout, which aliases it) to actually invalidate the
+    # refresh token. Without this app the endpoint accepts the request and
+    # returns 200 but the token continues to refresh successfully.
+    "rest_framework_simplejwt.token_blacklist",
     "channels",                          # Django Channels — WS transport (see plans/10-realtime-layer.md)
     "drf_spectacular",                   # OpenAPI schema + Swagger UI
 
@@ -48,6 +53,7 @@ INSTALLED_APPS = [
     "donna.workspaces",
     "donna.authentication",
     "donna.authorization",
+    "donna.audit",
     "donna.chat",
     "donna.integrations",
     "donna.notifications",
@@ -171,6 +177,12 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME":  timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "AUTH_HEADER_TYPES":      ("Bearer",),
+    # Rotate the refresh token on every refresh + blacklist the previous
+    # one. With ``token_blacklist`` installed (see INSTALLED_APPS), this
+    # also makes the explicit /token/blacklist + /logout endpoints
+    # actually invalidate the token instead of being decorative.
+    "ROTATE_REFRESH_TOKENS":    True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # ─── Auth + frontend ──────────────────────────────────────────────────────────

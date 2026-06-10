@@ -38,9 +38,17 @@ import {
   GPopover,
   GlyphSlot,
 } from "../Goofy";
+import { listMembers } from "../../api/chat";
 import { useChannels } from "../../state/channels";
 import { errorToast } from "../../state/toasts";
-import type { AgentRef, Channel, Message, User } from "../../types";
+import type {
+  AgentRef,
+  Channel,
+  ChannelMembership,
+  Message,
+  User,
+} from "../../types";
+import { ManageMembersDialog } from "./ManageMembersDialog";
 
 interface ChannelHeaderProps {
   channel: Channel;
@@ -106,6 +114,29 @@ export default function ChannelHeader({
 }: ChannelHeaderProps) {
   const isDM = channel.kind === "direct";
 
+  // Real members from GET /chat/channels/{id}/members/. Falls back to
+  // the message-author inference below if the call fails (e.g. browse-
+  // public view where the caller isn't a member yet — server returns
+  // 403 in that case, which is correct).
+  const [memberships, setMemberships] = useState<ChannelMembership[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setMemberships(null);
+    void listMembers(channel.id)
+      .then((rows) => {
+        if (!cancelled) setMemberships(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setMemberships(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [channel.id]);
+
+  // Author-derived sets — used as the *visual* roster for now (need the
+  // full names + emails that ``listMembers`` doesn't return on its own).
+  // The authoritative count comes from ``memberships``.
   const humans = useMemo(() => dedupeUsers(channelMessages), [channelMessages]);
   const agents = useMemo(
     () => dedupeAgents(channelMessages),
@@ -113,15 +144,22 @@ export default function ChannelHeader({
   );
 
   const visibleHumans = humans.slice(0, 4);
-  const overflowHumans = Math.max(0, humans.length - visibleHumans.length);
+  const overflowHumans = Math.max(
+    0,
+    (memberships?.length ?? humans.length) - visibleHumans.length,
+  );
   const visibleAgents = agents.slice(0, 3);
 
   // Pinned topics — until a `pinned_titles` field lands we use the
   // channel topic if present.
   const pinned = channel.topic ? channel.topic : "—";
   const metaParts: string[] = [];
-  if (humans.length)
-    metaParts.push(`${humans.length} member${humans.length === 1 ? "" : "s"}`);
+  // Authoritative count when we have it; fall back to the observed
+  // humans set so the chrome still shows a sensible number while the
+  // members fetch is in flight (or after a 403 for non-members).
+  const memberCount = memberships?.length ?? humans.length;
+  if (memberCount)
+    metaParts.push(`${memberCount} member${memberCount === 1 ? "" : "s"}`);
   if (agents.length)
     metaParts.push(`${agents.length} AI`);
   metaParts.push(`Pinned: ${pinned}`);
@@ -219,6 +257,7 @@ export default function ChannelHeader({
 function ChannelActionsMenu({ channel }: { channel: Channel }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const updateChannel = useChannels((s) => s.updateChannel);
@@ -335,6 +374,17 @@ function ChannelActionsMenu({ channel }: { channel: Channel }) {
           </GMenuItem>
           <GMenuSep />
           <GMenuItem
+            icon="share"
+            aria-disabled={busy}
+            onClick={handleClick(() => {
+              setOpen(false);
+              setMembersOpen(true);
+            })}
+          >
+            Manage members
+          </GMenuItem>
+          <GMenuSep />
+          <GMenuItem
             danger
             icon="trash"
             aria-disabled={busy}
@@ -344,6 +394,11 @@ function ChannelActionsMenu({ channel }: { channel: Channel }) {
           </GMenuItem>
         </GPopover>
       )}
+      <ManageMembersDialog
+        channel={channel}
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
+      />
     </div>
   );
 }

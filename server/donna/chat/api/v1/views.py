@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -57,36 +56,44 @@ class ChannelListCreateView(generics.ListCreateAPIView):
         """
         By default lists only channels the caller is a member of.
 
-        Pass ``?include_public=true`` to also surface public channels
-        in the workspace the caller hasn't joined yet (Slack-style
-        "browse"). Self-join is then a POST to
+        Pass ``?include_public=true`` to also surface public named
+        channels in the workspace the caller hasn't joined yet
+        (Slack-style "browse"). Self-join is then a POST to
         ``/chat/channels/{id}/members/``.
 
-        DMs (kind=DIRECT) are always excluded from the browse path —
-        public discovery wouldn't make sense for them.
+        GUEST role: include_public is silently ignored — guests only
+        see channels they were explicitly added to. The role-aware
+        filter lives in :meth:`ChannelService.visible_channels`.
         """
-        user = self.request.user
-        workspace = self.request.workspace
         include_public = (
             self.request.query_params.get("include_public", "").lower()
             in ("1", "true", "yes")
         )
-
-        base = Channel.objects.filter(workspace=workspace)
-        if include_public:
-            qs = base.filter(
-                Q(memberships__user=user)
-                | Q(
-                    visibility=Channel.Visibility.PUBLIC,
-                    kind=Channel.Kind.CHANNEL,
-                )
+        return (
+            ChannelService.visible_channels(
+                user=self.request.user,
+                workspace=self.request.workspace,
+                include_public=include_public,
             )
-        else:
-            qs = base.filter(memberships__user=user)
-        return qs.distinct().order_by("name")
+            .order_by("name")
+        )
 
     def create(self, request, *args, **kwargs):
-        serializer = ChannelCreateSerializer(data=request.data)
+        # Guests can be members of channels but cannot create them.
+        try:
+            ChannelService.refuse_if_guest(
+                user=request.user,
+                workspace=request.workspace,
+                action="create channels",
+            )
+        except PermissionError as exc:
+            raise PermissionDenied(str(exc)) from exc
+
+        # ``context={"request": request}`` so the slug validator can
+        # check workspace-scoped uniqueness before the DB CHECK fires.
+        serializer = ChannelCreateSerializer(
+            data=request.data, context={"request": request},
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
@@ -127,17 +134,14 @@ class ChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
         PUBLIC named channels in the workspace (so GET works for the
         browse-without-join flow). PATCH/DELETE are still gated by
         ``_require_admin`` below, so visibility is read-only for non
-        members.
+        members. Guest gating is centralized in
+        :meth:`ChannelService.visible_channels`.
         """
-        user = self.request.user
-        workspace = self.request.workspace
-        return Channel.objects.filter(workspace=workspace).filter(
-            Q(memberships__user=user)
-            | Q(
-                visibility=Channel.Visibility.PUBLIC,
-                kind=Channel.Kind.CHANNEL,
-            )
-        ).distinct()
+        return ChannelService.visible_channels(
+            user=self.request.user,
+            workspace=self.request.workspace,
+            include_public=True,
+        )
 
     def _require_admin(self, channel):
         membership = _require_channel_membership(self.request.user, channel)
@@ -150,11 +154,26 @@ class ChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         serializer = ChannelUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        for field, value in serializer.validated_data.items():
+        validated = serializer.validated_data
+
+        # Snapshot fields we audit before mutating.
+        old_settings = dict(channel.settings or {})
+
+        for field, value in validated.items():
             setattr(channel, field, value)
         channel.modified_by = request.user
         channel.save()
         ChannelService.emit_channel_updated(channel)
+
+        if "settings" in validated:
+            from donna.audit.services import AuditService
+            AuditService.record(
+                action="channel.settings.updated",
+                actor=request.user,
+                workspace=channel.workspace,
+                target=channel,
+                context={"before": old_settings, "after": dict(channel.settings)},
+            )
         return Response(ChannelSerializer(channel).data)
 
     def destroy(self, request, *args, **kwargs):
@@ -289,8 +308,17 @@ class ChannelMembersView(APIView):
         )
 
         if is_self_join:
-            # Self-join only on public channels — private channels require
-            # an admin to invite. (GUEST gating is Phase 2.)
+            # Self-join only on public channels. Guests cannot self-join
+            # (workspace-level role gate); they can only be added by a
+            # channel admin (the admin-add branch below).
+            try:
+                ChannelService.refuse_if_guest(
+                    user=request.user,
+                    workspace=channel.workspace,
+                    action="self-join channels",
+                )
+            except PermissionError as exc:
+                raise PermissionDenied(str(exc)) from exc
             if channel.visibility != Channel.Visibility.PUBLIC:
                 raise PermissionDenied(
                     "self-join is only allowed on public channels"
@@ -298,9 +326,15 @@ class ChannelMembersView(APIView):
             target_user = request.user
             role = ChannelMembership.Role.MEMBER
         else:
-            # Admin-add — caller must hold ADMIN on the channel.
+            # Admin-add — caller must be a channel ADMIN, OR a regular
+            # member if the channel opts in via the documented
+            # ``allow_member_invites`` setting (Phase 2c).
             caller_membership = _require_channel_membership(request.user, channel)
-            if caller_membership.role != ChannelMembership.Role.ADMIN:
+            caller_is_admin = (
+                caller_membership.role == ChannelMembership.Role.ADMIN
+            )
+            members_can_invite = bool(channel.get_setting("allow_member_invites"))
+            if not (caller_is_admin or members_can_invite):
                 raise PermissionDenied(
                     "channel admin role required to add members"
                 )
@@ -309,6 +343,14 @@ class ChannelMembersView(APIView):
                 target_user = User.objects.get(id=target_user_id)
             except User.DoesNotExist as exc:
                 raise NotFound("target user not found") from exc
+            # Non-admin inviters cannot grant ADMIN role.
+            if (
+                not caller_is_admin
+                and requested_role == ChannelMembership.Role.ADMIN
+            ):
+                raise PermissionDenied(
+                    "only channel admins can grant the admin role"
+                )
             role = requested_role
 
         try:

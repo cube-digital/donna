@@ -9,14 +9,26 @@
 // WorkspaceMiddleware + the channel queryset.
 
 import { apiFetch } from "./client";
-import type { Channel, Message, Paginated } from "../types";
+import type {
+  Channel,
+  ChannelMembership,
+  ChannelMemberRole,
+  Message,
+  Paginated,
+} from "../types";
 
-export async function listChannels(): Promise<Channel[]> {
+export interface ListChannelsOpts {
+  /** Browse-public mode — also returns public channels the user isn't a member of. */
+  includePublic?: boolean;
+}
+
+export async function listChannels(opts: ListChannelsOpts = {}): Promise<Channel[]> {
   // Donna's renderer puts rows directly in `data` (pagination in `meta`),
   // so what comes out of apiFetch IS the array. Tolerate `{results}` too
   // for future-proofing.
+  const qs = opts.includePublic ? "?include_public=true" : "";
   const data = await apiFetch<Channel[] | Paginated<Channel>>(
-    "/api/v1/chat/channels/",
+    `/api/v1/chat/channels/${qs}`,
   );
   return Array.isArray(data) ? data : data.results;
 }
@@ -112,5 +124,82 @@ export async function markRead(
   await apiFetch(`/api/v1/chat/channels/${channelId}/read-state/`, {
     method: "POST",
     body: { message_id: messageId },
+  });
+}
+
+// ── Membership ──────────────────────────────────────────────────────────────
+// Backed by ChannelMembersView + ChannelMemberRemoveView in
+// server/donna/chat/api/v1/views.py. Server enforces:
+// - GET requires channel membership (403 otherwise)
+// - POST with body.user_id requires the caller to be channel admin
+// - POST with empty body is self-join (public channels only; guests
+//   denied at the workspace level)
+// - DELETE on self is leave; DELETE on others requires admin role
+
+/** List every membership row on a channel (caller must be a member). */
+export async function listMembers(
+  channelId: string,
+): Promise<ChannelMembership[]> {
+  return apiFetch<ChannelMembership[]>(
+    `/api/v1/chat/channels/${channelId}/members/`,
+  );
+}
+
+/** Admin invites a user. Backend dual-broadcasts so the invitee's WS
+ *  fires `channel.added.to_you` on `presence-user-{uid}`. */
+export async function addMember(
+  channelId: string,
+  userId: string,
+  role: ChannelMemberRole = "member",
+): Promise<ChannelMembership> {
+  return apiFetch<ChannelMembership>(
+    `/api/v1/chat/channels/${channelId}/members/`,
+    { method: "POST", body: { user_id: userId, role } },
+  );
+}
+
+/** Self-join a public channel (body intentionally empty). */
+export async function joinChannel(
+  channelId: string,
+): Promise<ChannelMembership> {
+  return apiFetch<ChannelMembership>(
+    `/api/v1/chat/channels/${channelId}/members/`,
+    { method: "POST", body: {} },
+  );
+}
+
+/** Leave (when `userId` matches caller) or admin-kick (otherwise).
+ *  204 No Content on success. */
+export async function removeMember(
+  channelId: string,
+  userId: string,
+): Promise<void> {
+  await apiFetch<void>(
+    `/api/v1/chat/channels/${channelId}/members/${userId}/`,
+    { method: "DELETE" },
+  );
+}
+
+// ── DMs ─────────────────────────────────────────────────────────────────────
+
+/** Open or create the 1:1 DM channel between the caller and ``peerUserId``
+ *  in the active workspace (header-tenanted). Idempotent: hitting the
+ *  endpoint twice with the same peer returns the same channel. */
+export async function openDM(peerUserId: string): Promise<Channel> {
+  return apiFetch<Channel>("/api/v1/chat/dms/", {
+    method: "POST",
+    body: { peer_user_id: peerUserId },
+  });
+}
+
+/** Open or create a group DM with N peers (caller is added implicitly).
+ *  Exact-set-match: a group DM already containing exactly this member
+ *  set is returned; a subset isn't a match. */
+export async function openGroupDM(
+  peerUserIds: string[],
+): Promise<Channel> {
+  return apiFetch<Channel>("/api/v1/chat/dms/group/", {
+    method: "POST",
+    body: { peer_user_ids: peerUserIds },
   });
 }

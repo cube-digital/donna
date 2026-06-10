@@ -23,8 +23,10 @@ from typing import Any
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
+from donna.audit.services import AuditService
 from donna.workspaces.models import WorkspaceMembership
 
 from .models import (
@@ -63,6 +65,52 @@ def agent_run_group(run_id) -> str:
 # ── Service ──────────────────────────────────────────────────────────────────
 class ChannelService:
     """All chat mutations live here. Views + WS consumer call into it."""
+
+    # ── Role / visibility helpers ───────────────────────────────────────────
+    @staticmethod
+    def _workspace_role(*, user, workspace) -> str | None:
+        return (
+            WorkspaceMembership.objects
+            .filter(user=user, workspace=workspace)
+            .values_list("role", flat=True)
+            .first()
+        )
+
+    @staticmethod
+    def visible_channels(*, user, workspace, include_public: bool = False):
+        """
+        QuerySet of channels in ``workspace`` the user may *see in a list*.
+
+        - Default: channels the user is a direct member of.
+        - ``include_public=True``: also surface public named channels
+          ("browse"), **except** when the caller is a GUEST — guests
+          only see channels they were explicitly added to.
+
+        DMs (``kind=DIRECT``) are always excluded from the
+        include-public branch — public discovery of DMs isn't meaningful.
+        """
+        base = Channel.objects.filter(workspace=workspace)
+        role = ChannelService._workspace_role(user=user, workspace=workspace)
+        is_guest = role == WorkspaceMembership.Role.GUEST
+
+        if include_public and not is_guest:
+            qs = base.filter(
+                Q(memberships__user=user)
+                | Q(
+                    visibility=Channel.Visibility.PUBLIC,
+                    kind=Channel.Kind.CHANNEL,
+                )
+            )
+        else:
+            qs = base.filter(memberships__user=user)
+        return qs.distinct()
+
+    @staticmethod
+    def refuse_if_guest(*, user, workspace, action: str = "perform this action") -> None:
+        """Raise PermissionError if ``user`` is a GUEST in ``workspace``."""
+        role = ChannelService._workspace_role(user=user, workspace=workspace)
+        if role == WorkspaceMembership.Role.GUEST:
+            raise PermissionError(f"guests cannot {action}")
 
     # ── Messages ────────────────────────────────────────────────────────────
     @staticmethod
@@ -334,16 +382,28 @@ class ChannelService:
     @staticmethod
     @transaction.atomic
     def advance_read_pointer(*, user, channel: Channel, message: Message) -> ChannelReadState:
-        """Move the (user, channel) pointer to ``message`` if it's a forward move."""
+        """
+        Move the (user, channel) pointer to ``message`` *iff* ``message``
+        is strictly newer (by ``created_at``) than the existing pointer.
+
+        Calls with an older or equal message are no-ops — the pointer
+        never regresses. This matches the docstring contract that
+        unread counts are monotonically decreasing for a given session.
+
+        The broadcast still fires on every call (so concurrent clients
+        can re-sync their UI even when the pointer didn't move on the
+        server).
+        """
         state, _ = ChannelReadState.objects.select_for_update().get_or_create(
             user=user, channel=channel
         )
 
-        # Only advance — never regress.
-        if (
-            state.last_read_message_id is None
-            or state.last_read_message_id != message.id
-        ):
+        if state.last_read_message_id is None:
+            advance = True
+        else:
+            current = state.last_read_message
+            advance = current is None or message.created_at > current.created_at
+        if advance:
             state.last_read_message = message
             state.last_read_at = timezone.now()
             state.save(update_fields=["last_read_message", "last_read_at", "updated_at"])
@@ -482,6 +542,18 @@ class ChannelService:
                 },
             },
         )
+
+        AuditService.record(
+            action="channel.member.added",
+            actor=added_by,
+            workspace=channel.workspace,
+            target=channel,
+            context={
+                "channel_id": str(channel.id),
+                "user_id":    str(user.id),
+                "role":       role,
+            },
+        )
         return membership
 
     @staticmethod
@@ -521,6 +593,18 @@ class ChannelService:
                     "channel_id": str(channel.id),
                     "removed_by": str(removed_by.id),
                 },
+            },
+        )
+
+        AuditService.record(
+            action="channel.member.removed",
+            actor=removed_by,
+            workspace=channel.workspace,
+            target=channel,
+            context={
+                "channel_id": str(channel.id),
+                "user_id":    str(user.id),
+                "self_leave": str(user.id) == str(removed_by.id),
             },
         )
         return True

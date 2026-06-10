@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from donna.workspaces.models import Workspace, WorkspaceMembership
+from donna.workspaces.models import Workspace, WorkspaceInvitation, WorkspaceMembership
 
 User = get_user_model()
 
@@ -86,3 +86,66 @@ class WorkspaceMembershipWriteSerializer(serializers.ModelSerializer):
                 {"user_id": "Required when creating a membership."}
             )
         return attrs
+
+
+class InvitationCreateSerializer(serializers.Serializer):
+    """Body for POST /api/v1/invitations/.
+
+    Both fields are optional:
+    - omit ``email`` for an invite-by-link (token is shared out-of-band)
+    - omit ``role`` to default to MEMBER
+    """
+
+    email = serializers.EmailField(required=False, allow_blank=True)
+    role = serializers.ChoiceField(
+        choices=WorkspaceMembership.Role.choices,
+        required=False,
+    )
+
+
+class InvitationReadSerializer(serializers.ModelSerializer):
+    workspace_name = serializers.CharField(source="workspace.name", read_only=True)
+    invited_by = _UserShortSerializer(read_only=True)
+
+    class Meta:
+        model = WorkspaceInvitation
+        fields = [
+            "id",
+            "workspace",
+            "workspace_name",
+            "invited_by",
+            "email",
+            "role",
+            "token",
+            "expires_at",
+            "status",
+            "accepted_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class InvitationPreviewSerializer(serializers.ModelSerializer):
+    """Lighter shape served by the unauthenticated preview endpoint.
+
+    Deliberately omits the token (the caller already has it in the URL)
+    and the inviter's full identity beyond display name, so a leaked
+    URL leaks the *least* extra metadata.
+    """
+
+    workspace_name = serializers.CharField(source="workspace.name", read_only=True)
+    invited_by_name = serializers.CharField(
+        source="invited_by.full_name", read_only=True
+    )
+
+    class Meta:
+        model = WorkspaceInvitation
+        fields = [
+            "workspace_name",
+            "invited_by_name",
+            "email",
+            "role",
+            "expires_at",
+            "status",
+        ]
+        read_only_fields = fields

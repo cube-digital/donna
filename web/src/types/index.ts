@@ -29,6 +29,7 @@ export interface WorkspaceMembership {
 
 export type ChannelKind = "channel" | "direct";
 export type ChannelVisibility = "public" | "private";
+export type ChannelMemberRole = "admin" | "member";
 
 export interface Channel {
   id: UUID;
@@ -38,8 +39,18 @@ export interface Channel {
   topic: string;
   visibility: ChannelVisibility;
   workspace: UUID;
+  /** Channel-scoped feature flags. See backend Channel.DEFAULT_SETTINGS. */
+  settings?: Record<string, unknown>;
   created_at: ISODateTime;
   updated_at: ISODateTime;
+}
+
+export interface ChannelMembership {
+  id: UUID;
+  channel: UUID;
+  user: UUID;
+  role: ChannelMemberRole;
+  created_at: ISODateTime;
 }
 
 export interface AgentRef {

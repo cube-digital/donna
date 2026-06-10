@@ -236,7 +236,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             raise ValueError("channel_id required")
         if not await self._authorize_channel(cid):
             raise PermissionError(f"no membership in channel {cid}")
-        ChannelService.emit_typing(channel_id=cid, user_id=self.user.id)
+        # ``emit_typing`` uses ``async_to_sync(layer.group_send)`` which
+        # raises ``RuntimeError`` when called from within a running
+        # event loop. Hand off to a worker thread (same pattern as
+        # ``send_message`` / ``edit_message`` actions).
+        await database_sync_to_async(ChannelService.emit_typing)(
+            channel_id=cid, user_id=self.user.id,
+        )
 
     async def _action_mark_read(self, content):
         cid = content.get("channel_id")
@@ -276,6 +282,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def _action_heartbeat(self, content):
+        # Sync Redis call — fine to invoke from async without sync_to_async
+        # because the underlying redis client uses sync sockets and
+        # doesn't enter the event loop. (TTL refresh is a one-shot SET.)
         ttl = getattr(settings, "DONNA_PRESENCE_TTL_SECONDS", 30)
         redis_manager.set_ex(_presence_key(self.user.id), "1", ttl)
 

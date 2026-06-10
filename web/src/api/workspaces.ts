@@ -11,7 +11,7 @@
 // user as the owner membership inside the same transaction.
 
 import { apiFetch } from "./client";
-import type { Paginated, Workspace } from "../types";
+import type { Paginated, Workspace, WorkspaceMembership } from "../types";
 
 export async function listWorkspaces(): Promise<Workspace[]> {
   const data = await apiFetch<Workspace[] | Paginated<Workspace>>(
@@ -30,4 +30,13 @@ export async function createWorkspace(input: {
     body: input,
     skipWorkspace: true,
   });
+}
+
+/** Active workspace's memberships (people + roles), header-tenanted.
+ *  Used by the channel member picker + group DM peer selector. */
+export async function listWorkspaceMembers(): Promise<WorkspaceMembership[]> {
+  const data = await apiFetch<WorkspaceMembership[] | Paginated<WorkspaceMembership>>(
+    "/api/v1/members/",
+  );
+  return Array.isArray(data) ? data : data.results;
 }

@@ -36,7 +36,9 @@ import {
   GlyphSlot,
   type GListDot,
 } from "../Goofy";
+import { BrowseChannelsDialog } from "../Channel/BrowseChannelsDialog";
 import { CreateChannelDialog } from "../Channel/CreateChannelDialog";
+import { NewDMDialog } from "../Channel/NewDMDialog";
 
 // Section header — small Fredoka label on the left, optional sticker
 // `+` icon on the right. The AI Teammates header recolours the label
@@ -110,6 +112,8 @@ export default function Sidebar() {
   const activeChannelId = channelMatch?.params.channelId ?? null;
   const activeAgentId = agentMatch?.params.agentId ?? null;
   const [createOpen, setCreateOpen] = useState(false);
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [newDmOpen, setNewDmOpen] = useState(false);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeId);
 
@@ -206,7 +210,10 @@ export default function Sidebar() {
 
       {/* Direct messages */}
       <div>
-        <GroupHeader label="direct messages" />
+        <GroupHeader
+          label="direct messages"
+          onAdd={() => setNewDmOpen(true)}
+        />
         {directs.length === 0 ? (
           <GListItem className="text-text-3 italic">
             No direct messages yet
@@ -281,12 +288,34 @@ export default function Sidebar() {
             </GListItem>
           ))
         )}
+        {/* Browse — open the modal that lists every public channel in the
+            workspace with a per-row Join action. Self-join hits POST
+            /chat/channels/{id}/members/ (server enforces public-only +
+            non-guest); the channel.added.to_you broadcast on the
+            invitee's presence group keeps the sidebar in sync. */}
+        <GListItem
+          aria-label="Browse channels"
+          onClick={() => setBrowseOpen(true)}
+          icon={<GlyphSlot name="search" />}
+          className="text-text-2"
+        >
+          Browse channels
+        </GListItem>
       </div>
 
       <CreateChannelDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={(ch) => navigate(`/channels/${ch.id}`)}
+      />
+      <BrowseChannelsDialog
+        open={browseOpen}
+        onClose={() => setBrowseOpen(false)}
+      />
+      <NewDMDialog
+        open={newDmOpen}
+        onClose={() => setNewDmOpen(false)}
+        onOpened={(ch) => navigate(`/channels/${ch.id}`)}
       />
 
       {/* Connections — connected integrations (Gmail, Drive, Fathom, ...).

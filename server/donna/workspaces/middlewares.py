@@ -64,8 +64,16 @@ class WorkspaceMiddleware:
         "/admin": ["GET", "POST", "PATCH", "PUT", "DELETE"],
         "/swagger": ["GET", "POST", "PATCH", "PUT", "DELETE"],
         "/api/auth": ["POST", "GET"],
-        "/health": ["GET"],
+        # ``donna.status`` is mounted at ``/api/health/`` in donna/urls.py.
+        # The earlier "/health" key was a typo that never matched.
+        "/api/health": ["GET"],
         "/api/v1/workspaces": ["POST", "GET"],
+        # Invitation preview + accept are token-bearer endpoints (no
+        # workspace context). Create (POST /api/v1/invitations/) is also
+        # exempted; that view reads X-Workspace-Id itself so the same
+        # prefix can host both public and tenant-aware routes. See
+        # InvitationCreateView for the inline resolve.
+        "/api/v1/invitations": ["GET", "POST"],
         "/favicon.ico": ["GET"],
         # Frontend SPA routes — OAuth callbacks 302 to /app/... for UI feedback;
         # workspace context comes from the SPA session, not the URL.

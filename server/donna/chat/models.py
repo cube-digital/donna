@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import uuid
 
-from django.conf import settings
+# Alias the import: the Channel model defines a JSONField called
+# ``settings`` which would otherwise shadow ``django.conf.settings`` for
+# the rest of the class body (and break ``dj_settings.AUTH_USER_MODEL`` on
+# the related fields below).
+from django.conf import settings as dj_settings
 from django.db import models
 
 from donna.core.db.models import TimestampsMixin, UserAuditMixin
@@ -27,6 +31,26 @@ class Channel(TimestampsMixin, UserAuditMixin):
         PUBLIC = "public", "Public"
         PRIVATE = "private", "Private"
 
+    #: Channel-scoped behavior flags. Channel admins flip flags via PATCH;
+    #: defaults below are intentionally conservative. Add a key here AND
+    #: in ``DEFAULT_SETTINGS`` so callers using :meth:`get_setting` always
+    #: see a deterministic value.
+    #:
+    #: Documented keys (Phase 2c):
+    #:   - ``allow_member_pins``    — non-admin members may pin messages
+    #:                                 (enforced in Phase 5a Pinning).
+    #:   - ``allow_member_invites`` — non-admin members may add others
+    #:                                 to a private channel. Enforced in
+    #:                                 :class:`ChannelMembersView.post`.
+    #:   - ``read_only``            — only admins / agents may post
+    #:                                 (announcement channels). Enforced
+    #:                                 in :meth:`ChannelService.send_message`.
+    DEFAULT_SETTINGS: "dict[str, bool]" = {
+        "allow_member_pins":    False,
+        "allow_member_invites": False,
+        "read_only":            False,
+    }
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     kind = models.CharField(
         max_length=16,
@@ -41,6 +65,11 @@ class Channel(TimestampsMixin, UserAuditMixin):
         choices=Visibility.choices,
         default=Visibility.PUBLIC,
     )
+    settings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Per-channel behavior flags; see DEFAULT_SETTINGS for documented keys.",
+    )
 
     # Relationships
     workspace = models.ForeignKey(
@@ -50,7 +79,7 @@ class Channel(TimestampsMixin, UserAuditMixin):
     )
 
     members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
+        dj_settings.AUTH_USER_MODEL,
         through="ChannelMembership",
         related_name="channels",
     )
@@ -82,6 +111,12 @@ class Channel(TimestampsMixin, UserAuditMixin):
             return f"dm:{self.id}"
         return f"#{self.slug or self.name}"
 
+    def get_setting(self, key: str) -> bool:
+        """Return a settings flag with the documented default for ``key``."""
+        if key in self.settings:
+            return bool(self.settings[key])
+        return bool(self.DEFAULT_SETTINGS.get(key, False))
+
 
 class ChannelMembership(TimestampsMixin):
     """Join: User × Channel, with role."""
@@ -97,7 +132,7 @@ class ChannelMembership(TimestampsMixin):
         related_name="memberships",
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        dj_settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="channel_memberships",
     )
@@ -164,7 +199,7 @@ class Message(TimestampsMixin):
         related_name="messages",
     )
     author_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        dj_settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -208,7 +243,7 @@ class ChannelReadState(TimestampsMixin):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        dj_settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="channel_read_states",
     )

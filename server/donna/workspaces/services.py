@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from django.conf import settings as dj_settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.utils.text import slugify
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from donna.audit.services import AuditService
 from donna.core.services import BaseService
-from donna.workspaces.models import Workspace, WorkspaceMembership
+from donna.workspaces.models import Workspace, WorkspaceInvitation, WorkspaceMembership
 
 User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 
 class WorkspaceService(BaseService[Workspace]):
@@ -78,13 +85,22 @@ class WorkspaceMembershipService(BaseService[WorkspaceMembership]):
             )
 
         try:
-            return WorkspaceMembership.objects.create(
+            membership = WorkspaceMembership.objects.create(
                 workspace=self.company,
                 user=user,
                 role=role,
             )
         except IntegrityError:
             raise ValidationError("User is already a member of this workspace.")
+
+        AuditService.record(
+            action="workspace.member.added",
+            actor=self.current_user,
+            workspace=self.company,
+            target=membership,
+            context={"user_id": str(user.id), "role": role},
+        )
+        return membership
 
     @transaction.atomic
     def update(
@@ -93,6 +109,8 @@ class WorkspaceMembershipService(BaseService[WorkspaceMembership]):
         new_role = data.get("role")
         if new_role is None or new_role == instance.role:
             return instance
+
+        old_role = instance.role
 
         if new_role == WorkspaceMembership.Role.OWNER:
             # Ownership transfer — demote any existing owners to admin atomically.
@@ -106,12 +124,35 @@ class WorkspaceMembershipService(BaseService[WorkspaceMembership]):
 
         instance.role = new_role
         instance.save(update_fields=["role", "updated_at"])
+
+        AuditService.record(
+            action="workspace.member.role_changed",
+            actor=self.current_user,
+            workspace=instance.workspace,
+            target=instance,
+            context={
+                "user_id":  str(instance.user_id),
+                "old_role": old_role,
+                "new_role": new_role,
+            },
+        )
         return instance
 
     def delete(self, instance: WorkspaceMembership) -> bool:
         if instance.role == WorkspaceMembership.Role.OWNER:
             self._refuse_if_last_owner(instance)
+        snapshot = {
+            "user_id": str(instance.user_id),
+            "role":    instance.role,
+        }
+        workspace = instance.workspace
         instance.delete()
+        AuditService.record(
+            action="workspace.member.removed",
+            actor=self.current_user,
+            workspace=workspace,
+            context=snapshot,
+        )
         return True
 
     @staticmethod
@@ -136,4 +177,162 @@ class WorkspaceMembershipService(BaseService[WorkspaceMembership]):
         if not has_other_owner:
             raise ValidationError(
                 "Cannot remove or demote the only owner. Transfer ownership first."
+            )
+
+
+class InvitationService:
+    """
+    Workspace invitation lifecycle — create / preview / accept.
+
+    Two invitation flavours share the same row:
+      - Invite-by-email: ``email`` is set; an email goes out with the
+        accept URL.
+      - Invite-by-link: ``email`` is blank; the token is shared
+        out-of-band.
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def create(
+        *,
+        workspace: Workspace,
+        invited_by,
+        email: str = "",
+        role: str = WorkspaceMembership.Role.MEMBER,
+    ) -> WorkspaceInvitation:
+        if role == WorkspaceMembership.Role.OWNER:
+            raise ValidationError(
+                {"role": "Cannot invite as OWNER — transfer ownership instead."}
+            )
+
+        email_norm = (email or "").strip().lower()
+
+        invitation = WorkspaceInvitation.objects.create(
+            workspace=workspace,
+            invited_by=invited_by,
+            email=email_norm,
+            role=role,
+            # token + expires_at default to secrets.token_urlsafe(32) +
+            # +7 days via model defaults.
+        )
+
+        if email_norm:
+            InvitationService._send_email(invitation)
+
+        AuditService.record(
+            action="workspace.invitation.created",
+            actor=invited_by,
+            workspace=workspace,
+            target=invitation,
+            context={"email": email_norm, "role": role},
+        )
+        return invitation
+
+    @staticmethod
+    def preview(token: str) -> WorkspaceInvitation:
+        """Return the invitation. Raises ``ValidationError`` if it's no longer usable."""
+        try:
+            invitation = (
+                WorkspaceInvitation.objects
+                .select_related("workspace", "invited_by")
+                .get(token=token)
+            )
+        except WorkspaceInvitation.DoesNotExist as exc:
+            raise WorkspaceInvitation.DoesNotExist from exc
+        InvitationService._refuse_if_inactive(invitation)
+        return invitation
+
+    @staticmethod
+    @transaction.atomic
+    def accept(*, token: str, user) -> WorkspaceMembership:
+        """Mark the invitation accepted and ensure the membership exists."""
+        try:
+            invitation = (
+                WorkspaceInvitation.objects
+                .select_for_update()
+                .select_related("workspace")
+                .get(token=token)
+            )
+        except WorkspaceInvitation.DoesNotExist as exc:
+            raise WorkspaceInvitation.DoesNotExist from exc
+
+        InvitationService._refuse_if_inactive(invitation)
+
+        membership, created = WorkspaceMembership.objects.get_or_create(
+            workspace=invitation.workspace,
+            user=user,
+            defaults={"role": invitation.role},
+        )
+
+        invitation.status = WorkspaceInvitation.Status.ACCEPTED
+        invitation.accepted_at = timezone.now()
+        invitation.accepted_by = user
+        invitation.save(
+            update_fields=["status", "accepted_at", "accepted_by", "updated_at"]
+        )
+
+        AuditService.record(
+            action="workspace.invitation.accepted",
+            actor=user,
+            workspace=invitation.workspace,
+            target=invitation,
+            context={
+                "role":               membership.role,
+                "membership_created": created,
+            },
+        )
+        return membership
+
+    @staticmethod
+    @transaction.atomic
+    def revoke(*, invitation: WorkspaceInvitation, by_user) -> WorkspaceInvitation:
+        if invitation.status != WorkspaceInvitation.Status.PENDING:
+            raise ValidationError("only pending invitations can be revoked")
+        invitation.status = WorkspaceInvitation.Status.REVOKED
+        invitation.save(update_fields=["status", "updated_at"])
+        AuditService.record(
+            action="workspace.invitation.revoked",
+            actor=by_user,
+            workspace=invitation.workspace,
+            target=invitation,
+        )
+        return invitation
+
+    # ── Internals ───────────────────────────────────────────────────────────
+    @staticmethod
+    def _refuse_if_inactive(invitation: WorkspaceInvitation) -> None:
+        if invitation.status != WorkspaceInvitation.Status.PENDING:
+            raise ValidationError(f"invitation is {invitation.status}")
+        if invitation.expires_at <= timezone.now():
+            # Bookkeep — flip to EXPIRED so future reads short-circuit.
+            WorkspaceInvitation.objects.filter(pk=invitation.pk).update(
+                status=WorkspaceInvitation.Status.EXPIRED,
+                updated_at=timezone.now(),
+            )
+            raise ValidationError("invitation has expired")
+
+    @staticmethod
+    def _send_email(invitation: WorkspaceInvitation) -> None:
+        accept_url = (
+            f"{dj_settings.WEB_REDIRECT_HOST.rstrip('/')}"
+            f"/invitations/{invitation.token}"
+        )
+        try:
+            send_mail(
+                subject=f"You're invited to join {invitation.workspace.name}",
+                message=(
+                    f"You've been invited to join the workspace "
+                    f"'{invitation.workspace.name}' on Donna.\n\n"
+                    f"Accept the invitation:\n{accept_url}\n\n"
+                    f"This link expires on "
+                    f"{invitation.expires_at.isoformat(timespec='seconds')}."
+                ),
+                from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[invitation.email],
+                fail_silently=True,
+            )
+        except Exception as exc:                # noqa: BLE001
+            logger.warning(
+                "invitation_email_send_failed",
+                extra={"invitation_id": str(invitation.id), "error": str(exc)},
             )

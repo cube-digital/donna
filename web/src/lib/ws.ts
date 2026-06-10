@@ -64,6 +64,28 @@ export interface MessageWsPayload {
   client_msg_id?: string | null;
 }
 
+/** WS payload for ``channel.added.to_you`` — the invitee's own
+ *  ``presence-user-{uid}`` group receives this when an admin adds them
+ *  to a channel. Carries the full channel object so the sidebar can
+ *  surface the new row without an extra fetch.
+ *
+ *  Server: ``ChannelService.add_member`` in
+ *  ``server/donna/chat/services.py`` — the second branch of the dual
+ *  broadcast. */
+export interface ChannelAddedToYouPayload {
+  channel: {
+    id: string;
+    kind: "channel" | "direct";
+    name: string;
+    slug: string;
+    topic: string;
+    visibility: "public" | "private";
+    workspace_id: string;
+  };
+  added_by: string;
+  role: "admin" | "member";
+}
+
 export interface EventMap {
   connected: { user_id: string };
   subscribed: { channel_id: string };
@@ -78,6 +100,17 @@ export interface EventMap {
   "channel.updated": Record<string, unknown>;
   "channel.deleted": { channel_id: string };
   "channel.member.added": { channel_id: string; user_id: string };
+  "channel.member.removed": {
+    channel_id: string;
+    user_id: string;
+    removed_by: string;
+  };
+  /** Fired on ``presence-user-{invitee_uid}`` — sidebar can upsert
+   *  without a refresh. */
+  "channel.added.to_you": ChannelAddedToYouPayload;
+  /** Fired on ``presence-user-{kicked_or_left_uid}`` — sidebar can
+   *  drop the row. */
+  "channel.removed.from_you": { channel_id: string; removed_by: string };
   "read.advanced": {
     channel_id: string;
     user_id: string;

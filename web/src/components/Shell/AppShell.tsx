@@ -48,7 +48,17 @@ function WorkspaceBootstrap() {
   }, [loadChannels]);
 
   // Subscribe to channel lifecycle events from the chat WS so other tabs /
-  // teammates' mutations show up without a hard refresh.
+  // teammates' mutations show up without a hard refresh. Two flavours:
+  //
+  // - ``workspace-{wid}-events`` (auto-subscribed by ChatConsumer for every
+  //   workspace the user belongs to): channel.created / updated / deleted.
+  // - ``presence-user-{uid}`` (always-on subscription): channel.added.to_you
+  //   when an admin invites the caller; channel.removed.from_you when
+  //   kicked or self-leave.
+  //
+  // The invitee channels carry the full Channel payload server-side
+  // (see ChannelService.add_member) so the sidebar can upsert without
+  // a follow-up GET.
   useEffect(() => {
     // Lazy import to avoid pulling ws into the bootstrap during SSR.
     let cleanup: (() => void) | undefined;
@@ -63,10 +73,44 @@ function WorkspaceBootstrap() {
       const offDeleted = ws.on("channel.deleted", (p: { channel_id: string }) =>
         removeFromEvent(p.channel_id),
       );
+      const offAddedToYou = ws.on("channel.added.to_you", (p) => {
+        // Backend serializes ``workspace_id`` as a separate top-level field
+        // (not nested) — normalize to the REST shape the store expects.
+        const ch = p.channel as never as {
+          id: string;
+          kind: "channel" | "direct";
+          name: string;
+          slug: string;
+          topic: string;
+          visibility: "public" | "private";
+          workspace_id: string;
+        };
+        upsertFromEvent({
+          id: ch.id,
+          kind: ch.kind,
+          name: ch.name,
+          slug: ch.slug,
+          topic: ch.topic,
+          visibility: ch.visibility,
+          workspace: ch.workspace_id,
+          // The serializer pre-Phase-1.0 doesn't ship created_at /
+          // updated_at on the dict-broadcast path. The sidebar sorts by
+          // name; missing timestamps are harmless until a downstream
+          // view reads them.
+          created_at: "",
+          updated_at: "",
+        } as never);
+      });
+      const offRemovedFromYou = ws.on(
+        "channel.removed.from_you",
+        (p: { channel_id: string }) => removeFromEvent(p.channel_id),
+      );
       cleanup = () => {
         offCreated();
         offUpdated();
         offDeleted();
+        offAddedToYou();
+        offRemovedFromYou();
       };
     });
     return () => cleanup?.();
