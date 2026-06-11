@@ -237,3 +237,78 @@ class FrontmatterLinter:
     ) -> bool:
         """Return True iff every nav field has a non-empty value in ``extensions``."""
         return all(extensions.get(field) for field in nav_fields)
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.linter` (from `server/`)
+    # Boot Django minimally — CortexEntity is constructed in-memory only
+    # (no .save()), so we never touch the DB; the FK to Workspace is
+    # bypassed at the field layer by setting workspace_id directly.
+    import os, django
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "donna.settings")
+    django.setup()
+
+    from donna.cortex.models import CortexEntity
+
+    def base(**overrides):
+        defaults = dict(
+            id=uuid4(),
+            type="email",
+            author="donna",
+            source="gmail://thread/abc",
+            bronze_storage_key="bronze/x",
+            content_hash="c" * 64,
+            occurred_at=datetime.now(tz=timezone.utc),
+            workspace_id=uuid4(),
+            client_id=None,
+            project_id=None,
+            title="Test",
+            body_byte_size=12,
+            confidence="high",
+            extensions={},
+        )
+        defaults.update(overrides)
+        return CortexEntity(**defaults)
+
+    GOOD_BODY = "# T\n\nbody.\n\nSource: gmail://thread/abc"
+    linter = FrontmatterLinter()
+
+    def run(label: str, entity: "CortexEntity", body_md: str = GOOD_BODY) -> None:
+        try:
+            linter.check(entity, body_md=body_md)
+            print(f"  PASS  {label}")
+        except LinterError as exc:
+            print(f"  REJECT {exc.code:<32} {label}")
+
+    print("── Happy paths ──────────────────────────────────────────────")
+    run("email — minimal", base())
+    run("doc with doc_type", base(type="doc", extensions={"doc_type": "spec"}))
+    run("note with note_type", base(type="note", extensions={"note_type": "checkpoint"}))
+
+    print("\n── Rejects ──────────────────────────────────────────────────")
+    run("INVALID_TYPE — bogus", base(type="bogus"))
+    run("INVALID_AUTHOR — bogus", base(author="alien"))
+    run("MISSING_OCCURRED_AT", base(occurred_at=None))
+    run("INVALID_SCOPE — project without client",
+        base(project_id=uuid4(), client_id=None))
+    run("MISSING_REQUIRED_EXTENSION — doc missing doc_type",
+        base(type="doc", extensions={}))
+    run("MISSING_REQUIRED_EXTENSION — note missing note_type",
+        base(type="note", extensions={}))
+    run("MISSING_REQUIRED_EXTENSION — decision missing context_sources",
+        base(type="decision", extensions={"adr_status": "proposed"}))
+    run("INSUFFICIENT_EVIDENCE — concept with 0 sources",
+        base(type="concept", extensions={"maturity": "seed"}))
+    run("UNKNOWN_EDGE_TYPE — ad-hoc 'links' key",
+        base(extensions={"links": ["x"]}))
+    run("MISSING_SOURCE_FOOTER — body without Source: tail",
+        base(),
+        body_md="just plain text without footer")
+
+    print("\n── has_required_nav_fields() helper ────────────────────────")
+    print(f"  full set    → {linter.has_required_nav_fields({'a': 1, 'b': 2}, ['a', 'b'])}")
+    print(f"  missing one → {linter.has_required_nav_fields({'a': 1}, ['a', 'b'])}")
+    print(f"  empty value → {linter.has_required_nav_fields({'a': ''}, ['a'])}")

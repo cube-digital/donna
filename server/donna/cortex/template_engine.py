@@ -125,3 +125,67 @@ class TemplateEngine:
             bronze_storage_key=bronze_storage_key,
             type_spec=type_spec,
         )
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.template_engine` (from `server/`)
+    # Renders the person.j2 template with dummy data. No Django/DB needed.
+    from datetime import datetime, timezone
+
+    # Force registration — the templates/<type>.py modules execute
+    # register_type() at import time; outside Django app ready() we
+    # have to import them explicitly.
+    from donna.cortex.templates import person as _person  # noqa: F401
+    from donna.cortex.templates import concept as _concept  # noqa: F401
+    from donna.cortex.registry import TemplateRegistry
+
+    engine = TemplateEngine()
+    registry = TemplateRegistry()
+
+    print("── Registered types ─────────────────────────────────────────")
+    print(f"  {registry.types()}")
+
+    print("\n── Render person.j2 ────────────────────────────────────────")
+    person_data = {
+        "parent_path": "people",
+        "slug": "ada-lovelace",
+        "full_name": "Ada Lovelace",
+        "primary_email": "ada@example.com",
+        "role": "engineer",
+        "cross_workspace_aliases": ["Ada", "A. Lovelace"],
+    }
+    rendered = engine.render(
+        registry.get("person"),
+        data=person_data,
+        body_input="Founder, programmer, mathematician.",
+        title="Ada Lovelace",
+        occurred_at=datetime(2026, 6, 11, tzinfo=timezone.utc),
+        source_uri="cortex://spawn/demo-1",
+        bronze_storage_key="",
+    )
+    print(rendered)
+
+    print("\n── Render concept.j2 ──────────────────────────────────────")
+    concept_data = {
+        "parent_path": "concepts",
+        "slug": "context-windows",
+        "maturity": "growing",
+        "aliases": ["context window", "prompt window"],
+        "domain": "llm",
+    }
+    rendered = engine.render(
+        registry.get("concept"),
+        data=concept_data,
+        body_input="Notes on context windows and budgeting.",
+        title="Context Windows",
+        occurred_at=None,
+        source_uri="manual://note/2026-06-11",
+        bronze_storage_key="",
+    )
+    print(rendered)
+
+    print("\n── NoOpFitter raises NotImplementedError ────────────────────")
+    try:
+        NoOpFitter().fit("text", _person.PersonSpec.extensions_model)
+    except NotImplementedError as exc:
+        print(f"  OK rejected: {exc}")

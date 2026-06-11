@@ -49,7 +49,6 @@ from donna.cortex.linter import FrontmatterLinter
 from donna.cortex.models import CortexEntity
 from donna.cortex.ocr import OCRService
 from donna.cortex.registry import TemplateRegistry, TypeSpec
-from donna.cortex.repository import CortexEntityRepository
 from donna.cortex.template_engine import (
     NoOpFitter,
     TemplateEngine,
@@ -110,7 +109,6 @@ class CortexWriter:
         engine: TemplateEngine | None = None,
         fitter: TemplateFitter | None = None,
         linter: FrontmatterLinter | None = None,
-        repo: CortexEntityRepository | None = None,
         enable_gliner: bool = False,
         enable_embeddings: bool = False,
     ) -> None:
@@ -137,7 +135,6 @@ class CortexWriter:
         self.engine = engine or TemplateEngine()
         self.fitter = fitter or NoOpFitter()
         self.linter = linter or FrontmatterLinter()
-        self.repo = repo or CortexEntityRepository()
 
     # ── main entry ──────────────────────────────────────────────────
 
@@ -263,7 +260,9 @@ class CortexWriter:
         # ``applied_in[]`` is derived at read time (see §7 R9 + spec
         # §4 "Derived: touchpoints"). Only ``sources / supersedes /
         # contradicts`` carry strict reverse-edge writes.
-        return self.repo.save_with_reverse_edges(new_entity, body_bytes=body_bytes)
+        return CortexEntity.objects.save_with_reverse_edges(
+            new_entity, body_bytes=body_bytes
+        )
 
     # ── helpers ─────────────────────────────────────────────────────
 

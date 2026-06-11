@@ -47,3 +47,40 @@ class OCRService:
         with default_storage.open(storage_key, mode="rb") as f:
             blob = f.read()
         return self.extract(blob, suffix=suffix)
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.ocr` (from `server/`)
+    # Module imports Django storage at top — bootstrap settings.
+    import logging, os, django
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "donna.settings")
+    django.setup()
+    # Mute structlog noise so the demo output stays readable.
+    logging.getLogger("donna.core.ocr").setLevel(logging.ERROR)
+
+    svc = OCRService()
+
+    print("── Wired OCR facade ────────────────────────────────────────")
+    facade = svc._facade
+    strategies = getattr(facade, "_strategies", None) or getattr(facade, "strategies", None)
+    print(f"  available strategies: {[type(s).__name__ for s in (strategies or [])]}")
+
+    print("\n── extract() — dummy blob ───────────────────────────────────")
+    # The default facade ships llm + easyocr; neither handles plain text.
+    # In a real run, hand it a .pdf or .png blob and it walks the chain.
+    blob = b"% pretend this is PDF bytes"
+    try:
+        result = svc.extract(blob, suffix=".pdf")
+        print(f"  OK  markdown[:120] = {result.markdown[:120]!r}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  EXPECTED FAIL — {type(exc).__name__}: {str(exc)[:160]}")
+
+    print("\n── suffix normalisation: 'pdf' → '.pdf' ─────────────────────")
+    try:
+        svc.extract(blob, suffix="pdf")  # no leading dot — service prepends it
+        print("  OK  dispatched (suffix normalised before strategy lookup)")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  dispatched then EXPECTED FAIL — {type(exc).__name__}")
+
+    print("\n── extract_storage_key() — needs default_storage; skipped here.")

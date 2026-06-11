@@ -263,14 +263,70 @@ class DerivedNamespaceView:
     edge on every entity that mentions the target.
     """
 
-    def __init__(self, repository=None) -> None:
-        if repository is None:
-            from donna.cortex.repository import CortexEntityRepository
-
-            repository = CortexEntityRepository()
-        self._repo = repository
-
     def list_entity_namespace(
         self, entity_id: UUID, workspace_id: UUID
     ) -> list:
-        return self._repo.find_referencing(entity_id, workspace_id)
+        return self._find_referencing(entity_id, workspace_id)
+
+    def _find_referencing(
+        self, target_id: UUID, workspace_id: UUID
+    ) -> list:
+        from donna.cortex.models import CortexEntity
+
+        return list(
+            CortexEntity.objects.filter(
+                workspace_id=workspace_id,
+                entity_refs__contains=[str(target_id)],
+            )
+        )
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.folders` (from `server/`)
+    # Pure-Python — no DB. Exercises every resolver across the four scope combos.
+    from datetime import datetime, timezone
+
+    occurred = datetime(2026, 6, 11, 14, 30, tzinfo=timezone.utc)
+
+    SCOPES = [
+        ("workspace-root", None, None),
+        ("workspace-internal-project", None, "phoenix"),
+        ("client-root", "acme", None),
+        ("client-project", "acme", "phoenix"),
+    ]
+
+    def run(label: str, resolver, **kw) -> None:
+        print(f"\n── {label} ──")
+        for scope_name, client_slug, project_slug in SCOPES:
+            path = resolver.canonical_path(
+                client_slug=client_slug, project_slug=project_slug, **kw
+            )
+            print(f"  {scope_name:<28} → {path!r}")
+
+    common = dict(type="meeting", occurred_at=occurred, extensions={})
+
+    run("TemporalFolderResolver(bucket='meetings')", TemporalFolderResolver("meetings"), **common)
+    run("TemporalFolderResolver(bucket='emails') — no occurred_at",
+        TemporalFolderResolver("emails"),
+        **{**common, "occurred_at": None})
+    run("ChatFolderResolver (extensions.channel='eng')",
+        ChatFolderResolver(),
+        type="chat", occurred_at=occurred, extensions={"channel": "eng"})
+    run("TicketFolderResolver (extensions.provider='linear')",
+        TicketFolderResolver(),
+        type="ticket", occurred_at=None, extensions={"provider": "linear"})
+    run("FlatFolderResolver(bucket='docs')", FlatFolderResolver("docs"), **common)
+    run("PersonFolderResolver (workspace-root, scope ignored)",
+        PersonFolderResolver(), **common)
+    run("ConceptFolderResolver (workspace-root, scope ignored)",
+        ConceptFolderResolver(), **common)
+    run("OrgFolderResolver — relationship='self'",
+        OrgFolderResolver(),
+        type="org", occurred_at=None, extensions={"relationship": "self"})
+    run("OrgFolderResolver — relationship='client'",
+        OrgFolderResolver(),
+        type="org", occurred_at=None, extensions={"relationship": "client"})
+    run("ProjectFolderResolver", ProjectFolderResolver(),
+        type="project", occurred_at=None, extensions={})
+    run("DecisionFolderResolver", DecisionFolderResolver(),
+        type="decision", occurred_at=None, extensions={})

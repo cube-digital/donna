@@ -10,12 +10,22 @@ fixture (Acme onboarding meeting with Alice + Bob) so you can track a
 single row through every concept.
 
 Source spec: `01 - Projects/08 - Donna AI/Plans/Cortex Universal Silver
-Specification.md` (vault). This folder is the engineering companion —
-how the spec is realised in Python + Postgres.
+Specification.md` (vault, rev 3). Mirrored in-repo at
+[`vault-source/SPEC.md`](./vault-source/SPEC.md) for engineers without
+vault access. The implementation roadmap (phases F0-F12) lives at
+[`vault-source/IMPLEMENTATION-ROADMAP.md`](./vault-source/IMPLEMENTATION-ROADMAP.md).
+The original rev-1 layer plan (superseded by SPEC.md rev 3) is preserved
+at [`vault-source/CORTEX-LAYER-PLAN-rev1-superseded.md`](./vault-source/CORTEX-LAYER-PLAN-rev1-superseded.md).
+This folder is the engineering companion — how the spec is realised in
+Python + Postgres.
 
 ## Reading order
 
 1. **Start here** → [`00 - vision.md`](./00%20-%20vision.md)
+   - New to the project? Read the plain-English narrative first:
+     [`00a - how-it-comes-together.md`](./00a%20-%20how-it-comes-together.md)
+   - Then the design rationale + debate:
+     [`00b - design-debate-qa.md`](./00b%20-%20design-debate-qa.md)
 2. **Architecture** — system shape, data model, facade
 3. **Subsystems** — deep dive into the five pieces
 4. **Contracts** — closed-vocab types, edges, rules
@@ -27,6 +37,8 @@ how the spec is realised in Python + Postgres.
 
 ```
 00 - vision.md                         ← entry: why + glossary
+00a - how-it-comes-together.md         ← plain-English narrative (one client, one week)
+00b - design-debate-qa.md              ← three-planes model, 5 foundational Q&As, open pushbacks
 01 - architecture/                     ← system shape
    01-five-subsystems.md
    02-cortexwriter-facade.md
@@ -62,6 +74,12 @@ how the spec is realised in Python + Postgres.
    03-roadmap-remaining-work.md
    04-p0.14-storage-and-embedding-refactor.md   ← next phase plan
    05-deferred-document-chunking.md             ← deferred P0.15
+   06-narrio-adoptions.md                       ← 8 items pulled from Narrio
+vault-source/                          ← verbatim mirror of vault canonical docs
+   README.md
+   SPEC.md                                       ← Universal Silver Specification (rev 3)
+   IMPLEMENTATION-ROADMAP.md                     ← F0-F12 phase roadmap
+   CORTEX-LAYER-PLAN-rev1-superseded.md          ← legacy, kept for history
 ```
 
 ## Companions outside this folder
@@ -69,6 +87,8 @@ how the spec is realised in Python + Postgres.
 | File | Purpose |
 |---|---|
 | `server/donna/cortex/` | Implementation source (Python) |
-| `01 - Projects/08 - Donna AI/Plans/Cortex Universal Silver Specification.md` (vault) | Spec — the locked contract |
-| `01 - Projects/08 - Donna AI/Plans/Cortex Layer Plan.md` (vault) | Original 9-step plan (rev 1 — superseded by spec rev 3) |
+| `01 - Projects/08 - Donna AI/Plans/Cortex Universal Silver Specification.md` (vault) | Spec — the locked contract. Mirrored at `vault-source/SPEC.md` |
+| `01 - Projects/08 - Donna AI/Plans/Cortex Implementation Roadmap.md` (vault) | Phase plan F0-F12. Mirrored at `vault-source/IMPLEMENTATION-ROADMAP.md` |
+| `01 - Projects/08 - Donna AI/Plans/Cortex Layer Plan.md` (vault) | Original 9-step plan (rev 1 — superseded by spec rev 3). Mirrored at `vault-source/CORTEX-LAYER-PLAN-rev1-superseded.md` |
+| `server/plans/communication-platform-plan.md` | Chat platform plan (Phase 0-8). Mirrored from vault `Communication Platform Plan.md` |
 | `server/donna/CLAUDE.md` | Repo-wide conventions |

@@ -221,3 +221,41 @@ class BGESmallEmbedder:
         sampler = sampler or fixed_window_sampler
         text = sampler(title, body_md)
         return self.embed(text)
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.embeddings` (from `server/`)
+    # Pure-Python sampler demos. Real embed() call is gated by
+    # sentence-transformers availability.
+
+    title = "Q4 Planning Meeting"
+    short_body = "Short body that fits under the budget."
+    # Build a long body so we can see windowing in action.
+    long_body = (
+        "INTRO. " * 200
+        + "MIDDLE-MARKER. " * 200
+        + "TAIL-SIGNATURES. " * 200
+    )
+    print(f"long_body length = {len(long_body)} chars (budget {MAX_EMBED_CHARS})")
+
+    def show(name: str, out: str) -> None:
+        print(f"\n── {name} ──  out len={len(out)}")
+        print(out[:180] + ("…" if len(out) > 180 else ""))
+        print("…")
+        print(out[-180:])
+
+    show("fixed_window_sampler (short — passthrough)", fixed_window_sampler(title, short_body))
+    show("fixed_window_sampler (long)", fixed_window_sampler(title, long_body))
+    show("head_heavy_sampler (long, chat/email/ticket)", head_heavy_sampler(title, long_body))
+    show("head_tail_sampler (long, doc)", head_tail_sampler(title, long_body))
+    show("uniform_sampler (long, meeting/runbook)", uniform_sampler(title, long_body))
+
+    print("\n── BGESmallEmbedder.embed() (real call) ─────────────────────")
+    embedder = BGESmallEmbedder()
+    try:
+        vec = embedder.embed("hello world")
+        print(f"  OK: dim={len(vec)}  head={vec[:4]}")
+    except ImportError as exc:
+        print(f"  SKIPPED — {exc}")
+    except Exception as exc:  # noqa: BLE001 — surface any model-loader fail
+        print(f"  FAIL — {type(exc).__name__}: {exc}")

@@ -96,3 +96,31 @@ KNOWN_EDGE_FIELDS = {
     "superseded_by",
     "contradicts",
 }
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.authority` (from `server/`)
+    print("── TYPE_AUTHORITY registry (sorted) ─────────────────────────")
+    for key, weight in sorted(TYPE_AUTHORITY.items(), key=lambda kv: -kv[1]):
+        print(f"  {weight:>3}  {key}")
+
+    print("\n── authority_for() lookup ───────────────────────────────────")
+    cases = [
+        ("decision", None),
+        ("doc", "contract"),
+        ("doc", "plan"),
+        ("doc", None),         # bare type fallback (0 — bare 'doc' not registered)
+        ("note", "checkpoint"),
+        ("note", None),
+        ("unknown_type", None),
+    ]
+    for t, sub in cases:
+        print(f"  authority_for({t!r}, {sub!r}) = {authority_for(t, sub)}")
+
+    print("\n── Reject codes (closed enum) ───────────────────────────────")
+    for name in dir(RejectCode):
+        if not name.startswith("_") and name.isupper():
+            print(f"  RejectCode.{name} = {getattr(RejectCode, name)!r}")
+
+    print("\n── KNOWN_EDGE_FIELDS ────────────────────────────────────────")
+    print(f"  {sorted(KNOWN_EDGE_FIELDS)}")

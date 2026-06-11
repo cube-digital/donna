@@ -19,6 +19,18 @@ Spawned rows ship with full provenance:
 """
 from __future__ import annotations
 
+# ── __main__ bootstrap ──────────────────────────────────────────────
+# When invoked as `python -m donna.cortex.entities`, `__name__` is
+# "__main__" from line one. Bootstrap Django BEFORE the ORM-bound
+# imports below. We do NOT migrate or hit the DB — Cortex models
+# require pgvector; the demo exercises only the pure-Python extractor
+# path. Resolver paths are documented but not executed.
+if __name__ == "__main__":
+    import os
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "donna.settings")
+    import django
+    django.setup()
+
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -502,3 +514,60 @@ class DeterministicResolver:
             f"_Spawned by the Cortex resolver._\n\n"
             f"Spawned by: cortex-resolver"
         )
+
+
+if __name__ == "__main__":
+    # Run: `python -m donna.cortex.entities` (from `server/`)
+    # Django was bootstrapped at the top of the module.
+
+    print("── ExtractedEntity dataclass shape ──────────────────────────")
+    cand = ExtractedEntity(
+        type="person",
+        label="Ada Lovelace",
+        email="ada@acme.com",
+        domain=None,
+        confidence=1.0,
+        span=None,
+        origin="provider",
+    )
+    print(f"  {cand}")
+
+    print("\n── ProviderMetadataExtractor (pure-Python, no DB) ───────────")
+    meta = {
+        "host":        {"name": "Ada Lovelace", "email": "ada@acme.com"},
+        "attendees":  [{"name": "Bob",          "email": "bob@acme.com"},
+                       {"name": "Eve",          "email": "eve@gmail.com"}],  # public domain
+        "recipients": ["carol@beta.io"],
+    }
+    extracted = ProviderMetadataExtractor().extract(
+        entity=None,  # not dereferenced by this extractor
+        context=ExtractContext(adapter_metadata=meta),
+    )
+    for e in extracted:
+        print(f"  {e.type:<7} label={e.label!r:<25} email={e.email!r:<22} domain={e.domain!r}")
+
+    print("\n── Public domains (gmail.com, …) → NO org candidate spawned ─")
+    print(f"  org candidates: {[(e.label, e.domain) for e in extracted if e.type == 'org']}")
+    print(f"  (eve@gmail.com is in _PUBLIC_EMAIL_DOMAINS → no org for gmail.com)")
+
+    print("\n── CompositeExtractor dedupes across chain ──────────────────")
+    composite = CompositeExtractor(
+        ProviderMetadataExtractor(),
+        ProviderMetadataExtractor(),  # duplicate intentionally
+    )
+    merged = composite.extract(
+        entity=None,
+        context=ExtractContext(adapter_metadata=meta),
+    )
+    print(f"  count after dedup: {len(merged)}  (vs raw {2 * len(extracted)})")
+
+    print("\n── DeterministicResolver — DB-bound; shape only ─────────────")
+    resolver = DeterministicResolver()
+    print(f"  resolver = {resolver.__class__.__name__}()")
+    print( "  Resolution rules per type:")
+    print( "    person  → match extensions.primary_email; else label alias; else spawn")
+    print( "    org     → match extensions.email_domains[]; else label alias; else spawn")
+    print( "    project → label alias only; else spawn (under client_id if set)")
+    print( "    concept → label alias only; else spawn at workspace root")
+    print( "  Real resolve() calls require Postgres + pgvector — exercise via the")
+    print( "  Django shell:  `python -m django shell` then call resolver.resolve(...).")
