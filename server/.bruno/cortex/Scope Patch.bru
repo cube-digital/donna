@@ -1,0 +1,38 @@
+meta {
+  name: Scope Patch
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/cortex/entities/{{cortexEntityId}}/scope/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "client_id": "{{cortexClientId}}",
+    "project_id": "{{cortexProjectId}}"
+  }
+}
+
+docs {
+  Phase 4c scope promotion — manual upgrade from the
+  ``suggested_scope`` queue to a final (client_id, project_id).
+
+  Use cases:
+    - Connector landed a row at workspace-root that should belong
+      to a client. PATCH it once the human confirms.
+    - Bulk-confirm UI surfaces "suggested_scope" rows; this is the
+      mutation each row goes through on confirm.
+
+  Clears the ``extensions.suggested_scope`` slot on success.
+
+  Pass empty string ("") to clear an existing client_id/project_id.
+}

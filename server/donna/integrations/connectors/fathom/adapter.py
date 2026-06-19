@@ -23,11 +23,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from donna.core.integrations import BaseAdapter
+from donna.core.integrations import BaseEntityAdapter
 
 
-class FathomMeetingAdapter(BaseAdapter):
-    """Adapter for one Fathom meeting (metadata + transcript)."""
+class FathomMeetingAdapter(BaseEntityAdapter):
+    """Adapter for one Fathom meeting (metadata + transcript).
+
+    Phase 2 (2026-06-15): emits ``CanonicalEntity(entity_type="meeting")``
+    via ``to_canonical()``. ``_extensions()`` returns the
+    ``MeetingExtensions``-shaped dict (attendees / duration_min /
+    recording_url) — Pydantic validates at construction.
+    """
+
+    canonical_type = "meeting"
 
     # ── Convenience accessors ───────────────────────────────────────────────
     @property
@@ -75,7 +83,11 @@ class FathomMeetingAdapter(BaseAdapter):
 
     # ── BaseAdapter — optional overrides ────────────────────────────────────
     def metadata(self) -> dict:
-        """Provider-specific normalized fields surfaced on DeliveryPackage."""
+        """Provider-specific normalized fields surfaced on DeliveryPackage.
+
+        Kept for the legacy ``metadata`` JSONField + the older entity
+        extractor; cortex pipeline reads ``canonical_payload`` instead.
+        """
         m = self._meeting
         return {
             "share_url":        m.get("share_url"),
@@ -87,6 +99,39 @@ class FathomMeetingAdapter(BaseAdapter):
             ],
             "host":             (m.get("host") or {}).get("email"),
             "language":         m.get("language"),
+        }
+
+    # ── BaseEntityAdapter — canonical extensions ────────────────────────────
+    def _extensions(self) -> dict:
+        """MeetingExtensions-shaped payload (cortex.schemas.MeetingExtensions).
+
+        Required nav field: ``attendees``. Optional: duration_min,
+        recording_url, transcript_url, language. Provider-specific
+        ``cluster_name`` / ``slug`` / ``parent_path`` fill at cortex
+        step 6 — not here.
+        """
+        m = self._meeting
+        duration_min = m.get("duration_min")
+        if duration_min is None and m.get("duration_seconds"):
+            duration_min = int(m["duration_seconds"] / 60)
+
+        attendees: list[dict] = []
+        for item in m.get("participants") or m.get("attendees") or []:
+            if isinstance(item, dict):
+                attendees.append({
+                    "name":  item.get("name"),
+                    "email": item.get("email"),
+                    "role":  item.get("role"),
+                })
+            elif isinstance(item, str) and "@" in item:
+                attendees.append({"name": item, "email": item, "role": None})
+
+        return {
+            "attendees":      attendees,
+            "duration_min":   duration_min,
+            "recording_url":  m.get("share_url") or m.get("recording_url"),
+            "transcript_url": m.get("transcript_url"),
+            "language":       m.get("language"),
         }
 
     def to_text(self) -> str:

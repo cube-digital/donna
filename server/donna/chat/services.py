@@ -60,6 +60,15 @@ def agent_run_group(run_id) -> str:
     return f"agent-run-{run_id}-tokens"
 
 
+def _dispatch_agent_if_applicable(message: "Message") -> None:
+    """Lazy import to avoid circular: tasks imports services for groups."""
+    try:
+        from .tasks import maybe_dispatch_agent
+        maybe_dispatch_agent(message)
+    except Exception:  # noqa: BLE001 — never let dispatch errors fail send_message
+        logger.exception("agent_dispatch_hook_failed", extra={"message_id": str(message.id)})
+
+
 # ── Service ──────────────────────────────────────────────────────────────────
 class ChannelService:
     """All chat mutations live here. Views + WS consumer call into it."""
@@ -72,6 +81,11 @@ class ChannelService:
         Persist a new message and push it to WS subscribers of the channel.
         Author is always ``sender_user``; agent-authored messages use a
         separate path (the agent worker writes the Message + group_send).
+
+        Agent dispatch hook (00j A1, 2026-06-14): after the row commits,
+        ``maybe_dispatch_agent(message)`` decides whether to enqueue an
+        agent turn. The check + Celery enqueue runs in ``on_commit`` so
+        the trigger row is visible to the worker.
         """
         message = Message.objects.create(
             channel=channel,
@@ -85,6 +99,10 @@ class ChannelService:
                 "payload": _serialize_message(message, client_msg_id=client_msg_id),
             },
         )
+        # Anti-loop is enforced inside maybe_dispatch_agent (skips when
+        # author_agent is set), but the agent-authored Message path
+        # never enters this method anyway.
+        transaction.on_commit(lambda: _dispatch_agent_if_applicable(message))
         return message
 
     @staticmethod

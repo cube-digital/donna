@@ -7,12 +7,12 @@ per-type ``extensions`` payload + the raw OCR/adapter markdown body.
 Result: the final body_md (frontmatter block + verbatim body + Source
 footer).
 
-Two fitters are shipped:
-
-- ``NoOpFitter`` — refuses; used when the TypeSpec declares
-  ``fit_model=None`` (Fathom meetings, deterministic Gmail, …).
-- ``HaikuFitter`` — LiteLLM-driven; used when nav fields are missing
-  and the TypeSpec declares a ``fit_model``.
+``HaikuFitter`` is the only shipped fitter — LiteLLM-driven, used when
+nav fields are missing and the TypeSpec declares a ``fit_model``. The
+pipeline's ``fitter`` argument defaults to ``None`` (2026-06-14 cleanup);
+callers wire ``HaikuFitter()`` explicitly when they want LLM fallback.
+The old ``NoOpFitter`` was deleted — its raise-on-call behavior was a
+silent bug magnet inside the try/except that wrapped it.
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from typing import Protocol
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from pydantic import BaseModel
 
+from donna.cortex.embeddings import Sampler, head_tail_sampler
 from donna.cortex.registry import TypeSpec
 
 
@@ -30,21 +31,25 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
 class TemplateFitter(Protocol):
-    def fit(self, text: str, fit_model: type[BaseModel]) -> BaseModel: ...
-
-
-class NoOpFitter:
-    """Default fitter — refuses to fill, raises if invoked."""
-
-    def fit(self, text: str, fit_model: type[BaseModel]) -> BaseModel:
-        raise NotImplementedError(
-            "NoOpFitter cannot fill missing nav fields. Wire a real "
-            "fitter or ensure adapter.metadata() satisfies nav_fields."
-        )
+    def fit(
+        self,
+        text: str,
+        fit_model: type[BaseModel],
+        sampler: Sampler | None = ...,
+    ) -> BaseModel: ...
 
 
 class HaikuFitter:
-    """LLM-driven nav-field fill via Anthropic Haiku."""
+    """LLM-driven nav-field fill via Anthropic Haiku.
+
+    Sampler change 2026-06-14: instead of a blind ``text[:8000]`` head
+    slice the fitter now applies the TypeSpec's ``embedding_sampler``
+    (or ``head_tail_sampler`` fallback). Contracts reveal their nature
+    in the signature block; runbooks in the heading; meetings spread
+    decisions across the transcript — a head-cut blinds the model to
+    half of those. The sampler matches what the embedder sees, so the
+    LLM and the vector representation stay in sync.
+    """
 
     DEFAULT_MODEL = "anthropic/claude-3-5-haiku-latest"
     DEFAULT_PROMPT = (
@@ -56,15 +61,21 @@ class HaikuFitter:
     def __init__(self, model: str | None = None) -> None:
         self._model = model or self.DEFAULT_MODEL
 
-    def fit(self, text: str, fit_model: type[BaseModel]) -> BaseModel:
+    def fit(
+        self,
+        text: str,
+        fit_model: type[BaseModel],
+        sampler: Sampler | None = None,
+    ) -> BaseModel:
         from donna.core.llm.factory import LLMFactory
 
+        sampled = (sampler or head_tail_sampler)("", text)
         provider = LLMFactory.create(model=self._model)
         response = provider.chat(
             messages=[
                 {
                     "role": "user",
-                    "content": self.DEFAULT_PROMPT + text[:8000],
+                    "content": self.DEFAULT_PROMPT + sampled,
                 }
             ],
             temperature=0.0,
@@ -76,7 +87,7 @@ class HaikuFitter:
 
 
 class TemplateEngine:
-    """Stateless Jinja renderer used by ``CortexWriter`` step 7."""
+    """Stateless Jinja renderer used by ``CortexPipeline`` step 7."""
 
     def __init__(self, template_dir: Path | None = None) -> None:
         self._env = Environment(
@@ -132,11 +143,9 @@ if __name__ == "__main__":
     # Renders the person.j2 template with dummy data. No Django/DB needed.
     from datetime import datetime, timezone
 
-    # Force registration — the templates/<type>.py modules execute
-    # register_type() at import time; outside Django app ready() we
-    # have to import them explicitly.
-    from donna.cortex.templates import person as _person  # noqa: F401
-    from donna.cortex.templates import concept as _concept  # noqa: F401
+    # Force registration — types.py executes register_type() at import
+    # time for all 12 TypeSpecs (2026-06-14 collapse).
+    import donna.cortex.types  # noqa: F401
     from donna.cortex.registry import TemplateRegistry
 
     engine = TemplateEngine()
@@ -184,8 +193,5 @@ if __name__ == "__main__":
     )
     print(rendered)
 
-    print("\n── NoOpFitter raises NotImplementedError ────────────────────")
-    try:
-        NoOpFitter().fit("text", _person.PersonSpec.extensions_model)
-    except NotImplementedError as exc:
-        print(f"  OK rejected: {exc}")
+    print("\n── HaikuFitter — construct only (real .fit() needs LLM creds) ─")
+    print(f"  model = {HaikuFitter().DEFAULT_MODEL}")

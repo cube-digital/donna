@@ -1,5 +1,5 @@
 """
-CortexWriter — facade orchestrator for Subsystems 1-5.
+CortexPipeline — facade orchestrator for Subsystems 1-5.
 
 Aligned with **Cortex Universal Silver Specification v1 (rev 3)**.
 
@@ -47,10 +47,8 @@ from donna.cortex.entities import (
 )
 from donna.cortex.linter import FrontmatterLinter
 from donna.cortex.models import CortexEntity
-from donna.cortex.ocr import OCRService
 from donna.cortex.registry import TemplateRegistry, TypeSpec
 from donna.cortex.template_engine import (
-    NoOpFitter,
     TemplateEngine,
     TemplateFitter,
 )
@@ -72,6 +70,7 @@ PROVIDER_TYPE_MAP: dict[str, str] = {
     "chat": "chat",
     "message_thread": "chat",
     "file": "doc",
+    "drive_file": "doc",          # Drive connector emits drive_file
     "doc": "doc",
     "ticket": "ticket",
     "clip": "clip",
@@ -94,13 +93,12 @@ PROVIDER_URI_SCHEME: dict[str, str] = {
 }
 
 
-class CortexWriter:
+class CortexPipeline:
     """Single entry point. ``write(dp)`` walks the 11-step pipeline."""
 
     def __init__(
         self,
         *,
-        ocr: OCRService | None = None,
         embedder=None,
         clusterer=None,
         extractor: EntityExtractor | None = None,
@@ -112,7 +110,10 @@ class CortexWriter:
         enable_gliner: bool = False,
         enable_embeddings: bool = False,
     ) -> None:
-        self.ocr = ocr or OCRService()
+        # OCR removed 2026-06-15 — cortex.ocr.OCRService deleted; the
+        # .extracted.md sidecar covers normal-case body resolution and
+        # tier-3 fallback returns "" on parse failure (linter then rejects
+        # via MISSING_SOURCE_FOOTER, surfacing the bad ingest).
         self.embedder = (
             embedder
             if embedder is not None
@@ -133,7 +134,9 @@ class CortexWriter:
         self.resolver = resolver or DeterministicResolver()
         self.registry = registry or TemplateRegistry()
         self.engine = engine or TemplateEngine()
-        self.fitter = fitter or NoOpFitter()
+        # Fitter is opt-in (2026-06-12): None = skip nav-field LLM fill.
+        # Step 4 guards with ``if self.fitter and type_spec.fit_model``.
+        self.fitter = fitter
         self.linter = linter or FrontmatterLinter()
 
     # ── main entry ──────────────────────────────────────────────────
@@ -149,29 +152,95 @@ class CortexWriter:
         type_spec = self.registry.get(cortex_type)
 
         # 3. Deterministic frontmatter fill ─────────────────────────
-        extensions = self._build_extensions(dp, type_spec)
+        # Adapters emit a typed CanonicalEntity whose extensions dict
+        # is Pydantic-validated at the connector boundary. Pipeline
+        # reads that directly — no legacy fallback. DPs missing a
+        # canonical payload are pre-Phase-2 and must be re-ingested.
+        extensions = self._extensions_from_canonical(dp)
+
+        # 3b. doc_type ladder — tier A heuristic, then tier B kNN.
+        # A (free, deterministic) fires on the obvious ~40-60%; B
+        # (cheap, vector-only) fires on the next ~20-30% before tier C
+        # (Haiku, in step 4 via HaikuFitter) gets called for the rest.
+        if cortex_type == "doc" and not (extensions.get("doc_type") and extensions["doc_type"] != "other"):
+            from donna.cortex.doc_classifier import (
+                HeuristicDocClassifier,
+                KNNDocClassifier,
+            )
+
+            # Tier A — heuristic.
+            verdict = HeuristicDocClassifier().classify(
+                filename=(dp.metadata or {}).get("filename", "") or dp.title or "",
+                mime=(dp.metadata or {}).get("mime_type")
+                     or (dp.metadata or {}).get("mime", "") or "",
+                body_md=body_md,
+            )
+            # Tier B — kNN over pgvector head embeddings (Phase 4c).
+            if verdict.doc_type is None and self.embedder is not None:
+                verdict = KNNDocClassifier(embedder=self.embedder).classify(
+                    workspace_id=dp.workspace_id,
+                    title=dp.title or "",
+                    body_md=body_md,
+                )
+            if verdict.doc_type:
+                extensions["doc_type"] = verdict.doc_type
+                extensions["doc_type_basis"] = verdict.basis
+                extensions["doc_type_confidence"] = verdict.confidence
 
         # 4. Fit fallback (Haiku) only when nav fields missing ──────
+        # Guard pattern (2026-06-12): explicit fitter presence check
+        # replaces the try/except NotImplementedError that previously
+        # silenced real bugs in custom fitters.
         if not self.linter.has_required_nav_fields(
             extensions, type_spec.nav_fields
         ):
-            if type_spec.fit_model is not None:
-                try:
-                    fit = self.fitter.fit(body_md, type_spec.fit_model)
-                    extensions = self._merge_fit(extensions, fit)
-                except NotImplementedError:
-                    pass
+            if self.fitter is not None and type_spec.fit_model is not None:
+                fit = self.fitter.fit(
+                    body_md,
+                    type_spec.fit_model,
+                    sampler=type_spec.embedding_sampler,
+                )
+                extensions = self._merge_fit(extensions, fit)
 
         # 5. Embed + cluster_assign ─────────────────────────────────
-        # Per P0.14: embedder receives a sampled representation (per-type
-        # window strategy declared on the TypeSpec), NOT the full body.
-        # BGE-small context = 512 tokens ≈ ~1900 chars — sampling chosen
-        # so contracts (signatures at the end) and meetings (decisions
-        # late) keep their signal.
+        # Scope ladder T0 → T1 (Phase 4c, 2026-06-15). Run BEFORE
+        # cluster assign so clustering bounds within (workspace,
+        # client, project) honours the suggestion.
+        from donna.cortex.scope import suggest_scope
+
+        candidate_domains: list[str] = []
+        meta = dp.metadata or {}
+        for src in ("host", "sender", "owner"):
+            obj = meta.get(src)
+            if isinstance(obj, dict) and obj.get("email"):
+                candidate_domains.append(obj["email"].split("@", 1)[-1].lower())
+        for src in ("participants", "recipients", "to", "cc", "attendees"):
+            for item in meta.get(src) or []:
+                addr = item.get("email") if isinstance(item, dict) else (item if isinstance(item, str) else None)
+                if addr and "@" in addr:
+                    candidate_domains.append(addr.split("@", 1)[-1].lower())
+
+        suggestion = suggest_scope(
+            workspace_id=dp.workspace_id,
+            metadata=dp.metadata,
+            candidate_domains=candidate_domains,
+        )
+        scope_client = suggestion.client_id if suggestion.auto_apply else None
+        scope_project = suggestion.project_id if suggestion.auto_apply else None
+        if not suggestion.auto_apply and suggestion.basis != "none":
+            # Surface to the bulk-confirm queue via extensions slot
+            # (Phase 5 vault renderer reads this).
+            extensions["suggested_scope"] = {
+                "client_id": str(suggestion.client_id) if suggestion.client_id else None,
+                "project_id": str(suggestion.project_id) if suggestion.project_id else None,
+                "confidence": suggestion.confidence,
+                "basis": suggestion.basis,
+            }
+
         scope = Scope(
             workspace_id=dp.workspace_id,
-            client_id=None,  # set below once entity_refs resolved
-            project_id=None,
+            client_id=scope_client,
+            project_id=scope_project,
         )
         embedding: list[float] | None = None
         cluster_id: UUID | None = None
@@ -186,8 +255,10 @@ class CortexWriter:
         extensions["cluster_name"] = cluster_name  # surfaced in body template
 
         # 6. Folder placement ───────────────────────────────────────
+        # folder_resolver is a plain callable (FolderFn) since the
+        # 2026-06-14 refactor — no more .canonical_path indirection.
         client_slug, project_slug = self._scope_slugs(scope)
-        parent_path = type_spec.folder_resolver.canonical_path(
+        parent_path = type_spec.folder_resolver(
             type=cortex_type,
             occurred_at=dp.occurred_at,
             extensions=extensions,
@@ -217,6 +288,33 @@ class CortexWriter:
         # via the FileField in the same atomic transaction.
         body_bytes = body_md_final.encode("utf-8")
         content_hash = hashlib.sha256(body_bytes).hexdigest()
+
+        # 8½. Two-tier dedup (Phase 1, 2026-06-15) — content_hash
+        # short-circuit. Same (source, content_hash) → this is a replay,
+        # return the existing head row without re-running steps 9-11.
+        # Distinct content_hash for same source → new version (caller
+        # promotes via supersedes; not in this slice).
+        existing_head = (
+            CortexEntity.objects
+            .filter(
+                workspace_id=dp.workspace_id,
+                source=source_uri,
+                content_hash=content_hash,
+                superseded_by__isnull=True,
+            )
+            .first()
+        )
+        if existing_head is not None:
+            logger.info(
+                "cortex_dedup_replay_short_circuit",
+                extra={
+                    "entity_id": str(existing_head.id),
+                    "source": source_uri,
+                    "content_hash": content_hash[:8],
+                },
+            )
+            return existing_head
+
         now = datetime.now(tz=timezone.utc)
         new_entity = CortexEntity(
             workspace_id=dp.workspace_id,
@@ -238,13 +336,26 @@ class CortexWriter:
         )
 
         # 9. Entity extraction + resolution → entity_refs[] ─────────
-        context = ExtractContext(adapter_metadata=dp.metadata or {})
+        # body_md_final passed explicitly: pre-persist the FileField is
+        # still unset, so GLiNER cannot read it off the entity (#4 fix).
+        context = ExtractContext(
+            adapter_metadata=dp.metadata or {},
+            body_md=body_md_final,
+        )
         candidates = self.extractor.extract(entity=new_entity, context=context)
+        # Batch resolve applies the dual-spawn employer link (pushback
+        # #11, 2026-06-14): person+org from the same email get an
+        # ``employer_org_id`` + ``related`` edge on the person. Custom
+        # resolvers without resolve_batch fall back to the old loop.
+        if hasattr(self.resolver, "resolve_batch"):
+            target_ids = self.resolver.resolve_batch(candidates, scope)
+        else:
+            target_ids = [self.resolver.resolve(c, scope) for c in candidates]
         entity_refs: list[str] = []
-        for candidate in candidates:
-            target_id = self.resolver.resolve(candidate, scope)
-            if str(target_id) not in entity_refs:
-                entity_refs.append(str(target_id))
+        for target_id in target_ids:
+            tid = str(target_id)
+            if tid not in entity_refs:
+                entity_refs.append(tid)
         new_entity.entity_refs = entity_refs
 
         # 10. Linter gate ───────────────────────────────────────────
@@ -267,6 +378,32 @@ class CortexWriter:
     # ── helpers ─────────────────────────────────────────────────────
 
     def _body_for(self, dp: "DeliveryPackage") -> str:
+        """Resolve the body markdown for a DeliveryPackage.
+
+        Phase 1 (2026-06-15) — three-tier read path, cheapest first:
+
+        1. ``.extracted.md`` sidecar next to the bronze JSON (cheap
+           file read, already markdown).
+        2. Re-render via the connector adapter from the bronze JSON
+           (one JSON parse + adapter dispatch).
+        3. OCR fallback (slowest — only when JSON parse fails).
+        """
+        from donna.core.integrations.bronze import sidecar_key_for
+
+        # Tier 1 — sidecar.
+        sidecar = sidecar_key_for(dp.storage_key)
+        try:
+            if default_storage.exists(sidecar):
+                with default_storage.open(sidecar, "rb") as f:
+                    return f.read().decode("utf-8")
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "cortex_sidecar_read_failed",
+                extra={"sidecar": sidecar},
+                exc_info=True,
+            )
+
+        # Tier 2 — re-render from bronze JSON.
         try:
             with default_storage.open(dp.storage_key, "rb") as f:
                 raw_bytes = f.read()
@@ -280,8 +417,11 @@ class CortexWriter:
         try:
             raw = json.loads(raw_bytes.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError):
-            suffix = Path(dp.storage_key).suffix or ".bin"
-            return self.ocr.extract(raw_bytes, suffix=suffix).text
+            logger.warning(
+                "cortex_body_json_unparseable",
+                extra={"storage_key": dp.storage_key},
+            )
+            return ""
 
         try:
             from donna.core.integrations import get as get_provider
@@ -302,114 +442,36 @@ class CortexWriter:
                 exc_info=True,
             )
 
-        suffix = Path(dp.storage_key).suffix or ".json"
-        return self.ocr.extract(raw_bytes, suffix=suffix).text
+        # No tier-3 OCR fallback anymore — sidecar covers the common
+        # case; if we reach here both sidecar AND adapter rendering
+        # failed, return empty so the linter rejects loudly via
+        # MISSING_SOURCE_FOOTER instead of silently storing garbage.
+        return ""
 
-    def _build_extensions(
-        self, dp: "DeliveryPackage", type_spec: TypeSpec
-    ) -> dict:
-        """Per-type deterministic fill from adapter metadata."""
-        meta = dp.metadata or {}
-        if type_spec.type == "meeting":
-            return {
-                "attendees": self._attendees(
-                    meta.get("attendees") or meta.get("participants")
-                ),
-                "duration_min": meta.get("duration_min")
-                or (
-                    int(meta["duration_seconds"] / 60)
-                    if isinstance(meta.get("duration_seconds"), (int, float))
-                    else None
-                ),
-                "recording_url": meta.get("recording_url"),
-            }
-        if type_spec.type == "email":
-            return {
-                "thread_id": meta.get("thread_id"),
-                "participants_emails": self._participants(
-                    meta.get("participants_emails") or meta.get("recipients")
-                ),
-            }
-        if type_spec.type == "chat":
-            return {
-                "channel": meta.get("channel") or "general",
-                "participants": self._emails(meta.get("participants")),
-            }
-        if type_spec.type == "doc":
-            return {
-                "doc_type": meta.get("doc_type", "other"),
-                "mime": meta.get("mime_type") or meta.get("mime"),
-                "author_email": (
-                    (meta.get("owner") or {}).get("email")
-                    if isinstance(meta.get("owner"), dict)
-                    else None
-                ),
-            }
-        if type_spec.type == "ticket":
-            return {
-                "provider": meta.get("provider", "jira"),
-                "external_id": meta.get("external_id", dp.provider_item_id),
-                "status": meta.get("status", "open"),
-                "assignees": meta.get("assignees", []),
-                "parent_epic_id": meta.get("parent_epic_id"),
-            }
-        if type_spec.type == "clip":
-            return {
-                "url": meta.get("url", ""),
-                "why_captured": meta.get("why_captured", ""),
-                "captured_by": meta.get("captured_by"),
-            }
-        if type_spec.type == "note":
-            return {
-                "note_type": meta.get("note_type", "journal"),
-                "why": meta.get("why"),
-                "is_open_question": bool(meta.get("is_open_question", False)),
-            }
-        return {}
+    def _extensions_from_canonical(self, dp: "DeliveryPackage") -> dict:
+        """Return ``dp.canonical_payload['extensions']``.
 
-    @staticmethod
-    def _attendees(items) -> list[dict]:
-        out: list[dict] = []
-        for item in items or []:
-            if isinstance(item, dict):
-                out.append(
-                    {
-                        "name": item.get("name"),
-                        "email": item.get("email"),
-                        "role": item.get("role"),
-                    }
-                )
-            elif isinstance(item, str) and "@" in item:
-                out.append({"name": item, "email": item, "role": None})
-        return out
-
-    @staticmethod
-    def _participants(items) -> list[dict]:
-        out: list[dict] = []
-        for item in items or []:
-            if isinstance(item, dict):
-                out.append(
-                    {
-                        "name": item.get("name"),
-                        "addr": item.get("addr") or item.get("email"),
-                        "role": item.get("role"),
-                    }
-                )
-            elif isinstance(item, str):
-                out.append({"name": None, "addr": item, "role": "to"})
-        return [p for p in out if p.get("addr")]
-
-    @staticmethod
-    def _emails(items) -> list[str]:
-        if not items:
-            return []
-        out: list[str] = []
-        for item in items:
-            if isinstance(item, dict) and item.get("email"):
-                out.append(item["email"])
-            elif isinstance(item, str) and "@" in item:
-                out.append(item)
-        return out
+        Connector adapters emit a typed ``CanonicalEntity`` whose
+        extensions are Pydantic-validated at construction. The payload
+        was stored on ``DeliveryPackage`` at ingest time; we read it
+        verbatim here and the linter slims because all the type / author
+        / required-extension checks already passed at the adapter
+        boundary.
+        """
+        payload = dp.canonical_payload or {}
+        if not payload:
+            raise ValueError(
+                f"DeliveryPackage {dp.id} missing canonical_payload — "
+                "re-ingest required (pre-Phase-2 row)."
+            )
+        ext = payload.get("extensions")
+        if not isinstance(ext, dict):
+            raise ValueError(
+                f"DeliveryPackage {dp.id} canonical_payload.extensions "
+                "missing or wrong type"
+            )
+        # Mutable copy — step 5 + step 6 enrich it in-place.
+        return dict(ext)
 
     def _merge_fit(self, extensions: dict, fit_result) -> dict:
         try:

@@ -1,0 +1,60 @@
+meta {
+  name: Create
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cortex/entities/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "doc",
+    "author": "human",
+    "source": "manual://bruno/test-1",
+    "title": "Acme Corp payment terms",
+    "body_md": "# Acme Corp — payment terms\n\nAcme pays Net-30 from invoice date. Late fees waived for the first occurrence each quarter (per Q3 2025 agreement). Wire transfers only — no ACH. Invoice contact: ap@acme.example.\n\nSource: manual://bruno/test-1",
+    "extensions": {
+      "doc_type": "spec"
+    }
+  }
+}
+
+script:post-response {
+  const r = res.getBody();
+  if (r && r.data && r.data.id) {
+    bru.setEnvVar("cortexSeedEntityId", r.data.id);
+    bru.setEnvVar("cortexEntityId", r.data.id);
+  }
+}
+
+docs {
+  Linter-gated atomic write.
+
+  body_md MUST end with "Source: <uri>" or "Spawned by: <id>".
+
+  type values:
+    Accrued (provider-fed): meeting | email | chat | doc | ticket | clip | note
+    Curated (human/agent):  person  | org   | project | concept | decision
+
+  author: "donna" | "human" | "agent"
+
+  Per-type required extensions:
+    - doc      → doc_type
+    - note     → note_type
+    - decision → context_sources (>=1 uuid)
+    - concept  → requires sources >= 2 on the row (set via "sources" once
+                 the schema allows it — not via extensions)
+
+  Optional: occurred_at (ISO 8601), client_id, project_id, bronze_storage_key.
+
+  New row id saved as cortexSeedEntityId AND cortexEntityId.
+}

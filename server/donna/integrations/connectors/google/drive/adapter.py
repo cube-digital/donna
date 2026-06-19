@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
-from donna.core.integrations import BaseAdapter
+from donna.core.integrations import BaseEntityAdapter
 
 
 # mimeType → export format. Used by the ingest task; lives here so the
@@ -37,8 +37,16 @@ BINARY_MIMES = {
 }
 
 
-class DriveFileAdapter(BaseAdapter):
-    """Adapter for one Drive file (metadata + optional exported text)."""
+class DriveFileAdapter(BaseEntityAdapter):
+    """Adapter for one Drive file (metadata + optional exported text).
+
+    Phase 2 (2026-06-15): emits ``CanonicalEntity(entity_type="doc")``.
+    Required DocExtensions nav: ``doc_type`` — defaults to "other";
+    the cortex pipeline's tier-A heuristic classifier upgrades it
+    when filename / MIME / body anchors match a known type.
+    """
+
+    canonical_type = "doc"
 
     @property
     def _file(self) -> dict[str, Any]:
@@ -118,4 +126,26 @@ class DriveFileAdapter(BaseAdapter):
             "md5_checksum":   f.get("md5Checksum"),
             "has_export":     f.get("mimeType") in GOOGLE_EXPORT_MIMES,
             "has_binary":     f.get("mimeType") in BINARY_MIMES,
+        }
+
+    # ── BaseEntityAdapter — canonical extensions ────────────────────────────
+    def _extensions(self) -> dict:
+        """DocExtensions-shaped payload (nav: doc_type).
+
+        ``doc_type`` defaults to "other"; cortex pipeline's tier-A
+        heuristic classifier upgrades it when filename / MIME / body
+        anchors match a known type (spec, contract, runbook, …).
+        """
+        f = self._file
+        owner_email = None
+        owners = f.get("owners") or []
+        if owners and isinstance(owners[0], dict):
+            owner_email = owners[0].get("emailAddress")
+
+        return {
+            "doc_type":     "other",  # tier-A classifier may overwrite
+            "mime":         f.get("mimeType"),
+            "author_email": owner_email,
+            "filename":     f.get("name"),
+            "web_view_link": f.get("webViewLink"),
         }

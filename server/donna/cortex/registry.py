@@ -19,11 +19,11 @@ org, project, concept, decision.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
 
 from pydantic import BaseModel
 
 from donna.cortex.embeddings import Sampler, fixed_window_sampler
+from donna.cortex.folders import FolderFn
 from donna.cortex.schemas import EntityType
 
 
@@ -31,9 +31,8 @@ from donna.cortex.schemas import EntityType
 class TypeSpec:
     """Four-aligned contract per entity type.
 
-    P0.14 adds ``embedding_sampler`` — the per-type strategy used when
-    feeding the embedder. See the P0.14 plan for the cheat-sheet of
-    which sampler each type uses.
+    ``folder_resolver`` is a plain callable (``FolderFn``) since the
+    2026-06-14 folders refactor — call it directly, no ``.canonical_path``.
     """
 
     type: EntityType
@@ -41,7 +40,7 @@ class TypeSpec:
     fit_model: type[BaseModel] | None
     template_path: str
     nav_fields: list[str]
-    folder_resolver: object  # FolderResolver Protocol
+    folder_resolver: FolderFn
     version: str
     embedding_sampler: Sampler = field(default=fixed_window_sampler)
 

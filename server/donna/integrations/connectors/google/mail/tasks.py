@@ -72,15 +72,21 @@ def ingest_gmail_message(self, workspace_id: str, message_id: str) -> dict:
     raw = {"message": message}
     adapter = provider.adapter_for(raw)
 
-    storage_key = f"{workspace_id}/google/mail/messages/{message_id}.json"
+    # Versioned bronze key (Phase 1, 2026-06-12) — see fathom/tasks.py
+    # for the rationale. Identical re-fetches collide on sha8; new
+    # content lands at a new key; old version stays addressable.
+    from donna.core.integrations.bronze import bronze_key
 
-    # Idempotent storage write — same key overwrites the same blob.
-    if default_storage.exists(storage_key):
-        default_storage.delete(storage_key)
-    default_storage.save(
-        storage_key,
-        ContentFile(json.dumps(adapter.to_json()).encode()),
+    payload_bytes = json.dumps(adapter.to_json()).encode()
+    storage_key = bronze_key(
+        workspace_id, "google", "mail/messages", str(message_id), payload_bytes
     )
+    if not default_storage.exists(storage_key):
+        default_storage.save(storage_key, ContentFile(payload_bytes))
+    from donna.core.integrations.bronze import write_sidecar
+    write_sidecar(default_storage, storage_key, adapter.to_markdown())
+
+    canonical = adapter.to_canonical()
 
     package, created = DeliveryPackage.objects.update_or_create(
         workspace_id=workspace_id,
@@ -92,6 +98,8 @@ def ingest_gmail_message(self, workspace_id: str, message_id: str) -> dict:
             "occurred_at":        adapter.occurred_at(),
             "storage_key":        storage_key,
             "metadata":           adapter.metadata(),
+            "canonical_type":     canonical.entity_type,
+            "canonical_payload":  canonical.as_payload(),
         },
     )
 
@@ -113,9 +121,9 @@ def ingest_gmail_message(self, workspace_id: str, message_id: str) -> dict:
     # idempotency key.
     cortex_entity_id: str | None = None
     try:
-        from donna.cortex.pipeline import CortexWriter
+        from donna.cortex.pipeline import CortexPipeline
 
-        cortex_entity = CortexWriter().write(package)
+        cortex_entity = CortexPipeline().write(package)
         cortex_entity_id = str(cortex_entity.id)
     except Exception:  # noqa: BLE001
         logger.exception(

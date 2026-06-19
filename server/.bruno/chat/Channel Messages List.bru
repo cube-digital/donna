@@ -10,12 +10,12 @@ get {
   auth: inherit
 }
 
-headers {
-  X-Workspace-Id: {{workspaceId}}
-}
-
 params:query {
   limit: 50
-  ~before:
-  ~after:
+  ~before: 
+  ~after: 
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
 }

@@ -1,7 +1,7 @@
 """
-End-to-end CortexWriter smoke on a synthetic Fathom DeliveryPackage.
+End-to-end CortexPipeline smoke on a synthetic Fathom DeliveryPackage.
 
-OCR/adapter are stubbed via overriding ``CortexWriter._body_for`` so
+OCR/adapter are stubbed via overriding ``CortexPipeline._body_for`` so
 the test runs without docker, real bronze blobs, or LLM calls.
 Embeddings + GLiNER are off; deterministic ProviderMetadata extractor
 surfaces candidate persons / orgs.
@@ -18,7 +18,7 @@ from django.core.files.storage import default_storage
 from django.test import TestCase
 
 from donna.cortex.models import CortexEntity
-from donna.cortex.pipeline import CortexWriter
+from donna.cortex.pipeline import CortexPipeline
 from donna.integrations.models import DeliveryPackage
 from donna.workspaces.models import Workspace
 
@@ -48,10 +48,25 @@ class CortexPipelineTests(TestCase):
                 "duration_min": 30,
             },
             storage_key=self.storage_key,
+            canonical_type="meeting",
+            canonical_payload={
+                "entity_type": "meeting",
+                "external_id": "rec-1",
+                "title": "Cortex Kickoff",
+                "occurred_at": "2026-06-03T14:00:00+00:00",
+                "extensions": {
+                    "attendees": [
+                        {"name": "Alice", "email": "alice@acme.com", "role": "host"},
+                        {"name": "Bob", "email": "bob@example.com", "role": None},
+                    ],
+                    "duration_min": 30,
+                    "recording_url": None,
+                },
+            },
         )
 
-    def _make_writer(self) -> CortexWriter:
-        writer = CortexWriter()
+    def _make_writer(self) -> CortexPipeline:
+        writer = CortexPipeline()
         writer._body_for = lambda dp: (  # type: ignore[method-assign]
             "# Cortex Kickoff\n\nDiscussed P0–P7. Stripe integration next."
         )
@@ -132,7 +147,7 @@ class CortexPipelineTests(TestCase):
             def recluster(self, scope):  # pragma: no cover — not invoked
                 return {}
 
-        writer = CortexWriter(
+        writer = CortexPipeline(
             embedder=SpyEmbedder(),
             clusterer=SpyClusterer(),
         )

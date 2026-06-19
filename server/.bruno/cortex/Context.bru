@@ -1,0 +1,25 @@
+meta {
+  name: Context
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/cortex/entities/{{cortexEntityId}}/context/?depth=1
+  body: none
+  auth: inherit
+}
+
+params:query {
+  depth: 1
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Depth-bounded neighbor walk via entity_refs + sources edges.
+  depth=1 → direct neighbors. depth=2 → neighbors of neighbors
+  (deduped, capped). Each card excludes body by default.
+}

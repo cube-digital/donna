@@ -17,7 +17,7 @@ headers {
 
 body:json {
   {
-    "body": "hello from bruno",
+    "body": "Summarize my inbox this month",
     "client_msg_id": ""
   }
 }
@@ -26,4 +26,29 @@ docs {
   Same code path as the WS ``send_message`` action. The persisted
   message is fanned out to every WS subscriber of
   ``chat-channel-{id}`` via ``channel_layer.group_send``.
+  
+  --- Agent dispatch (A1, 2026-06-15) ---
+  After the row commits, ``transaction.on_commit`` calls
+  ``maybe_dispatch_agent(message)``. If the channel has an
+  ``AgentSession`` attached AND (it's a DM OR @donna mentioned),
+  a Celery ``run_agent_turn`` task fires.
+  
+  The agent calls cortex tools (cortex_query / read_entity /
+  get_context / prepare_context), composes an answer, and persists
+  it as a NEW Message with ``author_agent`` set.
+  
+  --- Polling for the reply ---
+  Use "Channel Messages List" right after — the latest message
+  with ``author_agent`` set is Donna's reply. Typical latency:
+  1–5s (depends on tool count + LLM speed).
+  
+  --- AgentSession setup (one-time per channel) ---
+  Bruno has no AgentSession endpoint. Once per workspace, in the
+  Django shell:
+  
+    from donna.chat.models import Channel, AgentSession
+    ch = Channel.objects.get(id="<channel-uuid>")
+    AgentSession.objects.create(channel=ch, name="Donna")
+  
+  After that, every message in that DM triggers Donna.
 }

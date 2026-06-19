@@ -1,15 +1,32 @@
 """
-BaseAdapter — converts raw provider data to multiple output formats.
+BaseAdapter + BaseEntityAdapter — connector → cortex contract.
 
-Same source → text (for storage/agent memory), markdown (for Documents),
-json (for indexes), metadata (for the DeliveryPackage row).
+Two shapes co-exist after the 2026-06-15 Phase 2 refactor:
 
-Concrete adapters live in `donna/integrations/connectors/<vendor>/<product>/adapter.py`.
+- ``BaseAdapter`` (legacy) — multi-format renderer:
+  text / markdown / json / metadata. Still required for the bronze
+  storage write (``adapter.to_json()`` lands in default_storage).
+
+- ``BaseEntityAdapter`` (canonical) — emits ONE
+  ``CanonicalEntity`` via ``to_canonical()``. The cortex pipeline
+  reads ``DeliveryPackage.canonical_payload`` instead of mapping
+  ``metadata`` through the old ``_build_extensions`` if-chain.
+
+Concrete adapters subclass BOTH (or wrap one with the other) so
+bronze + cortex paths both work without a hard cutover. New
+connectors should subclass BaseEntityAdapter directly and inherit
+sensible defaults for the legacy methods.
+
+Concrete adapters live in
+``donna/integrations/connectors/<vendor>/<product>/adapter.py``.
 """
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import ClassVar, Generic, TypeVar
+
+from donna.core.integrations.canonical import CanonicalEntity
 
 
 class BaseAdapter(ABC):
@@ -54,5 +71,48 @@ class BaseAdapter(ABC):
         return ""
 
     def metadata(self) -> dict:
-        """Provider-specific normalized metadata. Default empty dict."""
+        """Provider-specific normalized metadata. Default empty dict.
+
+        Kept for legacy callers; the cortex pipeline now reads
+        ``CanonicalEntity`` via ``to_canonical()`` instead.
+        """
         return {}
+
+
+T = TypeVar("T", bound=CanonicalEntity)
+
+
+class BaseEntityAdapter(BaseAdapter, Generic[T]):
+    """Adapter that ALSO emits a typed ``CanonicalEntity``.
+
+    Subclasses set ``canonical_type`` (entity_type literal) and
+    implement ``_extensions()`` returning the per-type extensions dict.
+    Default ``to_canonical()`` assembles everything; override only when
+    a connector needs custom assembly.
+    """
+
+    canonical_type: ClassVar[str] = ""
+
+    def _extensions(self) -> dict:
+        """Return the typed extensions dict for this entity type.
+
+        Subclasses override. Default falls back to ``metadata()`` so
+        adapters that haven't migrated still produce a CanonicalEntity
+        — Pydantic will reject if the legacy metadata doesn't fit the
+        type's EXTENSION_MODELS schema, flagging the connector to fix.
+        """
+        return self.metadata()
+
+    def to_canonical(self) -> CanonicalEntity:
+        if not self.canonical_type:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must set ``canonical_type`` "
+                "ClassVar (e.g. 'meeting', 'email', 'doc')."
+            )
+        return CanonicalEntity(
+            entity_type=self.canonical_type,  # type: ignore[arg-type]
+            external_id=self.external_id(),
+            title=self.title(),
+            occurred_at=self.occurred_at(),
+            extensions=self._extensions(),
+        )

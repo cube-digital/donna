@@ -4,9 +4,9 @@ that sits between Bronze (DeliveryPackage blobs) and the future Graph
 layer.
 
 Single Postgres table (``cortex_entities``) is the source of truth.
-Five subsystems compose into one ``CortexWriter`` facade:
+Five subsystems compose into one ``CortexPipeline`` facade:
 
-1. OCR (``donna.cortex.ocr``)
+1. Body resolution — sidecar (``.extracted.md``) → adapter re-render → empty
 2. Embed + cluster (``donna.cortex.embeddings`` + ``donna.cortex.clustering``)
 3. Entity extract + resolve (``donna.cortex.entities``)
 4. Folder resolver (``donna.cortex.folders``)

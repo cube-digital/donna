@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from email.utils import getaddresses
 from typing import Any
 
-from donna.core.integrations import BaseAdapter
+from donna.core.integrations import BaseEntityAdapter
 
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
@@ -57,8 +57,14 @@ def _html_to_text(html_body: str) -> str:
     return _WHITESPACE_RE.sub(" ", unescaped).strip()
 
 
-class GmailMessageAdapter(BaseAdapter):
-    """Adapter for one Gmail message (full format)."""
+class GmailMessageAdapter(BaseEntityAdapter):
+    """Adapter for one Gmail message (full format).
+
+    Phase 2 (2026-06-15): emits ``CanonicalEntity(entity_type="email")``
+    via ``to_canonical()``. Required EmailExtensions nav: ``thread_id``.
+    """
+
+    canonical_type = "email"
 
     # ── Helpers ─────────────────────────────────────────────────────────────
     @property
@@ -165,4 +171,33 @@ class GmailMessageAdapter(BaseAdapter):
             "subject":       h.get("subject"),
             "message_id_hdr": h.get("message-id"),
             "in_reply_to":   h.get("in-reply-to"),
+        }
+
+    # ── BaseEntityAdapter — canonical extensions ────────────────────────────
+    def _extensions(self) -> dict:
+        """EmailExtensions-shaped payload (nav: thread_id)."""
+        h = self._headers
+        msg = self._message
+
+        def _addresses(field: str) -> list[str]:
+            value = h.get(field)
+            if not value:
+                return []
+            return [addr for _, addr in getaddresses([value]) if addr]
+
+        participants = []
+        for addr in (
+            [h.get("from")] if h.get("from") else []
+        ) + _addresses("to") + _addresses("cc"):
+            if addr:
+                participants.append({
+                    "name": None,
+                    "addr": addr if "@" in addr else None,
+                    "role": "from" if addr == h.get("from") else "to",
+                })
+        # Pydantic EmailExtensions requires participants_emails as
+        # list[dict{name,addr,role}].
+        return {
+            "thread_id":           msg.get("threadId"),
+            "participants_emails": [p for p in participants if p.get("addr")],
         }

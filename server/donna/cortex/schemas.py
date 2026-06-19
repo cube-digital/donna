@@ -9,7 +9,7 @@ Lifecycle distinction (accrued vs curated) is captured via
 Used by:
 
 - ``FrontmatterLinter`` at write time (Pydantic gate + R1-R10).
-- ``CortexWriter`` step 3 / step 8 (frontmatter build + entity build).
+- ``CortexPipeline`` step 3 / step 8 (frontmatter build + entity build).
 - ``MCP API`` request/response payloads (P9, locked surface).
 
 See `Cortex Universal Silver Specification.md` §§3-5 in the vault.
@@ -237,60 +237,10 @@ class DecisionExtensions(BaseModel):
     supersedes_adr: UUID | None = None
 
 
-# ── SilverEntity canonical Pydantic model ──────────────────────────
-
-
-class SilverEntity(BaseModel):
-    """The single canonical entity model. See spec §5."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    # ── Identity ────────────────────────────────────────────────────
-    id: UUID
-    type: EntityType
-
-    # ── Authorship & provenance (anti-hallucination) ────────────────
-    author: AuthorKind
-    source: str  # URI: fathom://meeting/<id>, gmail://thread/<id>, manual://, cortex://synth/<run>
-    bronze_storage_key: Optional[str] = None
-    content_hash: str  # SHA256(body_md)
-
-    # ── Temporal ────────────────────────────────────────────────────
-    occurred_at: datetime
-    synthesized_at: datetime
-
-    # ── Scope (boundary contract) ───────────────────────────────────
-    workspace_id: UUID
-    client_id: Optional[UUID] = None  # boundary 1 — NEVER traversed by clustering
-    project_id: Optional[UUID] = None  # boundary 2 — null only if client_id is null
-
-    # ── Topical ─────────────────────────────────────────────────────
-    cluster_id: Optional[UUID] = None
-    embedding: list[float] = Field(default_factory=list)  # 384-dim BGE-small default
-
-    # ── Edges — forward (9 total, see spec §4) ──────────────────────
-    entity_refs: list[UUID] = Field(default_factory=list)  # mentions of curated rows
-    sources: list[UUID] = Field(default_factory=list)
-    cross_refs: list[UUID] = Field(default_factory=list)  # intra-scope only (R4)
-    supersedes: list[UUID] = Field(default_factory=list)
-    parent: Optional[UUID] = None
-    related: list[UUID] = Field(default_factory=list)  # curated↔curated only
-
-    # ── Edges — reverse (auto-maintained by repository) ─────────────
-    applied_in: list[UUID] = Field(default_factory=list)
-    superseded_by: Optional[UUID] = None
-    contradicts: list[UUID] = Field(default_factory=list)  # auto by linter
-
-    # ── Confidence & decay ──────────────────────────────────────────
-    confidence: ConfidenceKind = "high"
-    last_synthesized: date
-
-    # ── Content ─────────────────────────────────────────────────────
-    title: str
-    body_md: str
-
-    # ── Per-type extensions ─────────────────────────────────────────
-    extensions: dict[str, Any] = Field(default_factory=dict)
+# ``SilverEntity`` Pydantic twin removed 2026-06-14 — never imported.
+# The Django ``CortexEntity`` model in models.py is the single source
+# of truth; per-type extensions are validated via EXTENSION_MODELS
+# below at the linter boundary.
 
 
 # ── Type → Extensions model registry ───────────────────────────────

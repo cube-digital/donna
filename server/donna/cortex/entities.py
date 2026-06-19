@@ -43,189 +43,21 @@ from donna.cortex.clustering import Scope
 from donna.cortex.models import CortexEntity
 
 
-_PUBLIC_EMAIL_DOMAINS = {
-    "gmail.com",
-    "googlemail.com",
-    "yahoo.com",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com",
-    "proton.me",
-    "protonmail.com",
-    "live.com",
-    "msn.com",
-    "aol.com",
-}
+# Extractors moved 2026-06-15 to ``donna.core.extractors.entities``.
+# Re-exported below for backward compatibility — existing imports
+# ``from donna.cortex.entities import ProviderMetadataExtractor`` keep
+# working. New code should import from ``donna.core.extractors.entities``.
+from donna.core.extractors.entities import (  # noqa: F401
+    CompositeExtractor,
+    EntityExtractor,
+    ExtractContext,
+    ExtractedEntity,
+    GLiNERExtractor,
+    ProviderMetadataExtractor,
+)
 
 
-@dataclass(frozen=True)
-class ExtractContext:
-    """Out-of-band context for extractor calls."""
-
-    adapter_metadata: dict
-
-
-@dataclass(frozen=True)
-class ExtractedEntity:
-    """A single candidate surfaced by an Extractor."""
-
-    type: Literal["person", "org", "project", "concept"]
-    label: str
-    email: str | None
-    domain: str | None
-    confidence: float
-    span: tuple[int, int] | None
-    origin: Literal["provider", "gliner", "haiku_hint"]
-
-
-# ── Extractors ──────────────────────────────────────────────────────
-
-
-class EntityExtractor(Protocol):
-    def extract(
-        self, *, entity: CortexEntity, context: ExtractContext
-    ) -> list[ExtractedEntity]: ...
-
-
-class ProviderMetadataExtractor:
-    """Deterministic extraction from ``adapter.metadata()``."""
-
-    def extract(
-        self, *, entity: CortexEntity, context: ExtractContext
-    ) -> list[ExtractedEntity]:
-        meta = context.adapter_metadata or {}
-        out: list[ExtractedEntity] = []
-
-        for source in ("host", "sender", "owner"):
-            obj = meta.get(source)
-            if isinstance(obj, dict) and obj.get("email"):
-                out.append(self._person(obj))
-
-        for source in ("participants", "recipients", "to", "cc", "attendees"):
-            for item in meta.get(source) or []:
-                if isinstance(item, dict) and item.get("email"):
-                    out.append(self._person(item))
-                elif isinstance(item, str) and "@" in item:
-                    out.append(self._person({"email": item, "name": item}))
-
-        seen_domains: set[str] = set()
-        for cand in list(out):
-            if cand.email and "@" in cand.email:
-                domain = cand.email.split("@", 1)[1].lower()
-                if domain in _PUBLIC_EMAIL_DOMAINS:
-                    continue
-                if domain in seen_domains:
-                    continue
-                seen_domains.add(domain)
-                out.append(
-                    ExtractedEntity(
-                        type="org",
-                        label=domain.split(".")[0].capitalize(),
-                        email=None,
-                        domain=domain,
-                        confidence=0.9,
-                        span=None,
-                        origin="provider",
-                    )
-                )
-
-        return out
-
-    def _person(self, obj: dict) -> ExtractedEntity:
-        return ExtractedEntity(
-            type="person",
-            label=obj.get("name") or obj.get("email"),
-            email=(obj.get("email") or "").lower() or None,
-            domain=None,
-            confidence=1.0,
-            span=None,
-            origin="provider",
-        )
-
-
-class GLiNERExtractor:
-    """Body-text NER via ``urchade/gliner_medium-v2.1`` (lazy-loaded)."""
-
-    DEFAULT_MODEL = "urchade/gliner_medium-v2.1"
-    DEFAULT_LABELS: tuple[str, ...] = ("person", "org", "project", "concept")
-    DEFAULT_THRESHOLD = 0.5
-
-    def __init__(
-        self,
-        model_name: str | None = None,
-        labels: Iterable[str] | None = None,
-        threshold: float | None = None,
-    ) -> None:
-        self._model_name = model_name or self.DEFAULT_MODEL
-        self._labels = list(labels or self.DEFAULT_LABELS)
-        self._threshold = (
-            threshold if threshold is not None else self.DEFAULT_THRESHOLD
-        )
-        self._model = None
-
-    def _load(self):
-        if self._model is None:
-            try:
-                from gliner import GLiNER
-            except ImportError as exc:
-                raise ImportError(
-                    "GLiNERExtractor requires gliner. "
-                    "Install with `uv add gliner`."
-                ) from exc
-            self._model = GLiNER.from_pretrained(self._model_name)
-        return self._model
-
-    def extract(
-        self, *, entity: CortexEntity, context: ExtractContext
-    ) -> list[ExtractedEntity]:
-        model = self._load()
-        text = entity.body_md or ""
-        results = model.predict_entities(
-            text, self._labels, threshold=self._threshold
-        )
-        out: list[ExtractedEntity] = []
-        for hit in results:
-            label = hit.get("label")
-            if label not in ("person", "org", "project", "concept"):
-                continue
-            out.append(
-                ExtractedEntity(
-                    type=label,  # type: ignore[arg-type]
-                    label=hit.get("text", ""),
-                    email=None,
-                    domain=None,
-                    confidence=float(hit.get("score", 0.0)),
-                    span=(int(hit.get("start", 0)), int(hit.get("end", 0))),
-                    origin="gliner",
-                )
-            )
-        return out
-
-
-class CompositeExtractor:
-    """Chain of Responsibility — run each; merge + dedupe."""
-
-    def __init__(self, *extractors: EntityExtractor) -> None:
-        self._extractors = extractors
-
-    def extract(
-        self, *, entity: CortexEntity, context: ExtractContext
-    ) -> list[ExtractedEntity]:
-        seen: set[tuple[str, str, str, str]] = set()
-        merged: list[ExtractedEntity] = []
-        for ext in self._extractors:
-            for cand in ext.extract(entity=entity, context=context):
-                key = (
-                    cand.type,
-                    (cand.email or "").lower(),
-                    (cand.domain or "").lower(),
-                    (cand.label or "").lower(),
-                )
-                if key in seen:
-                    continue
-                seen.add(key)
-                merged.append(cand)
-        return merged
+# ── (Stale local copies removed — see core/extractors/entities/) ────
 
 
 # ── Resolver ────────────────────────────────────────────────────────
@@ -235,6 +67,10 @@ class EntityResolver(Protocol):
     def resolve(
         self, candidate: ExtractedEntity, scope: Scope
     ) -> UUID: ...
+
+    def resolve_batch(
+        self, candidates: list[ExtractedEntity], scope: Scope
+    ) -> list[UUID]: ...
 
 
 class DeterministicResolver:
@@ -266,6 +102,57 @@ class DeterministicResolver:
         if candidate.type == "concept":
             return self._resolve_concept(candidate, scope)
         raise ValueError(f"Unknown candidate.type={candidate.type!r}")
+
+    def resolve_batch(
+        self, candidates: list[ExtractedEntity], scope: Scope
+    ) -> list[UUID]:
+        """Resolve N candidates, then apply employer-link side-effect (#11).
+
+        When a person and an org are both resolved from the same email
+        domain (alice@acme.com → Alice + Acme), set the person's
+        ``extensions.employer_org_id`` + a ``related`` edge — UNLESS the
+        person already has one (human-set values are never overwritten).
+
+        Reverse case (org spawns first, person second) is handled here
+        too because we look at the full batch before patching.
+        """
+        ids: list[UUID] = []
+        persons: list[tuple[ExtractedEntity, UUID]] = []
+        orgs_by_domain: dict[str, UUID] = {}
+
+        for cand in candidates:
+            uid = self.resolve(cand, scope)
+            ids.append(uid)
+            if cand.type == "person" and cand.email and "@" in cand.email:
+                persons.append((cand, uid))
+            elif cand.type == "org" and cand.domain:
+                orgs_by_domain.setdefault(cand.domain.lower(), uid)
+
+        for cand, person_id in persons:
+            domain = cand.email.split("@", 1)[1].lower()
+            org_id = orgs_by_domain.get(domain)
+            if org_id is not None:
+                self._set_employer_if_unset(person_id, org_id)
+
+        return ids
+
+    @staticmethod
+    def _set_employer_if_unset(person_id: UUID, org_id: UUID) -> None:
+        """Set the person's employer link iff currently empty."""
+        try:
+            person = CortexEntity.objects.get(id=person_id, type="person")
+        except CortexEntity.DoesNotExist:
+            return
+        ext = dict(person.extensions or {})
+        if ext.get("employer_org_id"):
+            return  # never overwrite human-set
+        ext["employer_org_id"] = str(org_id)
+        related = list(person.related or [])
+        if str(org_id) not in [str(x) for x in related]:
+            related.append(str(org_id))
+        person.extensions = ext
+        person.related = related
+        person.save(update_fields=["extensions", "related", "updated_at"])
 
     # ── person ─────────────────────────────────────────────────────
 
@@ -462,7 +349,10 @@ class DeterministicResolver:
         client_id: UUID | None,
         project_id: UUID | None,
     ) -> CortexEntity:
-        from django.core.files.base import ContentFile
+        # Pushback #3 (2026-06-12): _spawn now routes through the linter +
+        # the manager. Removes the previous non-atomic ``row.save();
+        # row.body.save()`` double-write and stops bypassing the gate.
+        from donna.cortex.linter import FrontmatterLinter, LinterError
 
         spawn_id = uuid4()
         source_uri = f"cortex://spawn/{spawn_id}"
@@ -496,13 +386,21 @@ class DeterministicResolver:
             last_synthesized=datetime.now(tz=timezone.utc).date(),
             extensions=extensions,
         )
-        row.save()
-        row.body.save(
-            name=f"{row.id}.md",
-            content=ContentFile(body_bytes),
-            save=True,
+
+        # Concept exception: requires sources>=2 (INSUFFICIENT_EVIDENCE);
+        # single-extraction spawn cannot satisfy that — left to the
+        # dedicated batch-synthesis flow. All OTHER lint rules still
+        # apply to concept rows; only INSUFFICIENT_EVIDENCE is tolerated.
+        from donna.cortex.authority import RejectCode
+        try:
+            FrontmatterLinter().check(row, body_md=body)
+        except LinterError as exc:
+            if not (entity_type == "concept" and exc.code == RejectCode.INSUFFICIENT_EVIDENCE):
+                raise
+
+        return CortexEntity.objects.save_with_reverse_edges(
+            row, body_bytes=body_bytes
         )
-        return row
 
     def _body(self, title: str, type_label: str) -> str:
         return (

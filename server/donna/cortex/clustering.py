@@ -26,7 +26,6 @@ if __name__ == "__main__":
     django.setup()
 
 from dataclasses import dataclass
-from typing import Protocol
 from uuid import UUID
 
 import structlog
@@ -46,18 +45,9 @@ class Scope:
     project_id: UUID | None = None
 
 
-class ClusterStrategy(Protocol):
-    """Assign rows to clusters (online) + recompute clusters (batch)."""
-
-    def assign(
-        self, embedding: list[float], scope: Scope
-    ) -> tuple[UUID | None, str | None]: ...
-
-    def recluster(self, scope: Scope) -> dict[UUID, UUID | None]: ...
-
-
-class ClusterNamerStrategy(Protocol):
-    def name(self, sample_texts: list[str]) -> str: ...
+# ClusterStrategy / ClusterNamerStrategy Protocols removed 2026-06-14
+# along with ClusteringService — no consumer ever bound to them; the
+# pipeline calls HDBSCANClusterer + HaikuNamer directly.
 
 
 class HDBSCANClusterer:
@@ -68,10 +58,15 @@ class HDBSCANClusterer:
         min_cluster_size: int = 5,
         metric: str = "cosine",
         embedding_dim: int = 384,
+        min_similarity: float = 0.55,
     ) -> None:
         self._min_cluster_size = min_cluster_size
         self._metric = metric
         self._embedding_dim = embedding_dim
+        # Cosine floor (pushback #14, 2026-06-12): below threshold the
+        # nearest-centroid match is too weak to trust. Return (None, None)
+        # and let the nightly recluster pick the row up next pass.
+        self._min_similarity = min_similarity
 
     # ── online assign ───────────────────────────────────────────────
 
@@ -102,6 +97,8 @@ class HDBSCANClusterer:
                 best_id = cluster_id
                 best_name = name
 
+        if best_score < self._min_similarity:
+            return None, None
         return best_id, best_name
 
     # ── batch recluster ─────────────────────────────────────────────
@@ -234,29 +231,9 @@ class HaikuNamer:
         return (raw if isinstance(raw, str) else str(raw)).strip().strip(".")
 
 
-class ClusteringService:
-    """Compose embedder + clusterer + namer behind one boundary."""
-
-    def __init__(
-        self,
-        embedder,
-        clusterer: ClusterStrategy,
-        namer: ClusterNamerStrategy,
-    ) -> None:
-        self._embedder = embedder
-        self._clusterer = clusterer
-        self._namer = namer
-
-    def assign(
-        self, *, body_md: str, scope: Scope
-    ) -> tuple[list[float], UUID | None, str | None]:
-        """One call for ``CortexWriter`` step 5.
-
-        Returns ``(embedding, cluster_id, cluster_name)``.
-        """
-        embedding = self._embedder.embed(body_md)
-        cluster_id, cluster_name = self._clusterer.assign(embedding, scope)
-        return embedding, cluster_id, cluster_name
+# ClusteringService removed 2026-06-14 — the pipeline composes embedder
+# + clusterer + namer directly in step 5, so the facade was an extra
+# indirection layer with no callers.
 
 
 if __name__ == "__main__":
@@ -314,15 +291,3 @@ if __name__ == "__main__":
     print(f"  model = {namer._model}")
     print(f"  prompt prefix = {HaikuNamer.DEFAULT_PROMPT[:60]!r}...")
 
-    print("\n── ClusteringService composition shape ──────────────────────")
-    class _DummyEmbedder:
-        def embed(self, text: str) -> list[float]:
-            return new  # closer-to-B vector from above
-
-    svc = ClusteringService(
-        embedder=_DummyEmbedder(),
-        clusterer=populated,
-        namer=namer,
-    )
-    emb, cid, cname = svc.assign(body_md="hello world", scope=s1)
-    print(f"  embedding[:3]={emb[:3]}  → cluster=({cid}, {cname!r})")

@@ -93,24 +93,34 @@ def ingest_drive_file(
     raw = {"file": file_meta, "exported_text": exported_text}
     adapter = provider.adapter_for(raw)
 
-    # Storage layout: metadata + (optional) text + (optional) binary.
-    storage_key = f"{workspace_id}/google/drive/files/{file_id}.json"
-    if default_storage.exists(storage_key):
-        default_storage.delete(storage_key)
-    default_storage.save(
-        storage_key,
-        ContentFile(json.dumps(adapter.to_json()).encode()),
+    # Versioned bronze keys (Phase 1, 2026-06-12). Three blobs per file
+    # (metadata + optional text + optional binary) all get sha8-suffixed
+    # paths — idempotent re-write, distinct versions coexist.
+    from donna.core.integrations.bronze import bronze_key
+
+    payload_bytes = json.dumps(adapter.to_json()).encode()
+    storage_key = bronze_key(
+        workspace_id, "google", "drive/files", str(file_id), payload_bytes
     )
+    if not default_storage.exists(storage_key):
+        default_storage.save(storage_key, ContentFile(payload_bytes))
+    from donna.core.integrations.bronze import write_sidecar
+    write_sidecar(default_storage, storage_key, adapter.to_markdown())
     if exported_text:
-        text_key = f"{workspace_id}/google/drive/files/{file_id}.txt"
-        if default_storage.exists(text_key):
-            default_storage.delete(text_key)
-        default_storage.save(text_key, ContentFile(exported_text.encode()))
+        text_bytes = exported_text.encode()
+        text_key = bronze_key(
+            workspace_id, "google", "drive/files-text", str(file_id), text_bytes
+        )
+        if not default_storage.exists(text_key):
+            default_storage.save(text_key, ContentFile(text_bytes))
     if binary_bytes is not None:
-        bin_key = f"{workspace_id}/google/drive/files/{file_id}.bin"
-        if default_storage.exists(bin_key):
-            default_storage.delete(bin_key)
-        default_storage.save(bin_key, ContentFile(binary_bytes))
+        bin_key = bronze_key(
+            workspace_id, "google", "drive/files-bin", str(file_id), binary_bytes
+        )
+        if not default_storage.exists(bin_key):
+            default_storage.save(bin_key, ContentFile(binary_bytes))
+
+    canonical = adapter.to_canonical()
 
     package, created = DeliveryPackage.objects.update_or_create(
         workspace_id=workspace_id,
@@ -122,6 +132,8 @@ def ingest_drive_file(
             "occurred_at":        adapter.occurred_at(),
             "storage_key":        storage_key,
             "metadata":           adapter.metadata(),
+            "canonical_type":     canonical.entity_type,
+            "canonical_payload":  canonical.as_payload(),
         },
     )
 
@@ -132,14 +144,33 @@ def ingest_drive_file(
             "file_id":             file_id,
             "mime":                file_meta.get("mimeType"),
             "delivery_package_id": str(package.id),
-            # ``created`` collides with LogRecord's built-in field name.
             "row_created":         created,
             "has_text":            bool(exported_text),
             "has_binary":          binary_bytes is not None,
         },
     )
+
+    # Cortex hop (Phase 2, 2026-06-15) — was missing; Drive entered
+    # bronze but never reached cortex. Best-effort; logs + continues
+    # on failure so the bronze write isn't blocked by cortex bugs.
+    cortex_entity_id: str | None = None
+    try:
+        from donna.cortex.pipeline import CortexPipeline
+
+        cortex_entity = CortexPipeline().write(package)
+        cortex_entity_id = str(cortex_entity.id)
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "cortex_write_failed",
+            extra={
+                "workspace_id":        workspace_id,
+                "delivery_package_id": str(package.id),
+            },
+        )
+
     return {
         "delivery_package_id": str(package.id),
+        "cortex_entity_id":    cortex_entity_id,
         "created":             created,
     }
 

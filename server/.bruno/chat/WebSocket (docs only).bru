@@ -12,21 +12,21 @@ get {
 
 docs {
   Bruno does not handle WebSockets — this entry is documentation.
-
+  
   ## Connect
-
+  
   ```
   wscat -c "ws://localhost:8000/ws/" -s "bearer.${ACCESS_TOKEN}"
   ```
-
+  
   Server reads JWT from the ``Sec-WebSocket-Protocol`` header
   (``bearer.<token>``). On accept it joins:
-
+  
   - ``presence-user-{uid}``
   - ``workspace-{wid}-events`` for every workspace membership
-
+  
   ## Actions (client → server)
-
+  
   ```
   { "action": "subscribe_channel",   "channel_id": "<cid>" }
   { "action": "unsubscribe_channel", "channel_id": "<cid>" }
@@ -40,9 +40,9 @@ docs {
   { "action": "heartbeat" }
   { "action": "open_dm",             "peer_user_id": "<uid>" }
   ```
-
+  
   ## Events (server → client)
-
+  
   ```
   { "event": "connected", "user_id": "..." }
   { "event": "message.created",   "channel_id": "...", "message": {...} }
@@ -56,12 +56,12 @@ docs {
   { "event": "dm.opened",         "channel_id": "...", "peer_user_id": "..." }
   { "event": "error",             "code": "...", "detail": "..." }
   ```
-
+  
   ## Agent token stream
-
+  
   ```
   wscat -c "ws://localhost:8000/ws/agent/${RUN_ID}/" -s "bearer.${TOKEN}"
   ```
-
+  
   Server pushes ``{event: agent.token, token: "..."}`` per chunk.
 }

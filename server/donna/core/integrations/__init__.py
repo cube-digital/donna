@@ -16,7 +16,8 @@ Re-exports the public surface so consumers import from one place:
 """
 from __future__ import annotations
 
-from .adapter import BaseAdapter
+from .adapter import BaseAdapter, BaseEntityAdapter
+from .canonical import CanonicalEntity
 from .client import BaseHTTPClient
 from .exceptions import (
     IntegrationError,
@@ -51,6 +52,8 @@ __all__ = [
     "BaseWebhookHandler",
     "BaseOAuthHandler",
     "BaseAdapter",
+    "BaseEntityAdapter",
+    "CanonicalEntity",
     # Registry
     "register",
     "get",

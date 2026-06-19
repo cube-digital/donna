@@ -64,15 +64,22 @@ def ingest_fathom_meeting(
     raw = {"meeting": meeting or {}, "transcript": transcript, "summary": summary}
     adapter = provider.adapter_for(raw)
 
-    storage_key = f"{workspace_id}/fathom/meetings/{recording_id}.json"
+    # Versioned bronze key (Phase 1, 2026-06-12): the sha8 in the path
+    # makes identical re-fetches collide on the same key (cheap idempotent
+    # write) and distinct content land at NEW keys (old version preserved).
+    # No more delete-then-save races.
+    from donna.core.integrations.bronze import bronze_key
 
-    # Idempotent storage write — same key on retry overwrites the same blob.
-    if default_storage.exists(storage_key):
-        default_storage.delete(storage_key)
-    default_storage.save(
-        storage_key,
-        ContentFile(json.dumps(adapter.to_json()).encode()),
+    payload_bytes = json.dumps(adapter.to_json()).encode()
+    storage_key = bronze_key(
+        workspace_id, "fathom", "meetings", str(recording_id), payload_bytes
     )
+    if not default_storage.exists(storage_key):
+        default_storage.save(storage_key, ContentFile(payload_bytes))
+    # Phase 1 (2026-06-15): write .extracted.md sidecar so cortex
+    # ``_body_for`` doesn't re-render markdown on every read.
+    from donna.core.integrations.bronze import write_sidecar
+    write_sidecar(default_storage, storage_key, adapter.to_markdown())
 
     # adapter.external_id() requires meeting.id; fall back to recording_id
     # when no meeting dict was provided.
@@ -80,6 +87,10 @@ def ingest_fathom_meeting(
         external_id = adapter.external_id()
     except ValueError:
         external_id = str(recording_id)
+
+    # Phase 2 canonical payload (2026-06-15) — typed Pydantic shape
+    # validated at the adapter; cortex reads it instead of ``metadata``.
+    canonical = adapter.to_canonical()
 
     package, created = DeliveryPackage.objects.update_or_create(
         workspace_id=workspace_id,
@@ -91,6 +102,8 @@ def ingest_fathom_meeting(
             "occurred_at":        adapter.occurred_at(),
             "storage_key":        storage_key,
             "metadata":           adapter.metadata(),
+            "canonical_type":     canonical.entity_type,
+            "canonical_payload":  canonical.as_payload(),
         },
     )
 
@@ -111,9 +124,9 @@ def ingest_fathom_meeting(
     # idempotency key.
     cortex_entity_id: str | None = None
     try:
-        from donna.cortex.pipeline import CortexWriter
+        from donna.cortex.pipeline import CortexPipeline
 
-        cortex_entity = CortexWriter().write(package)
+        cortex_entity = CortexPipeline().write(package)
         cortex_entity_id = str(cortex_entity.id)
     except Exception:  # noqa: BLE001
         logger.exception(

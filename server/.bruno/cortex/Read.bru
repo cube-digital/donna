@@ -1,0 +1,24 @@
+meta {
+  name: Read
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/cortex/entities/{{cortexEntityId}}/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Full entity card — header + body markdown + edges
+  (entity_refs / sources / cross_refs / supersedes /
+  superseded_by / contradicts / applied_in).
+
+  Use ?include_body=false to skip the body fetch from
+  SilverStorage (sidecar) and return only metadata + edges.
+}

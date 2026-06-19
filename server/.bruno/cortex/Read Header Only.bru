@@ -1,0 +1,24 @@
+meta {
+  name: Read Header Only
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/cortex/entities/{{cortexEntityId}}/?include_body=false
+  body: none
+  auth: inherit
+}
+
+params:query {
+  include_body: false
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Skip body file fetch — cheaper, returns metadata + edges only.
+  Useful when the agent just needs to walk edges without the markdown.
+}

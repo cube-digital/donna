@@ -143,14 +143,37 @@ Now genuinely small with permissions settled.
 
 Donna's diff vs. Slack/Discord is AI. The consumer scaffold exists; the producer doesn't. Without this, "mentions trigger an agent" (Phase 4) and "agent reactions" have nothing to call.
 
-- **LLM provider abstraction** (currently empty per `server/plans/04-roadmap.md:116`) — Anthropic SDK first, with prompt caching enabled by default
-- **Agent dispatch from `send_message`** — when a message mentions an agent (Phase 4 wires this), enqueue a Celery task that runs the agent and streams tokens to `agent-run-{run_id}` group
-- **`AgentStreamConsumer` producer** — the consumer is ready at `server/donna/chat/consumers.py`; build the worker that writes to its group
-- **Memory backend** — `AgentSession.memory` is a JSONField today; design the read/write path now so it can be swapped to a proper store later
+**Full architecture + target-state code:
+[`docs/important-docs/00j - agent-implementation-reference.md`](../../docs/important-docs/00j%20-%20agent-implementation-reference.md)**
+(phases A0–A1 of that handbook = this phase). Summary:
+
+- **Agent layer under `donna/chat/agents/`** — agent-as-router (docupal `agents/legal` v10 pattern): `ConversationAgent` node emits tool calls XOR final text per turn; `ToolDispatcher` executes against a `ToolRegistry` built by `tools/factory.py`; plain-loop graph, max 6 rounds.
+- **LLM via existing `donna/core/llm`** — `LLMProvider.chat(tools=registry.describe_all(), tool_choice="auto")`; native tool calling, no LangChain bridge.
+- **Agent dispatch from `send_message`** — `transaction.on_commit → maybe_dispatch_agent(message)`: DM with an `AgentSession` → always; channel → on `@<agent-name>` body match (interim until Phase 4a `Mention` rows). Enqueues `run_agent_turn` (new `donna/chat/tasks.py`).
+- **Turn serialization** — redis `SET NX EX` lock per channel (`agents/locks.py`); concurrent turns queue, edits apply serially.
+- **Colleague-mode WS (decision 2026-06-12)** — agent emits the *same events through the same groups humans use*: typing start/heartbeat/stop on `chat-channel-{id}-typing`, final message as `chat.message.created` on `channel_group` with `author_agent` set. The `agent-run-{run_id}-tokens` group is demoted to optional panel UI (tool announce lines, config-gated token streaming).
+- **Cortex read tools** — `cortex_query`/`read_entity`/`get_context` over an interim `CortexReadFacade` (ORM, heads-only); swapped for `CortexService` when the cortex Phase 4a API lands (swap isolated in `tools/factory.py`).
+- **Memory backend** — `AgentSession.memory` JSONField rolling summary (00j §A3); read/write path designed for later store swap.
 
 **Anti-loop guard**: never dispatch an agent run when the source `Message.author_agent` is set, regardless of mentions. Document this in `ChannelService.send_message`.
 
-**Critical files**: `server/donna/core/llm/` (new), `server/donna/chat/tasks.py` (new), `server/donna/chat/services.py`, `server/donna/chat/consumers.py`
+**Critical files**: `server/donna/chat/agents/` (new), `server/donna/chat/tasks.py` (new), `server/donna/chat/services.py`, `server/donna/chat/consumers.py`
+
+---
+
+## Phase 3.6 — Drafting Surface (conversation-locked documents)
+
+Two people in a DM, a person + agent DM, or a channel co-produce ONE
+document anchored to the conversation — membership churn never forks
+it (Cowork semantics). Full design + code: [`00j §A2`](../../docs/important-docs/00j%20-%20agent-implementation-reference.md).
+
+- **`Document` gains draft lifecycle** (decision 2026-06-12: extend, don't add a model): `status (drafting|finalized|abandoned)`, `version`, `target_doc_type` (cortex `DocType` vocab), `finalized_entity_id`; partial unique `(channel) WHERE status='drafting'` — the lock.
+- **Draft tools** (registry-gated per surface): `create_draft`, `read_draft`, `update_draft_section` (select_for_update + optimistic `expected_version`), `finalize_draft`.
+- **Agent is the single writer** — humans direct via messages; turn lock serializes edits. No CRDT/OT in v1.
+- **Finalize = the only door into cortex silver**: `linter_check` dry-run → `create_entity(type="doc", author="agent", source="donna://channel/<id>/draft/<id>")` → draft frozen, supersession chain handles future revisions. Gated on the cortex Phase 4a API.
+- WS: `chat.document.updated` events on `channel_group`.
+
+**Critical files**: `server/donna/chat/models.py` (Document migration), `server/donna/chat/agents/tools/draft_tools.py` (new), `server/donna/chat/agents/nodes/drafter.py` (new)
 
 ---
 

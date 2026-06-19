@@ -7,7 +7,7 @@ so the Django process doesn't pay the cost at import time, and
 deployments that don't run the embed path don't need them.
 
 Swap with ``OpenAIEmbedder`` (or any Protocol-conforming class) per
-workspace by injecting at the ``CortexWriter`` boundary.
+workspace by injecting at the ``CortexPipeline`` boundary.
 
 Sampling helpers
 ----------------

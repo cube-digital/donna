@@ -63,78 +63,36 @@ class FrontmatterLinter:
         entity: "CortexEntity",
         body_md: str | None = None,
     ) -> None:
-        """Run the full lint chain. Raises ``LinterError`` on any failure.
+        """Run the slim lint chain. Raises ``LinterError`` on any failure.
 
-        Args:
-            entity: In-memory CortexEntity (not yet persisted).
-            body_md: Rendered body markdown. Passed explicitly because
-                the entity's ``body`` FileField may not yet point at a
-                file when linting happens in the pre-persist pipeline.
-                Falls back to ``entity.load_body()`` when omitted.
+        Slimmed 2026-06-15 — these checks now run at the adapter
+        boundary via canonical Pydantic models (Phase 2):
+        - ``_check_type``        — EntityType Literal on CanonicalEntity
+        - ``_check_author``      — enum field on CortexEntity model
+        - ``_check_temporal``    — required datetime on CanonicalEntity
+        - ``_check_extensions``  — EXTENSION_MODELS.model_validate()
+        - ``_check_required_*``  — required-field validation in each
+                                    extensions Pydantic model
+
+        What stays = invariants Pydantic can't express + cross-row
+        guards that need entity context.
         """
-        self._check_type(entity)
-        self._check_author(entity)
-        self._check_temporal(entity)         # R2
         self._check_scope(entity)
-        self._check_extensions(entity)       # hard rejects per spec §7.2
-        self._check_supersedes(entity)       # R3
-        self._check_cross_refs(entity)       # R4
+        self._check_supersedes(entity)       # R3 — duplicate target guard
+        self._check_cross_refs(entity)       # R4 — shape guard
         self._check_known_edges(entity)
         self._check_source_footer(entity, body_md)
-        self._check_required_evidence(entity)
-        self._check_required_context(entity)
-        self._check_required_doc_type(entity)
-        self._check_required_note_type(entity)
+        self._check_required_evidence(entity)  # concept: sources≥2 (cross-row)
 
-    # ── individual rules ────────────────────────────────────────────
-
-    def _check_type(self, entity: "CortexEntity") -> None:
-        if entity.type not in EXTENSION_MODELS:
-            raise LinterError(
-                RejectCode.INVALID_TYPE,
-                f"unknown entity type {entity.type!r}",
-            )
-
-    def _check_author(self, entity: "CortexEntity") -> None:
-        if entity.author not in ("donna", "human", "agent"):
-            raise LinterError(
-                RejectCode.INVALID_AUTHOR,
-                f"unknown author {entity.author!r}",
-            )
-
-    def _check_temporal(self, entity: "CortexEntity") -> None:
-        # R2: ``occurred_at`` must be present at write time.
-        # ``synthesized_at`` is auto-populated by ``TimestampsMixin``
-        # on first save — no pre-save check needed.
-        if entity.occurred_at is None:
-            raise LinterError(
-                RejectCode.MISSING_OCCURRED_AT,
-                "occurred_at is required (R2)",
-            )
+    # ── individual rules (slim — see check() for rationale) ─────────
 
     def _check_scope(self, entity: "CortexEntity") -> None:
-        # Spec §6: project_id must be NULL if client_id is NULL.
-        if entity.project_id is not None and entity.client_id is None:
-            raise LinterError(
-                RejectCode.INVALID_SCOPE,
-                "project_id non-null but client_id is null — boundary violation",
-            )
-
-    def _check_extensions(self, entity: "CortexEntity") -> None:
-        model = EXTENSION_MODELS[entity.type]
-        try:
-            model.model_validate(entity.extensions or {})
-        except ValidationError as exc:
-            # Distinguish "missing required" vs other errors.
-            missing_required = any(
-                err.get("type") == "missing" for err in exc.errors()
-            )
-            code = (
-                RejectCode.MISSING_REQUIRED_EXTENSION
-                if missing_required
-                else RejectCode.PYDANTIC_INVALID
-            )
-            raise LinterError(code, f"extensions invalid for {entity.type}: {exc}")
+        # Relaxed 2026-06-11: (client_id=None, project_id=set) is ALLOWED —
+        # workspace-internal projects (e.g. Donna itself) file at
+        # ``projects/<slug>/`` and the resolver supports them. The only
+        # invalid state left: nothing structural. Method kept as extension
+        # point for future cross_refs scope validation.
+        return
 
     def _check_supersedes(self, entity: "CortexEntity") -> None:
         # R3: supersedes targets must exist (skip DB hit at lint time —
@@ -160,17 +118,16 @@ class FrontmatterLinter:
             )
 
     def _check_known_edges(self, entity: "CortexEntity") -> None:
-        # Any ad-hoc edge field in ``extensions`` → reject.
+        # Edges belong on the entity row (sources/supersedes/contradicts/...),
+        # NOT inside ``extensions``. Reject when an extension key collides
+        # with a canonical edge field name — that means the adapter put
+        # edge data in the wrong place.
         ext_keys = set((entity.extensions or {}).keys())
-        unknown_edges = ext_keys & {
-            "sourcs",   # common typo guard
-            "ref",
-            "links",
-        }
-        if unknown_edges:
+        misplaced = ext_keys & KNOWN_EDGE_FIELDS
+        if misplaced:
             raise LinterError(
                 RejectCode.UNKNOWN_EDGE_TYPE,
-                f"ad-hoc edge keys in extensions: {sorted(unknown_edges)}",
+                f"edge fields in extensions (move to row): {sorted(misplaced)}",
             )
 
     def _check_source_footer(
@@ -200,34 +157,6 @@ class FrontmatterLinter:
                 raise LinterError(
                     RejectCode.INSUFFICIENT_EVIDENCE,
                     "concept requires at least 2 sources",
-                )
-
-    def _check_required_context(self, entity: "CortexEntity") -> None:
-        # Spec §7.2: decision missing context_sources → MISSING_REQUIRED_EXTENSION.
-        if entity.type == "decision":
-            ctx = (entity.extensions or {}).get("context_sources") or []
-            if not ctx:
-                raise LinterError(
-                    RejectCode.MISSING_REQUIRED_EXTENSION,
-                    "decision requires extensions.context_sources",
-                )
-
-    def _check_required_doc_type(self, entity: "CortexEntity") -> None:
-        if entity.type == "doc":
-            doc_type = (entity.extensions or {}).get("doc_type")
-            if not doc_type:
-                raise LinterError(
-                    RejectCode.MISSING_REQUIRED_EXTENSION,
-                    "doc requires extensions.doc_type",
-                )
-
-    def _check_required_note_type(self, entity: "CortexEntity") -> None:
-        if entity.type == "note":
-            note_type = (entity.extensions or {}).get("note_type")
-            if not note_type:
-                raise LinterError(
-                    RejectCode.MISSING_REQUIRED_EXTENSION,
-                    "note requires extensions.note_type",
                 )
 
     # ── helpers ─────────────────────────────────────────────────────

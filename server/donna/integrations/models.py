@@ -316,6 +316,27 @@ class DeliveryPackage(TimestampsMixin):
     )
     metadata = models.JSONField(_("metadata"), default=dict, blank=True)
 
+    # Phase 2 canonical adapter payload (2026-06-15).
+    # ``canonical_type`` is the cortex EntityType this row maps to
+    # ("meeting"/"email"/"doc"/...); ``canonical_payload`` is the
+    # ``CanonicalEntity.as_payload()`` dump — typed + Pydantic-validated
+    # at the connector boundary. Cortex pipeline reads these instead
+    # of mapping ``metadata`` through the old ``_build_extensions``
+    # if-chain. Both are blank for pre-migration rows.
+    canonical_type = models.CharField(
+        _("canonical type"),
+        max_length=32,
+        blank=True,
+        default="",
+        help_text=_("Cortex EntityType ('meeting'/'email'/'doc'/...) emitted by the adapter."),
+    )
+    canonical_payload = models.JSONField(
+        _("canonical payload"),
+        default=dict,
+        blank=True,
+        help_text=_("CanonicalEntity.as_payload() — typed adapter output."),
+    )
+
     storage_key = models.CharField(
         _("storage key"),
         max_length=500,

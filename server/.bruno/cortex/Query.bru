@@ -1,0 +1,47 @@
+meta {
+  name: Query
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cortex/entities/query/
+  body: json
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "text": "migration cube",
+    "limit": 5
+  }
+}
+
+script:post-response {
+  // Capture top hit id for follow-up Read / Context calls.
+  const r = res.getBody();
+  const hits = (r && r.data && r.data.results) || [];
+  if (hits.length > 0 && hits[0].id) {
+    bru.setEnvVar("cortexEntityId", hits[0].id);
+  }
+}
+
+docs {
+  Hybrid retrieval — RRF fuses dense (pgvector cosine) + tsvector
+  (Postgres SearchVector on title+source) + keyword (ILIKE on title).
+  
+  Optional filters:
+    - "type": "meeting" | "email" | "doc" | "ticket" | "clip" | "note" |
+              "chat" | "person" | "org" | "project" | "concept" | "decision"
+    - "doc_type": "spec" | "contract" | "runbook" | ...
+    - "client_id": uuid (org row)
+    - "project_id": uuid
+    - "limit": 1..25
+  
+  Top hit id auto-stored in cortexEntityId env var.
+}

@@ -1,17 +1,13 @@
-"""
-Cortex app config.
+"""Cortex app config.
 
-At startup we walk ``donna/cortex/templates/`` for ``*.py`` files
-(excluding underscore-prefixed and ``__init__.py``) and import each so
-the ``@register_type`` decorator populates the TypeSpec registry.
-Mirrors the connector discovery pattern in
-``donna/integrations/apps.py``.
+Refactored 2026-06-14: replaced the templates/ walk + per-type Python
+file discovery with a single declarative table in ``cortex/types.py``.
+``ready()`` imports that module; the side-effect registers all 12
+TypeSpecs in ``donna.cortex.registry``.
 """
 from __future__ import annotations
 
-import importlib
 import logging
-from pathlib import Path
 
 from django.apps import AppConfig
 
@@ -23,30 +19,8 @@ class CortexConfig(AppConfig):
     name = "donna.cortex"
     label = "cortex"
 
-    def ready(self):
-        templates_root = Path(__file__).parent / "templates"
-        if not templates_root.exists():
-            return
-
-        package_prefix = "donna.cortex.templates"
-
-        for py_file in sorted(templates_root.rglob("*.py")):
-            rel = py_file.relative_to(templates_root)
-            if any(part.startswith("_") for part in rel.parts):
-                continue
-            if rel.name == "__init__.py":
-                continue
-
-            module_path = (
-                f"{package_prefix}."
-                + str(rel.with_suffix("")).replace("/", ".")
-            )
-
-            try:
-                importlib.import_module(module_path)
-            except Exception:  # noqa: BLE001
-                logger.exception(
-                    "cortex_typespec_import_failed",
-                    extra={"module": module_path},
-                )
-                continue
+    def ready(self) -> None:
+        try:
+            import donna.cortex.types  # noqa: F401 — registers TypeSpecs as a side effect
+        except Exception:  # noqa: BLE001
+            logger.exception("cortex_types_import_failed")

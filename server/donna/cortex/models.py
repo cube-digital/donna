@@ -23,108 +23,14 @@ Schema invariants:
 from __future__ import annotations
 
 import uuid
-from uuid import UUID
 
-from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.db import models, transaction
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 from pgvector.django import VectorField
 
 from donna.core.db.models import TimestampsMixin
-
-
-class CortexEntityManager(models.Manager):
-    """Atomic data access for ``CortexEntity``.
-
-    Owns the bidirectional-edge invariants per spec §4 — every reverse
-    edge update lives inside a single Postgres transaction so partial
-    writes cannot leave the index inconsistent.
-
-    | Forward field    | Reverse field      | Cardinality |
-    |------------------|--------------------|--------------|
-    | ``sources[]``    | ``applied_in[]``   | append       |
-    | ``supersedes[]`` | ``superseded_by``  | assign (1:1) |
-    | ``contradicts[]``| ``contradicts[]``  | symmetric    |
-    """
-
-    def save_with_reverse_edges(
-        self,
-        entity: "CortexEntity",
-        body_bytes: bytes | None = None,
-    ) -> "CortexEntity":
-        """Persist ``entity`` and apply every reverse-edge update in one txn.
-
-        Args:
-            entity: Unsaved CortexEntity in memory.
-            body_bytes: Rendered markdown body to write to the
-                FileField. ``None`` means the body is already attached
-                (e.g. spawned curated row written by the resolver).
-        """
-        sources = self._uuids(entity.sources)
-        supersedes = self._uuids(entity.supersedes)
-        contradicts = self._uuids(entity.contradicts)
-
-        with transaction.atomic():
-            entity.save()
-            if body_bytes is not None:
-                entity.body.save(
-                    name=f"{entity.id}.md",
-                    content=ContentFile(body_bytes),
-                    save=True,
-                )
-            for target_id in sources:
-                self._append_applied_in(target_id, entity.id)
-            for target_id in supersedes:
-                self._assign_superseded_by(target_id, entity.id)
-            for target_id in contradicts:
-                self._append_contradicts(target_id, entity.id)
-        return entity
-
-    # ── reverse edge writers ────────────────────────────────────────
-
-    def _append_applied_in(self, target_id: UUID, source_id: UUID) -> None:
-        try:
-            target = self.select_for_update().get(id=target_id)
-        except self.model.DoesNotExist:
-            return
-        applied_in = list(target.applied_in or [])
-        if str(source_id) not in [str(x) for x in applied_in]:
-            applied_in.append(str(source_id))
-        target.applied_in = applied_in
-        target.save(update_fields=["applied_in", "updated_at"])
-
-    def _assign_superseded_by(self, target_id: UUID, source_id: UUID) -> None:
-        try:
-            target = self.select_for_update().get(id=target_id)
-        except self.model.DoesNotExist:
-            return
-        if target.superseded_by != source_id:
-            target.superseded_by = source_id
-            target.save(update_fields=["superseded_by", "updated_at"])
-
-    def _append_contradicts(self, target_id: UUID, source_id: UUID) -> None:
-        try:
-            target = self.select_for_update().get(id=target_id)
-        except self.model.DoesNotExist:
-            return
-        contradicts = list(target.contradicts or [])
-        if str(source_id) not in [str(x) for x in contradicts]:
-            contradicts.append(str(source_id))
-        target.contradicts = contradicts
-        target.save(update_fields=["contradicts", "updated_at"])
-
-    @staticmethod
-    def _uuids(values) -> list[UUID]:
-        if not values:
-            return []
-        out: list[UUID] = []
-        for v in values:
-            try:
-                out.append(v if isinstance(v, UUID) else UUID(str(v)))
-            except (ValueError, TypeError):
-                continue
-        return out
+from donna.cortex.managers import CortexEntityManager
 
 
 def _body_upload_path(instance: "CortexEntity", filename: str) -> str:
