@@ -4,6 +4,12 @@
 // `byId` is a derived index kept in sync with `channels` on every set —
 // callers reaching for a single channel by id (TopBar crumb, Channel view)
 // hit O(1) here instead of scanning the list.
+//
+// Pins + DMs:
+// - `is_pinned` lives on the Channel row (annotated by ChannelSerializer).
+// - DMs are channels with kind="direct"; rendered as a separate Sidebar
+//   section. Selectors `pinnedChannels()` / `unpinnedChannels()` / `dms()`
+//   split the list at call time so the underlying array stays one truth.
 
 import { create } from "zustand";
 
@@ -11,6 +17,8 @@ import {
   createChannel as apiCreate,
   deleteChannel as apiDelete,
   listChannels,
+  pinChannel as apiPin,
+  unpinChannel as apiUnpin,
   updateChannel as apiUpdate,
   type CreateChannelInput,
   type UpdateChannelInput,
@@ -23,13 +31,20 @@ interface ChannelsState {
   loading: boolean;
   loadChannels: () => Promise<void>;
   setChannels: (channels: Channel[]) => void;
+  // Selectors
+  pinnedChannels: () => Channel[];
+  unpinnedChannels: () => Channel[];
+  dms: () => Channel[];
   // Mutators — call the HTTP API then merge the server row into the store.
   createChannel: (input: CreateChannelInput) => Promise<Channel>;
   updateChannel: (id: string, input: UpdateChannelInput) => Promise<Channel>;
   deleteChannel: (id: string) => Promise<void>;
+  pinChannel: (id: string) => Promise<void>;
+  unpinChannel: (id: string) => Promise<void>;
   // WS event handlers — used by the chat WS listener for cross-tab fanout.
   upsertFromEvent: (channel: Channel) => void;
   removeFromEvent: (id: string) => void;
+  markPinned: (id: string, pinned: boolean) => void;
 }
 
 function indexById(channels: Channel[]): Record<string, Channel> {
@@ -48,6 +63,12 @@ export const useChannels = create<ChannelsState>((set, get) => ({
   loading: false,
 
   setChannels: (channels) => set({ channels, byId: indexById(channels) }),
+
+  pinnedChannels: () =>
+    get().channels.filter((c) => c.is_pinned && c.kind !== "direct"),
+  unpinnedChannels: () =>
+    get().channels.filter((c) => !c.is_pinned && c.kind !== "direct"),
+  dms: () => get().channels.filter((c) => c.kind === "direct"),
 
   loadChannels: async () => {
     set({ loading: true });
@@ -76,6 +97,16 @@ export const useChannels = create<ChannelsState>((set, get) => ({
     get().removeFromEvent(id);
   },
 
+  pinChannel: async (id) => {
+    await apiPin(id);
+    get().markPinned(id, true);
+  },
+
+  unpinChannel: async (id) => {
+    await apiUnpin(id);
+    get().markPinned(id, false);
+  },
+
   upsertFromEvent: (channel) => {
     const next = [
       ...get().channels.filter((c) => c.id !== channel.id),
@@ -88,5 +119,14 @@ export const useChannels = create<ChannelsState>((set, get) => ({
     if (!get().byId[id]) return;
     const next = get().channels.filter((c) => c.id !== id);
     set({ channels: next, byId: indexById(next) });
+  },
+
+  markPinned: (id, pinned) => {
+    const list = get().channels;
+    const idx = list.findIndex((c) => c.id === id);
+    if (idx < 0) return;
+    const copy = list.slice();
+    copy[idx] = { ...copy[idx], is_pinned: pinned };
+    set({ channels: copy, byId: indexById(copy) });
   },
 }));

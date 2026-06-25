@@ -1,0 +1,48 @@
+meta {
+  name: Channel Documents List
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/v1/chat/channels/{{channelId}}/documents/?status=drafting
+  body: none
+  auth: inherit
+}
+
+params:query {
+  status: drafting
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  List Documents attached to this channel — newest first.
+  
+  Use cases:
+  - Poll after "Channel Message Send" with a drafting prompt to watch
+    the agent's draft appear + version-bump.
+  - Drop the ``status`` query param to see drafting + finalized +
+    abandoned in one list.
+  - Filter ``?status=finalized`` to grab only completed drafts and
+    their ``finalized_entity_id`` (the cortex doc UUID).
+  
+  Response item shape:
+  {
+    "id": "<doc uuid>",
+    "channel": "<channel uuid>",
+    "title": "...",
+    "body": "markdown body",
+    "status": "drafting" | "finalized" | "abandoned",
+    "version": 3,
+    "target_doc_type": "brief",
+    "finalized_entity_id": null | "<cortex entity uuid>",
+    "created_at": "...",
+    "updated_at": "..."
+  }
+  
+  Pairs with WS event ``chat.document.updated`` on the channel group
+  for live UIs.
+}

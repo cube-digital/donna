@@ -21,11 +21,14 @@ class ChatConfig(AppConfig):
 
     def ready(self) -> None:
         try:
-            from donna.chat.agents.tools.factory import register_qa_tools
+            from donna.chat.agents.tools.factory import (
+                register_draft_tools,
+                register_qa_tools,
+            )
             from donna.chat.agents.tools.registry import GLOBAL_REGISTRY
 
             register_qa_tools()
-            # A2 will append draft tool registration here BEFORE freeze.
+            register_draft_tools()
             GLOBAL_REGISTRY.freeze()
         except Exception:  # noqa: BLE001 — never block app boot on registry wire
             logger.exception("agent_global_registry_boot_failed")

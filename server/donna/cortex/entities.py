@@ -187,6 +187,7 @@ class DeterministicResolver:
         title = candidate.label or candidate.email or "Unknown person"
         body = self._body(title, "person")
         extensions = {
+            "slug": slug,  # folder resolver needs this for people/<slug>.md
             "full_name": candidate.label,
             "primary_email": candidate.email,
             "role": None,
@@ -233,14 +234,40 @@ class DeterministicResolver:
     def _spawn_org(
         self, candidate: ExtractedEntity, scope: Scope
     ) -> UUID:
-        slug = slugify(candidate.label or candidate.domain or "unknown") or "unknown"
+        own_slug = slugify(candidate.label or candidate.domain or "unknown") or "unknown"
         title = candidate.label or candidate.domain or "Unknown org"
         body = self._body(title, "org")
+
+        # Tier A classifier (2026-06-19, spec 00m) — synchronous, rules
+        # only. Returns ``self|vendor|unknown`` reliably; defers
+        # client/partner/peer to the nightly batch where direction
+        # asymmetry + vocab signals are available.
+        from donna.cortex.relationship_classifier import classify_on_spawn
+        from donna.workspaces.models import Workspace
+
+        workspace_domain = (
+            Workspace.objects
+            .filter(id=scope.workspace_id)
+            .values_list("primary_domain", flat=True)
+            .first()
+            or ""
+        )
+        verdict = classify_on_spawn(
+            org_domain=candidate.domain,
+            workspace_primary_domain=workspace_domain,
+            first_sender_email=getattr(candidate, "first_sender_email", None),
+        )
+
         extensions = {
+            "slug": own_slug,
             "legal_name": candidate.label,
             "email_domains": [candidate.domain] if candidate.domain else [],
             "industry": None,
-            "relationship": "client",  # safest default; spec §3.2
+            "relationship": verdict.relationship,
+            "relationship_confidence": verdict.confidence,
+            "relationship_basis": verdict.basis,
+            "relationship_locked": False,
+            "relationship_evidence": verdict.evidence,
         }
         return self._spawn(
             entity_type="org",
@@ -367,6 +394,40 @@ class DeterministicResolver:
         ).first()
         if existing is not None:
             return existing
+
+        # Phase 5 vault projection (2026-06-19): spawned entities need
+        # ``parent_path`` so the vault renderer files them correctly.
+        # The main pipeline computes this in step 6 for the primary
+        # entity; spawn-as-side-effect (person/org/concept/project) was
+        # being persisted with NULL parent_path. Compute it here using
+        # the same folder resolver the pipeline uses.
+        from donna.cortex.registry import TemplateRegistry
+        from donna.cortex.scope import scope_slugs_for
+
+        try:
+            type_spec = TemplateRegistry().get(entity_type)
+            spawn_scope = Scope(
+                workspace_id=scope.workspace_id,
+                client_id=client_id,
+                project_id=project_id,
+            )
+            client_slug, project_slug = scope_slugs_for(spawn_scope)
+            parent_path = type_spec.folder_resolver(
+                type=entity_type,
+                occurred_at=None,
+                extensions=extensions,
+                client_slug=client_slug,
+                project_slug=project_slug,
+            )
+            extensions = dict(extensions)
+            extensions["parent_path"] = parent_path
+            if "slug" not in extensions:
+                from django.utils.text import slugify as _slugify
+                extensions["slug"] = _slugify(title or ident) or "unknown"
+        except Exception:  # noqa: BLE001
+            # Folder resolution must never block the spawn; degrade
+            # to workspace-root if anything goes wrong.
+            pass
 
         body_bytes = body.encode("utf-8")
         row = CortexEntity(

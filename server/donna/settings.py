@@ -200,6 +200,10 @@ EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS       = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL  = env.str("DEFAULT_FROM_EMAIL", default="noreply@donna.local")
 
+# Where workspace-invitation accept links point (frontend route
+# ``/invitations/<token>/accept``).
+FRONTEND_BASE_URL = env.str("FRONTEND_BASE_URL", default="http://localhost:5173")
+
 # ─── Storage (pluggable, env-var-driven) ──────────────────────────────────────
 #
 # One storage backend serves all of Donna's file storage (avatars, ingested
@@ -253,6 +257,23 @@ STORAGES = {
     },
 }
 
+# Auto-detect Django test mode so we can swap in throw-away storage and
+# skip vault writes. `manage.py test` or `python -m django test` both
+# put "test" in sys.argv. Honour the explicit env var too.
+import sys as _sys  # noqa: E402
+
+if "test" in _sys.argv or TESTING:
+    STORAGES["default"] = {
+        "BACKEND": "django.core.files.storage.InMemoryStorage",
+    }
+    # Vault writes would otherwise hit InMemoryStorage in tests too,
+    # adding test noise (extra writes per CortexEntity save). Tests that
+    # exercise the vault renderer explicitly opt in via
+    # ``override_settings(CORTEX_VAULT_ENABLED=True)``.
+    _VAULT_TEST_DEFAULT_OFF = True
+else:
+    _VAULT_TEST_DEFAULT_OFF = False
+
 # ─── Integrations ──────────────────────────────────────────────────────────────
 #
 # Opt-out list. Connector slugs in this list are imported but not registered.
@@ -297,7 +318,34 @@ CELERY_BEAT_SCHEDULE = {
         "task":     "cortex.reap_orphan_bodies",
         "schedule": env.int("DONNA_CORTEX_REAP_INTERVAL", default=86400),
     },
+    "cortex-flush-vault-indexes": {
+        # Phase 5 (2026-06-19): per-entity render is synchronous in the
+        # manager, but folder `_index.md` regen is debounced via a Redis
+        # dirty-set + this beat job. SPOP per dirty folder → render.
+        "task":     "cortex.flush_vault_indexes",
+        "schedule": env.int("CORTEX_VAULT_FLUSH_SECONDS", default=300),  # 5 min
+    },
+    "cortex-reclassify-orgs": {
+        # 00m org-relationship classifier (Tier A rules + Tier B Haiku)
+        # — fires nightly to catch newly-collected email signal that
+        # would shift an org's bucket (vendor→client when invoices stop
+        # and SoW emails arrive, etc.). All workspaces, every workspace's
+        # locked orgs are skipped.
+        "task":     "cortex.reclassify_orgs",
+        "schedule": env.int("CORTEX_RECLASSIFY_ORGS_INTERVAL", default=86400),  # 24h
+    },
 }
+
+# ─── Cortex vault (Phase 5) ───────────────────────────────────────────────────
+# Global kill switch for hierarchical vault rendering. When True (default),
+# every CortexEntity write also lands at vault/<ws>/<parent_path>/<slug>.md
+# and flags the folder dirty for the next `flush_vault_indexes` beat run.
+# Disable to skip all vault I/O (agent + API surfaces are unaffected — they
+# read straight from Postgres / the flat cortex/ tree).
+CORTEX_VAULT_ENABLED = env.bool(
+    "CORTEX_VAULT_ENABLED",
+    default=not _VAULT_TEST_DEFAULT_OFF,
+)
 
 # ─── Channels (WebSocket transport) ───────────────────────────────────────────
 #

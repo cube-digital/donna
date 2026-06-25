@@ -38,6 +38,53 @@ export interface Channel {
   topic: string;
   visibility: ChannelVisibility;
   workspace: UUID;
+  is_pinned?: boolean;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+}
+
+export interface ReactionAgg {
+  emoji: string;
+  count: number;
+  by_me: boolean;
+}
+
+export interface MentionFlags {
+  donna?: boolean;
+  channel?: boolean;
+  everyone?: boolean;
+}
+
+export type DocumentStatus = "drafting" | "finalized" | "abandoned";
+
+export interface ChannelDocument {
+  id: UUID;
+  channel: UUID;
+  title: string;
+  body: string;
+  status: DocumentStatus;
+  version: number;
+  target_doc_type: string;
+  finalized_entity_id: UUID | null;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+}
+
+export interface WorkspaceInvitationPreview {
+  workspace_name: string;
+  email: string;
+  invited_by: string;
+  expires_at: ISODateTime;
+}
+
+export interface WorkspaceInvitation {
+  id: UUID;
+  email: string;
+  role: WorkspaceRole;
+  status: "pending" | "accepted" | "revoked" | "expired";
+  invited_by: User;
+  expires_at: ISODateTime;
+  accepted_at: ISODateTime | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }
@@ -80,6 +127,11 @@ export interface Message {
   body: string;
   author_user: User | null;
   author_agent: AgentRef | null;
+  parent_id?: UUID | null;
+  reply_count?: number;
+  mentions?: UUID[];
+  mention_flags?: MentionFlags;
+  reactions?: ReactionAgg[];
   created_at: ISODateTime;
   updated_at: ISODateTime;
   client_msg_id?: string | null;

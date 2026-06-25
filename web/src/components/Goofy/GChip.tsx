@@ -35,11 +35,8 @@ const CHIP_SIZE: Record<GChipSize, string> = {
 };
 
 const CHIP_BASE =
-  "gx-wiggle-target inline-flex items-center gap-1.5 " +
-  "border-2 border-ink rounded-full shadow-ink-1 " +
-  "font-medium " +
-  "transition-[transform,box-shadow] duration-[120ms] ease-spring " +
-  "hover:-translate-x-px hover:-translate-y-px hover:shadow-ink-3";
+  "inline-flex items-center gap-1.5 rounded-full font-semibold " +
+  "transition-opacity duration-[120ms] hover:opacity-90";
 
 // Resting fill per variant. `active` overrides to sun-yellow regardless
 // (chips are typically filterable controls — the active state is the
@@ -203,7 +200,7 @@ export const GBadge = forwardRef<HTMLSpanElement, GBadgeProps>(function GBadge(
       className={cn(
         "gx-wiggle-target inline-grid place-items-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold tabular-nums",
         mention
-          ? "bg-pop-coral text-white border-[1.5px] border-ink shadow-[1.5px_1.5px_0_var(--ink)] -rotate-6"
+          ? "bg-pop-coral text-white border-[1.5px] border-ink shadow-ink-1"
           : "bg-ink text-bg-1",
         className,
       )}
@@ -229,7 +226,7 @@ export const GRoleChip = forwardRef<HTMLSpanElement, GRoleChipProps>(
       <span
         ref={ref}
         className={cn(
-          "gx-wiggle-target inline-block px-1.5 py-0.5 border-[1.5px] border-ink rounded-[5px] shadow-[1.5px_1.5px_0_var(--ink)] bg-ai text-white text-[9.5px] font-semibold tracking-[0.05em] uppercase -rotate-[4deg]",
+          "inline-block px-1.5 py-px rounded-md bg-[var(--ai-bg)] text-[color:var(--ai-deep)] text-[9px] font-semibold uppercase",
           className,
         )}
         {...rest}

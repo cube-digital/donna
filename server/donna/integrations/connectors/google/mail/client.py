@@ -73,6 +73,18 @@ class GmailClient(BaseGoogleClient):
             params={"format": fmt},
         )
 
+    def get_attachment(self, message_id: str, attachment_id: str) -> dict:
+        """Fetch one attachment by id.
+
+        Returns ``{"size": int, "data": "<base64url>"}``. Large
+        attachments aren't inlined on ``messages.get(format=full)``;
+        the part carries ``body.attachmentId`` and callers fetch
+        bytes here.
+        """
+        return self.get(
+            f"/users/me/messages/{message_id}/attachments/{attachment_id}",
+        )
+
     # ── History (incremental sync) ──────────────────────────────────────────
     def history(
         self,

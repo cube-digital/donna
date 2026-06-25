@@ -3,7 +3,11 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from donna.workspaces.models import Workspace, WorkspaceMembership
+from donna.workspaces.models import (
+    Workspace,
+    WorkspaceInvitation,
+    WorkspaceMembership,
+)
 
 User = get_user_model()
 
@@ -86,3 +90,60 @@ class WorkspaceMembershipWriteSerializer(serializers.ModelSerializer):
                 {"user_id": "Required when creating a membership."}
             )
         return attrs
+
+
+# ── Invitations ─────────────────────────────────────────────────────────────
+class WorkspaceInvitationReadSerializer(serializers.ModelSerializer):
+    """Admin-facing — full invite metadata for pending list."""
+
+    invited_by = _UserShortSerializer(read_only=True)
+
+    class Meta:
+        model = WorkspaceInvitation
+        fields = [
+            "id",
+            "email",
+            "role",
+            "status",
+            "invited_by",
+            "expires_at",
+            "accepted_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class WorkspaceInvitationWriteSerializer(serializers.ModelSerializer):
+    """Create-only — caller supplies email + role; everything else server-set."""
+
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(
+        choices=WorkspaceMembership.Role.choices,
+        required=False,
+    )
+
+    class Meta:
+        model = WorkspaceInvitation
+        fields = ["email", "role"]
+
+
+class InvitationInspectSerializer(serializers.ModelSerializer):
+    """Public preview — strips DB ids and metadata.
+
+    Used by the accept page so the invitee sees the workspace name + who
+    invited them BEFORE logging in. Nothing leaks beyond what an attacker
+    could probe with the signed token anyway.
+    """
+
+    workspace_name = serializers.CharField(source="workspace.name", read_only=True)
+    invited_by = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WorkspaceInvitation
+        fields = ["workspace_name", "email", "invited_by", "expires_at"]
+        read_only_fields = fields
+
+    def get_invited_by(self, obj):
+        u = obj.invited_by
+        return (u.full_name or u.email) if u else "Someone"

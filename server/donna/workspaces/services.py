@@ -1,16 +1,32 @@
 from __future__ import annotations
 
+import logging
+from datetime import timedelta
 from typing import Any
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core import signing
+from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.exceptions import ValidationError
 
 from donna.core.services import BaseService
-from donna.workspaces.models import Workspace, WorkspaceMembership
+from donna.workspaces.models import (
+    Workspace,
+    WorkspaceInvitation,
+    WorkspaceMembership,
+)
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+
+_INVITE_SALT = "donna.workspaces.invitation"
+_INVITE_MAX_AGE = 14 * 24 * 3600  # 14 days
 
 
 class WorkspaceService(BaseService[Workspace]):
@@ -136,4 +152,157 @@ class WorkspaceMembershipService(BaseService[WorkspaceMembership]):
         if not has_other_owner:
             raise ValidationError(
                 "Cannot remove or demote the only owner. Transfer ownership first."
+            )
+
+
+# ── Workspace invitations (email-based) ────────────────────────────────────
+class WorkspaceInvitationService(BaseService[WorkspaceInvitation]):
+    """Send + manage email-based workspace invitations.
+
+    Tokens are short-lived (default 14d), signed via Django's signing
+    framework, and carry only the invitation id. The DB row is the
+    source of truth — status changes (revoke/accept/expire) take effect
+    immediately regardless of an unredeemed token in the wild.
+
+    ``create``/``delete``/``update`` follow the ``ModelViewSet`` contract
+    so the standard ``service_class`` plumbing in ``InvitationViewSet``
+    works without overrides. ``delete`` is a soft revoke — the row stays
+    so accept attempts after revocation get a clean error.
+    """
+
+    model_class = WorkspaceInvitation
+
+    @transaction.atomic
+    def create(self, data: dict[str, Any]) -> WorkspaceInvitation:
+        if self.company is None:
+            raise ValidationError("Workspace context required (X-Workspace-Id).")
+        if not (self.current_user and self.current_user.is_authenticated):
+            raise ValidationError("Authenticated user required to send invitations.")
+
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            raise ValidationError({"email": "Required."})
+        role = data.get("role") or WorkspaceMembership.Role.MEMBER
+        if role == WorkspaceMembership.Role.OWNER:
+            raise ValidationError({"role": "Cannot invite as OWNER."})
+
+        # Already a member?
+        already_member = (
+            WorkspaceMembership.objects
+            .filter(workspace=self.company, user__email__iexact=email)
+            .exists()
+        )
+        if already_member:
+            raise ValidationError({"email": "User is already a member."})
+
+        # Revoke any existing pending invite for (workspace, email).
+        WorkspaceInvitation.objects.filter(
+            workspace=self.company,
+            email=email,
+            status=WorkspaceInvitation.Status.PENDING,
+        ).update(status=WorkspaceInvitation.Status.REVOKED)
+
+        invite = WorkspaceInvitation.objects.create(
+            workspace=self.company,
+            invited_by=self.current_user,
+            email=email,
+            role=role,
+            expires_at=timezone.now() + timedelta(seconds=_INVITE_MAX_AGE),
+        )
+        token = self._sign_token(invite)
+        self._send_email(invite, token)
+        return invite
+
+    def update(
+        self, instance: WorkspaceInvitation, data: dict[str, Any]
+    ) -> WorkspaceInvitation:
+        # Invitations are immutable; PATCH/PUT not exposed by the viewset.
+        raise ValidationError("Invitations are immutable; revoke + recreate instead.")
+
+    @transaction.atomic
+    def delete(self, instance: WorkspaceInvitation) -> bool:
+        """Soft-revoke (status flips to REVOKED) so accept attempts see it."""
+        if instance.status == WorkspaceInvitation.Status.PENDING:
+            instance.status = WorkspaceInvitation.Status.REVOKED
+            instance.save(update_fields=["status", "updated_at"])
+        return True
+
+    # ── Token + email helpers ───────────────────────────────────────────────
+    @staticmethod
+    def _sign_token(invite: WorkspaceInvitation) -> str:
+        return signing.dumps({"id": str(invite.id)}, salt=_INVITE_SALT)
+
+    @staticmethod
+    def verify_token(token: str) -> WorkspaceInvitation:
+        try:
+            data = signing.loads(token, salt=_INVITE_SALT, max_age=_INVITE_MAX_AGE)
+        except signing.SignatureExpired as exc:
+            raise ValidationError("invitation token expired") from exc
+        except signing.BadSignature as exc:
+            raise ValidationError("invitation token invalid") from exc
+        try:
+            invite = WorkspaceInvitation.objects.select_related("workspace", "invited_by").get(
+                id=data["id"]
+            )
+        except WorkspaceInvitation.DoesNotExist as exc:
+            raise ValidationError("invitation not found") from exc
+        if invite.status == WorkspaceInvitation.Status.REVOKED:
+            raise ValidationError("invitation revoked")
+        if invite.status == WorkspaceInvitation.Status.ACCEPTED:
+            raise ValidationError("invitation already accepted")
+        if invite.expires_at < timezone.now():
+            if invite.status == WorkspaceInvitation.Status.PENDING:
+                invite.status = WorkspaceInvitation.Status.EXPIRED
+                invite.save(update_fields=["status", "updated_at"])
+            raise ValidationError("invitation expired")
+        return invite
+
+    @transaction.atomic
+    def accept(self, *, token: str, accepting_user) -> WorkspaceMembership:
+        invite = self.verify_token(token)
+        if (accepting_user.email or "").lower() != invite.email.lower():
+            raise ValidationError(
+                "invitation email does not match logged-in user"
+            )
+        membership, _ = WorkspaceMembership.objects.get_or_create(
+            workspace=invite.workspace,
+            user=accepting_user,
+            defaults={"role": invite.role},
+        )
+        invite.status = WorkspaceInvitation.Status.ACCEPTED
+        invite.accepted_at = timezone.now()
+        invite.accepted_by = accepting_user
+        invite.save(update_fields=["status", "accepted_at", "accepted_by", "updated_at"])
+        return membership
+
+    # ── Email send ──────────────────────────────────────────────────────────
+    def _send_email(self, invite: WorkspaceInvitation, token: str) -> None:
+        base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        accept_url = f"{base}/invitations/{token}/accept"
+        invited_by = (
+            self.current_user.full_name
+            or self.current_user.email
+        ) if self.current_user else "A teammate"
+        ctx = {
+            "workspace_name": invite.workspace.name,
+            "invited_by":     invited_by,
+            "accept_url":     accept_url,
+            "expires_at":     invite.expires_at,
+        }
+        subject = f"You're invited to join {invite.workspace.name} on Donna"
+        try:
+            html_body = render_to_string("workspaces/emails/invitation.html", ctx)
+            text_body = render_to_string("workspaces/emails/invitation.txt", ctx)
+            send_mail(
+                subject=subject,
+                message=text_body,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[invite.email],
+                html_message=html_body,
+                fail_silently=False,
+            )
+        except Exception:  # noqa: BLE001 — never let SMTP failure block invite creation
+            logger.exception(
+                "invitation_email_send_failed",
+                extra={"invitation_id": str(invite.id), "email": invite.email},
             )

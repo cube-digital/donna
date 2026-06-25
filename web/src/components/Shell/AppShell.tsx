@@ -24,6 +24,7 @@
 
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { listWorkspaces } from "../../api/workspaces";
 import { useChannels } from "../../state/channels";
@@ -47,12 +48,19 @@ function WorkspaceBootstrap() {
     void loadChannels();
   }, [loadChannels]);
 
+  const markPinned = useChannels((s) => s.markPinned);
+
   // Subscribe to channel lifecycle events from the chat WS so other tabs /
   // teammates' mutations show up without a hard refresh.
   useEffect(() => {
     // Lazy import to avoid pulling ws into the bootstrap during SSR.
     let cleanup: (() => void) | undefined;
-    void import("../../lib/ws").then(({ getChatWs }) => {
+    void Promise.all([
+      import("../../lib/ws"),
+      import("../../state/messages"),
+      import("../../state/documents"),
+      import("../../state/auth"),
+    ]).then(([{ getChatWs }, { useMessages }, { useDocuments }, { useAuth }]) => {
       const ws = getChatWs();
       const offCreated = ws.on("channel.created", (p) =>
         upsertFromEvent(p as never),
@@ -63,14 +71,43 @@ function WorkspaceBootstrap() {
       const offDeleted = ws.on("channel.deleted", (p: { channel_id: string }) =>
         removeFromEvent(p.channel_id),
       );
+      // Pin/unpin (per-user; payload only carries channel_id).
+      const offPinned = ws.on("channel.pinned", (p) =>
+        markPinned(p.channel_id, true),
+      );
+      const offUnpinned = ws.on("channel.unpinned", (p) =>
+        markPinned(p.channel_id, false),
+      );
+      // Reactions — route to messages store.
+      const offReactionAdded = ws.on("reaction.added", (p) => {
+        const me = useAuth.getState().user;
+        useMessages
+          .getState()
+          .applyReactionAdded(p.channel_id, p.message_id, p.emoji, me?.id === p.user_id);
+      });
+      const offReactionRemoved = ws.on("reaction.removed", (p) => {
+        const me = useAuth.getState().user;
+        useMessages
+          .getState()
+          .applyReactionRemoved(p.channel_id, p.message_id, p.emoji, me?.id === p.user_id);
+      });
+      // Live doc updates from the agent's UpdateDraftSectionTool / Finalize.
+      const offDocUpdated = ws.on("document.updated", (p) => {
+        useDocuments.getState().upsertFromEvent(p.channel_id, p.document as never);
+      });
       cleanup = () => {
         offCreated();
         offUpdated();
         offDeleted();
+        offPinned();
+        offUnpinned();
+        offReactionAdded();
+        offReactionRemoved();
+        offDocUpdated();
       };
     });
     return () => cleanup?.();
-  }, [upsertFromEvent, removeFromEvent]);
+  }, [upsertFromEvent, removeFromEvent, markPinned]);
 
   useEffect(() => {
     // Re-hydrate the workspace list after a hard reload so the sidebar
@@ -97,19 +134,34 @@ export default function AppShell() {
     <RightRailProvider>
       <WorkspaceBootstrap />
       <NotificationsBootstrap />
-      <div
-        className="app-shell-root grid h-screen w-screen bg-bg-0
-          grid-cols-[56px_252px_1fr_320px]
-          grid-rows-[56px_1fr]
-          [grid-template-areas:'rail_topbar_topbar_topbar'_'rail_sidebar_main_rightrail']"
-      >
-        <WsRail />
-        <TopBar />
-        <Sidebar />
-        <main className="[grid-area:main] flex flex-col bg-bg-0 min-w-0 overflow-hidden">
-          <Outlet />
-        </main>
-        <RightRailOutlet />
+      <div className="app-shell-root flex h-screen w-screen bg-bg-0 paper-dots overflow-hidden">
+        <div className="w-[60px] shrink-0">
+          <WsRail />
+        </div>
+        <Group
+          orientation="horizontal"
+          id="donna-shell-panels"
+          className="flex-1 min-w-0 flex"
+        >
+          <Panel id="sidebar" defaultSize="17%" minSize="12%" maxSize="32%">
+            <Sidebar />
+          </Panel>
+          <Separator className="w-px bg-border-soft hover:bg-ai/40 hover:w-[3px] transition-[width,background-color] duration-100" />
+          <Panel id="main" minSize="30%">
+            <main className="h-full flex flex-col min-w-0 overflow-hidden">
+              <div className="h-[56px] shrink-0">
+                <TopBar />
+              </div>
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <Outlet />
+              </div>
+            </main>
+          </Panel>
+          <Separator className="w-px bg-border-soft hover:bg-ai/40 hover:w-[3px] transition-[width,background-color] duration-100" />
+          <Panel id="rightrail" defaultSize="17%" minSize="12%" maxSize="32%">
+            <RightRailOutlet />
+          </Panel>
+        </Group>
       </div>
     </RightRailProvider>
   );

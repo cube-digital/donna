@@ -24,7 +24,7 @@ const CARD_HOVER =
   "hover:-translate-y-px hover:shadow-ink-4 cursor-pointer";
 
 const CARD_AI =
-  "bg-ai-bg border-ai shadow-[2px_2px_0_var(--ai)]";
+  "bg-ai-bg border-ai shadow-ai-stamp";
 
 export interface GCardProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {

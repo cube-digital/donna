@@ -32,6 +32,9 @@
 // "ai" buttons are no-ops in v1; we keep them in markup for design
 // fidelity. The toolbar wears the sticker chrome (border-ink + shadow).
 
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import {
   GAvatar,
   GBubble,
@@ -43,9 +46,108 @@ import {
 } from "../Goofy";
 import { comingSoonToast } from "../../state/toasts";
 import type { AgentRunStep, Message as MessageT } from "../../types";
+import { ReactionBar } from "./ReactionBar";
+
+function SourceChip({ href, children }: { href: string; children?: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="inline font-mono text-[11px] px-1.5 py-px rounded-[5px] bg-[var(--ai-bg)] text-[color:var(--ai-deep)] no-underline mx-0.5 align-baseline"
+    >
+      {children ?? href}
+    </a>
+  );
+}
+
+function renderAgentMarkdown(body: string) {
+  // Detect bare URIs outside of code spans. Stop URI capture at trailing
+  // punctuation that's likely sentence terminators, not part of the URI.
+  const wrapped = body.replace(
+    /(`[^`]*`)|((cortex|gmail|drive|sharepoint|notion|fathom):\/\/[^\s)\]}.,;!?]+)/g,
+    (_m, code, uri) => (code ? code : `[${uri}](${uri})`),
+  );
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => (
+          <p className="m-0 mb-2 last:mb-0 leading-[1.6]">{children}</p>
+        ),
+        strong: ({ children }) => (
+          <strong className="font-semibold text-text-0">{children}</strong>
+        ),
+        em: ({ children }) => <em className="italic">{children}</em>,
+        code: ({ children }) => {
+          const text = String(children);
+          if (
+            /^(cortex|gmail|drive|sharepoint|notion|fathom):\/\//.test(text)
+          ) {
+            return <SourceChip href={text}>{text}</SourceChip>;
+          }
+          return (
+            <code className="font-mono text-[12.5px] px-1 py-0.5 rounded bg-bg-2 text-text-0">
+              {children}
+            </code>
+          );
+        },
+        ul: ({ children }) => (
+          <ul className="list-disc pl-5 mb-2 space-y-0.5">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="list-decimal pl-5 mb-2 space-y-0.5">{children}</ol>
+        ),
+        a: ({ href, children }) => {
+          const text = String(
+            Array.isArray(children) ? children.join("") : children ?? "",
+          );
+          const scheme = /^(cortex|gmail|drive|sharepoint|notion|fathom):\/\//;
+          const target = scheme.test(href ?? "")
+            ? href!
+            : scheme.test(text)
+              ? text
+              : null;
+          if (target) {
+            return <SourceChip href={target}>{children}</SourceChip>;
+          }
+          return (
+            <a href={href} className="text-ai hover:underline">
+              {children}
+            </a>
+          );
+        },
+      }}
+    >
+      {wrapped}
+    </ReactMarkdown>
+  );
+}
 
 interface MessageProps {
   msg: MessageT;
+  onReply?: (msg: MessageT) => void;
+}
+
+// Render body with @mention chips inline. Special mentions
+// (donna/everyone/channel) get colored chips even when no user resolves.
+function renderBodyWithMentions(body: string) {
+  const re = /(?<![A-Za-z0-9_])@([A-Za-z0-9_\.\-]+)/g;
+  const out: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(body)) !== null) {
+    if (m.index > lastIndex) {
+      out.push(body.slice(lastIndex, m.index));
+    }
+    out.push(
+      <span key={`m-${key++}`} className="opacity-70">
+        @{m[1]}
+      </span>,
+    );
+    lastIndex = m.index + m[0].length;
+  }
+  if (lastIndex < body.length) out.push(body.slice(lastIndex));
+  return out;
 }
 
 function formatTime(iso: string): string {
@@ -84,7 +186,7 @@ function stepIconName(kind: AgentRunStep["kind"]): IconName {
   }
 }
 
-export default function Message({ msg }: MessageProps) {
+export default function Message({ msg, onReply }: MessageProps) {
   if (msg.kind === "system") {
     return (
       <div className="px-[18px] pl-[60px] py-1 text-text-3 text-[12px]">
@@ -96,7 +198,7 @@ export default function Message({ msg }: MessageProps) {
   const isAgent = !!msg.author_agent && !msg.author_user;
   const time = formatTime(msg.updated_at || msg.created_at);
   const displayName = isAgent
-    ? msg.author_agent?.name || "Agent"
+    ? msg.author_agent?.name || "Donna"
     : msg.author_user?.full_name ||
       msg.author_user?.email ||
       "You";
@@ -132,6 +234,7 @@ export default function Message({ msg }: MessageProps) {
       pulsing={isRunningAgentRun}
       name={msg.author_agent?.name ?? "A"}
       hue={hueForAgent(msg.author_agent?.id)}
+      className="!rounded-full !bg-ai !bg-none !border-0"
     />
   ) : null;
 
@@ -172,29 +275,49 @@ export default function Message({ msg }: MessageProps) {
               : "flex flex-col gap-1 items-end"
           }
         >
-          <div
-            className={
-              isAgent
-                ? "flex items-baseline gap-2 pl-[42px]"
-                : "flex items-baseline gap-2"
-            }
-          >
-            <span className="font-semibold text-text-0 text-[13px] tracking-[-0.005em]">
-              {displayName}
-            </span>
-            {isAgent ? <GRoleChip>Agent</GRoleChip> : null}
-            <span className="text-[11px] text-text-3">{time}</span>
-          </div>
+          {isAgent ? (
+            <div className="flex items-baseline gap-2 pl-[42px]">
+              <span className="font-semibold text-text-0 text-[13px] tracking-[-0.005em]">
+                {displayName}
+              </span>
+              <GRoleChip>Agent</GRoleChip>
+              <span className="text-[11px] text-text-3">{time}</span>
+            </div>
+          ) : null}
           <GBubble
             from={isAgent ? "agent" : "user"}
             avatar={agentAvatar ?? undefined}
           >
-            {msg.body.split("\n").map((line, i) => (
-              <p key={i} className="m-0 mb-1 last:mb-0">
-                {line}
-              </p>
-            ))}
+            {isAgent
+              ? renderAgentMarkdown(msg.body)
+              : msg.body.split("\n").map((line, i) => (
+                  <p key={i} className="m-0 mb-1 last:mb-0">
+                    {renderBodyWithMentions(line)}
+                  </p>
+                ))}
           </GBubble>
+          {!isAgent ? (
+            <span className="text-[10.5px] text-text-4 mt-0.5">
+              {displayName} · {time}
+            </span>
+          ) : null}
+          {/* Reactions */}
+          <div className={isAgent ? "pl-[42px]" : ""}>
+            <ReactionBar message={msg} />
+          </div>
+          {/* Thread reply chip */}
+          {msg.reply_count && msg.reply_count > 0 ? (
+            <button
+              type="button"
+              onClick={() => onReply?.(msg)}
+              className={
+                "text-[11px] text-info hover:underline mt-1 " +
+                (isAgent ? "pl-[42px]" : "")
+              }
+            >
+              {msg.reply_count} {msg.reply_count === 1 ? "reply" : "replies"}
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -213,7 +336,7 @@ export default function Message({ msg }: MessageProps) {
           title="Reply in thread"
           aria-label="Reply in thread"
           size="sm"
-          onClick={() => comingSoonToast("Threads")}
+          onClick={() => onReply?.(msg)}
         />
         <GIconButton
           icon="share"

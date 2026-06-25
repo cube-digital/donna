@@ -69,15 +69,15 @@ export function InitialsIc({ label, ...props }: Props & { label: string }) {
   );
 }
 
-/** Single dispatcher by connector slug — keeps callers free of brand lookups. */
+/** Single dispatcher by connector slug — Tabler glyph tinted to brand hue. */
 export function GConnectorIcon({ slug, label }: { slug: string; label: string }) {
   switch (slug) {
     case "gmail":
-      return <GmailIc />;
+      return <i className="ti ti-mail text-[15px] text-pop-coral" aria-hidden />;
     case "drive":
-      return <DriveIc />;
+      return <i className="ti ti-brand-google-drive text-[15px] text-ok" aria-hidden />;
     case "fathom":
-      return <FathomIc />;
+      return <i className="ti ti-broadcast text-[15px] text-pop-blue" aria-hidden />;
     default:
       return <InitialsIc label={label} />;
   }

@@ -59,22 +59,22 @@
     background: var(--pop-sun);
     color: var(--on-bright);
   }
-  /* Chunky 13 px scrollbars in the goofy spirit */
+  /* Refined: slimmer, muted scrollbars (was a chunky 13 px ink bar). */
   *::-webkit-scrollbar {
-    width: 13px;
-    height: 13px;
+    width: 10px;
+    height: 10px;
   }
   *::-webkit-scrollbar-track {
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background: var(--ink);
+    background: var(--text-4);
     border-radius: 8px;
     border: 3px solid transparent;
     background-clip: content-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background: var(--ai);
+    background: var(--text-3);
     background-clip: content-box;
   }
 }
@@ -135,14 +135,9 @@
      inline by <GAvatar agent hue=… />. Size + radius come from utility
      classes at the call site. */
   .av-agent-gradient {
-    background: radial-gradient(
-      at 30% 25%,
-      oklch(0.85 0.18 var(--hue, 288)) 0%,
-      oklch(0.55 0.22 var(--hue, 288)) 60%,
-      oklch(0.40 0.18 var(--hue, 288)) 100%
-    );
+    background: oklch(0.52 0.18 var(--hue, 288));
     color: #fff;
-    box-shadow: 0 0 0 2px var(--ink);
+    box-shadow: none;
   }
   /* Pulse ring around an agent avatar mid-stream. */
   .av-pulse-ring::after {
@@ -174,15 +169,6 @@
  * aren't <button> (tabs / switches / checkboxes / menu items / list
  * rows / tooltips), and the explicit `.gx-wiggle-target` opt-in for
  * decorative stickers (avatars, chips, badges, role-chips). */
-@media (prefers-reduced-motion: no-preference) {
-  .gx.wiggly button:hover,
-  .gx.wiggly [role="button"]:hover,
-  .gx.wiggly [role="tab"]:hover,
-  .gx.wiggly [role="switch"]:hover,
-  .gx.wiggly [role="checkbox"]:hover,
-  .gx.wiggly [role="menuitem"]:hover,
-  .gx.wiggly [role="tooltip"]:hover,
-  .gx.wiggly .gx-wiggle-target:hover {
-    animation: gx-wiggle 0.4s ease-in-out;
-  }
-}
+/* Refined: the global hover-wiggle was removed for a calmer feel.
+ * Interactive elements now rely on color / shadow transitions instead
+ * of tilting. (Block intentionally left without the animation rule.) */

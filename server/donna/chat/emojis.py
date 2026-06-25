@@ -1,0 +1,220 @@
+"""Curated Slack-style emoji set — single source of truth.
+
+Used by:
+- backend ``MessageReaction.emoji`` validation
+- frontend ``web/src/lib/emojis.ts`` (regenerated from this via
+  ``scripts/sync_emojis.py``)
+- composer inline-insert + reaction picker (same dataset)
+
+Format: ``{code: {unicode, group, keywords}}``.
+Groups: ``people | nature | food | activity | travel | objects | symbols | flags``.
+
+Agents do NOT use this — they don't react.
+"""
+from __future__ import annotations
+
+from typing import TypedDict
+
+
+class EmojiEntry(TypedDict):
+    unicode: str
+    group: str
+    keywords: list[str]
+
+
+CURATED_EMOJIS: dict[str, EmojiEntry] = {
+    # ── People / faces ─────────────────────────────────────────────
+    "smile":          {"unicode": "😄", "group": "people",   "keywords": ["happy", "joy"]},
+    "laughing":       {"unicode": "😆", "group": "people",   "keywords": ["lol", "haha"]},
+    "joy":            {"unicode": "😂", "group": "people",   "keywords": ["cry", "laugh"]},
+    "rofl":           {"unicode": "🤣", "group": "people",   "keywords": ["rolling", "laughing"]},
+    "wink":           {"unicode": "😉", "group": "people",   "keywords": ["flirt"]},
+    "blush":          {"unicode": "😊", "group": "people",   "keywords": ["smile", "happy"]},
+    "heart_eyes":     {"unicode": "😍", "group": "people",   "keywords": ["love"]},
+    "smirk":          {"unicode": "😏", "group": "people",   "keywords": []},
+    "thinking":       {"unicode": "🤔", "group": "people",   "keywords": ["hmm", "think"]},
+    "neutral_face":   {"unicode": "😐", "group": "people",   "keywords": ["meh"]},
+    "expressionless": {"unicode": "😑", "group": "people",   "keywords": []},
+    "unamused":       {"unicode": "😒", "group": "people",   "keywords": ["meh"]},
+    "eyes":           {"unicode": "👀", "group": "people",   "keywords": ["look", "watch"]},
+    "sob":            {"unicode": "😭", "group": "people",   "keywords": ["cry", "sad"]},
+    "cry":            {"unicode": "😢", "group": "people",   "keywords": ["sad"]},
+    "scream":         {"unicode": "😱", "group": "people",   "keywords": ["shock"]},
+    "angry":          {"unicode": "😠", "group": "people",   "keywords": ["mad"]},
+    "rage":           {"unicode": "😡", "group": "people",   "keywords": ["furious"]},
+    "tired_face":     {"unicode": "😫", "group": "people",   "keywords": ["exhausted"]},
+    "weary":          {"unicode": "😩", "group": "people",   "keywords": ["tired"]},
+    "sweat_smile":    {"unicode": "😅", "group": "people",   "keywords": ["phew"]},
+    "sweat":          {"unicode": "😓", "group": "people",   "keywords": []},
+    "disappointed":   {"unicode": "😞", "group": "people",   "keywords": ["sad"]},
+    "confused":       {"unicode": "😕", "group": "people",   "keywords": []},
+    "worried":        {"unicode": "😟", "group": "people",   "keywords": []},
+    "kissing_heart":  {"unicode": "😘", "group": "people",   "keywords": []},
+    "yum":            {"unicode": "😋", "group": "people",   "keywords": ["tasty"]},
+    "stuck_out_tongue":{"unicode":"😛", "group": "people",   "keywords": []},
+    "sunglasses":     {"unicode": "😎", "group": "people",   "keywords": ["cool"]},
+    "nerd_face":      {"unicode": "🤓", "group": "people",   "keywords": ["geek"]},
+    "exploding_head": {"unicode": "🤯", "group": "people",   "keywords": ["mindblown"]},
+    "cowboy":         {"unicode": "🤠", "group": "people",   "keywords": []},
+    "partying_face":  {"unicode": "🥳", "group": "people",   "keywords": ["party"]},
+    "smiling_imp":    {"unicode": "😈", "group": "people",   "keywords": ["evil"]},
+    "skull":          {"unicode": "💀", "group": "people",   "keywords": ["dead"]},
+    "ghost":          {"unicode": "👻", "group": "people",   "keywords": []},
+    "robot":          {"unicode": "🤖", "group": "people",   "keywords": ["bot", "ai"]},
+    "wave":           {"unicode": "👋", "group": "people",   "keywords": ["hi", "bye"]},
+    "raised_hands":   {"unicode": "🙌", "group": "people",   "keywords": ["praise", "celebrate"]},
+    "clap":           {"unicode": "👏", "group": "people",   "keywords": ["applause"]},
+    "pray":           {"unicode": "🙏", "group": "people",   "keywords": ["thanks", "please"]},
+    "muscle":         {"unicode": "💪", "group": "people",   "keywords": ["strong"]},
+    "ok_hand":        {"unicode": "👌", "group": "people",   "keywords": ["ok", "perfect"]},
+    "v":              {"unicode": "✌️", "group": "people",   "keywords": ["peace"]},
+    "crossed_fingers":{"unicode": "🤞", "group": "people",   "keywords": ["luck", "hope"]},
+    "thumbsup":       {"unicode": "👍", "group": "people",   "keywords": ["yes", "agree", "good"]},
+    "thumbsdown":     {"unicode": "👎", "group": "people",   "keywords": ["no", "disagree"]},
+    "point_right":    {"unicode": "👉", "group": "people",   "keywords": []},
+    "point_left":     {"unicode": "👈", "group": "people",   "keywords": []},
+    "point_up":       {"unicode": "👆", "group": "people",   "keywords": ["fyi"]},
+    "raising_hand":   {"unicode": "🙋", "group": "people",   "keywords": ["volunteer"]},
+    "facepalm":       {"unicode": "🤦", "group": "people",   "keywords": []},
+    "shrug":          {"unicode": "🤷", "group": "people",   "keywords": ["idk"]},
+    "bow":            {"unicode": "🙇", "group": "people",   "keywords": ["sorry"]},
+    "handshake":      {"unicode": "🤝", "group": "people",   "keywords": ["deal", "agree"]},
+
+    # ── Hearts / symbols ───────────────────────────────────────────
+    "heart":          {"unicode": "❤️", "group": "symbols",  "keywords": ["love"]},
+    "orange_heart":   {"unicode": "🧡", "group": "symbols",  "keywords": []},
+    "yellow_heart":   {"unicode": "💛", "group": "symbols",  "keywords": []},
+    "green_heart":    {"unicode": "💚", "group": "symbols",  "keywords": []},
+    "blue_heart":     {"unicode": "💙", "group": "symbols",  "keywords": []},
+    "purple_heart":   {"unicode": "💜", "group": "symbols",  "keywords": []},
+    "black_heart":    {"unicode": "🖤", "group": "symbols",  "keywords": []},
+    "white_heart":    {"unicode": "🤍", "group": "symbols",  "keywords": []},
+    "broken_heart":   {"unicode": "💔", "group": "symbols",  "keywords": ["sad"]},
+    "two_hearts":     {"unicode": "💕", "group": "symbols",  "keywords": []},
+    "sparkling_heart":{"unicode": "💖", "group": "symbols",  "keywords": []},
+    "100":            {"unicode": "💯", "group": "symbols",  "keywords": ["perfect", "score"]},
+    "checkmark":      {"unicode": "✅", "group": "symbols",  "keywords": ["done", "ok", "yes"]},
+    "x":              {"unicode": "❌", "group": "symbols",  "keywords": ["no", "wrong"]},
+    "warning":        {"unicode": "⚠️", "group": "symbols",  "keywords": ["alert", "caution"]},
+    "no_entry":       {"unicode": "⛔", "group": "symbols",  "keywords": ["stop"]},
+    "question":       {"unicode": "❓", "group": "symbols",  "keywords": []},
+    "exclamation":    {"unicode": "❗", "group": "symbols",  "keywords": []},
+    "bangbang":       {"unicode": "‼️", "group": "symbols",  "keywords": []},
+    "interrobang":    {"unicode": "⁉️", "group": "symbols",  "keywords": []},
+    "white_check_mark":{"unicode":"✔️", "group": "symbols",  "keywords": ["done"]},
+    "sparkles":       {"unicode": "✨", "group": "symbols",  "keywords": ["magic", "new"]},
+    "boom":           {"unicode": "💥", "group": "symbols",  "keywords": ["explosion"]},
+    "fire":           {"unicode": "🔥", "group": "symbols",  "keywords": ["hot", "lit", "great"]},
+    "star":           {"unicode": "⭐", "group": "symbols",  "keywords": ["favorite"]},
+    "star2":          {"unicode": "🌟", "group": "symbols",  "keywords": []},
+    "zap":            {"unicode": "⚡", "group": "symbols",  "keywords": ["lightning", "fast"]},
+    "snowflake":      {"unicode": "❄️", "group": "symbols",  "keywords": ["cold"]},
+
+    # ── Objects ────────────────────────────────────────────────────
+    "rocket":         {"unicode": "🚀", "group": "objects",  "keywords": ["launch", "ship", "go"]},
+    "tada":           {"unicode": "🎉", "group": "objects",  "keywords": ["celebrate", "party"]},
+    "confetti_ball":  {"unicode": "🎊", "group": "objects",  "keywords": []},
+    "balloon":        {"unicode": "🎈", "group": "objects",  "keywords": ["party"]},
+    "gift":           {"unicode": "🎁", "group": "objects",  "keywords": ["present"]},
+    "trophy":         {"unicode": "🏆", "group": "objects",  "keywords": ["win"]},
+    "medal":          {"unicode": "🏅", "group": "objects",  "keywords": []},
+    "first_place":    {"unicode": "🥇", "group": "objects",  "keywords": ["winner"]},
+    "second_place":   {"unicode": "🥈", "group": "objects",  "keywords": []},
+    "third_place":    {"unicode": "🥉", "group": "objects",  "keywords": []},
+    "bulb":           {"unicode": "💡", "group": "objects",  "keywords": ["idea"]},
+    "memo":           {"unicode": "📝", "group": "objects",  "keywords": ["note", "write"]},
+    "books":          {"unicode": "📚", "group": "objects",  "keywords": ["read", "study"]},
+    "computer":       {"unicode": "💻", "group": "objects",  "keywords": ["laptop"]},
+    "iphone":         {"unicode": "📱", "group": "objects",  "keywords": ["phone"]},
+    "telephone":      {"unicode": "☎️", "group": "objects",  "keywords": ["call"]},
+    "email":          {"unicode": "📧", "group": "objects",  "keywords": ["mail"]},
+    "calendar":       {"unicode": "📅", "group": "objects",  "keywords": ["date", "schedule"]},
+    "clock":          {"unicode": "🕐", "group": "objects",  "keywords": ["time"]},
+    "hourglass":      {"unicode": "⌛", "group": "objects",  "keywords": ["wait"]},
+    "lock":           {"unicode": "🔒", "group": "objects",  "keywords": ["secure"]},
+    "unlock":         {"unicode": "🔓", "group": "objects",  "keywords": []},
+    "key":            {"unicode": "🔑", "group": "objects",  "keywords": []},
+    "hammer":         {"unicode": "🔨", "group": "objects",  "keywords": ["build", "fix"]},
+    "wrench":         {"unicode": "🔧", "group": "objects",  "keywords": ["fix"]},
+    "gear":           {"unicode": "⚙️", "group": "objects",  "keywords": ["settings", "config"]},
+    "package":        {"unicode": "📦", "group": "objects",  "keywords": ["ship", "box"]},
+    "scroll":         {"unicode": "📜", "group": "objects",  "keywords": ["docs"]},
+    "clipboard":      {"unicode": "📋", "group": "objects",  "keywords": []},
+    "paperclip":      {"unicode": "📎", "group": "objects",  "keywords": ["attachment"]},
+    "magnifying_glass":{"unicode":"🔍", "group": "objects",  "keywords": ["search"]},
+    "link":           {"unicode": "🔗", "group": "objects",  "keywords": ["url"]},
+    "bookmark":       {"unicode": "🔖", "group": "objects",  "keywords": []},
+    "wave_emoji":     {"unicode": "🌊", "group": "nature",   "keywords": ["wave", "water"]},
+
+    # ── Nature / food (small set; expand as needed) ────────────────
+    "sun":            {"unicode": "☀️", "group": "nature",   "keywords": ["sunny"]},
+    "cloud":          {"unicode": "☁️", "group": "nature",   "keywords": []},
+    "rainbow":        {"unicode": "🌈", "group": "nature",   "keywords": []},
+    "snowman":        {"unicode": "⛄", "group": "nature",   "keywords": []},
+    "leaves":         {"unicode": "🍃", "group": "nature",   "keywords": ["green"]},
+    "deciduous_tree": {"unicode": "🌳", "group": "nature",   "keywords": []},
+    "rose":           {"unicode": "🌹", "group": "nature",   "keywords": ["flower"]},
+    "tulip":          {"unicode": "🌷", "group": "nature",   "keywords": []},
+    "dog":            {"unicode": "🐶", "group": "nature",   "keywords": []},
+    "cat":            {"unicode": "🐱", "group": "nature",   "keywords": []},
+    "unicorn":        {"unicode": "🦄", "group": "nature",   "keywords": []},
+    "owl":            {"unicode": "🦉", "group": "nature",   "keywords": []},
+    "coffee":         {"unicode": "☕", "group": "food",     "keywords": ["caffeine"]},
+    "tea":            {"unicode": "🍵", "group": "food",     "keywords": []},
+    "beer":           {"unicode": "🍺", "group": "food",     "keywords": []},
+    "wine":           {"unicode": "🍷", "group": "food",     "keywords": []},
+    "champagne":      {"unicode": "🍾", "group": "food",     "keywords": ["celebrate"]},
+    "cake":           {"unicode": "🎂", "group": "food",     "keywords": ["birthday"]},
+    "pizza":          {"unicode": "🍕", "group": "food",     "keywords": []},
+    "donut":          {"unicode": "🍩", "group": "food",     "keywords": []},
+    "popcorn":        {"unicode": "🍿", "group": "food",     "keywords": []},
+    "taco":           {"unicode": "🌮", "group": "food",     "keywords": []},
+
+    # ── Activity / travel ──────────────────────────────────────────
+    "soccer":         {"unicode": "⚽", "group": "activity", "keywords": []},
+    "basketball":     {"unicode": "🏀", "group": "activity", "keywords": []},
+    "tennis":         {"unicode": "🎾", "group": "activity", "keywords": []},
+    "8ball":          {"unicode": "🎱", "group": "activity", "keywords": []},
+    "video_game":     {"unicode": "🎮", "group": "activity", "keywords": []},
+    "dart":           {"unicode": "🎯", "group": "activity", "keywords": ["target", "goal"]},
+    "guitar":         {"unicode": "🎸", "group": "activity", "keywords": []},
+    "musical_note":   {"unicode": "🎵", "group": "activity", "keywords": []},
+    "art":            {"unicode": "🎨", "group": "activity", "keywords": []},
+    "airplane":       {"unicode": "✈️", "group": "travel",   "keywords": []},
+    "car":            {"unicode": "🚗", "group": "travel",   "keywords": []},
+    "bike":           {"unicode": "🚲", "group": "travel",   "keywords": []},
+    "rocket_travel":  {"unicode": "🛸", "group": "travel",   "keywords": ["ufo"]},
+    "earth":          {"unicode": "🌍", "group": "travel",   "keywords": ["world"]},
+    "globe":          {"unicode": "🌐", "group": "travel",   "keywords": ["www"]},
+    "house":          {"unicode": "🏠", "group": "travel",   "keywords": ["home"]},
+    "office":         {"unicode": "🏢", "group": "travel",   "keywords": ["work"]},
+    "tent":           {"unicode": "⛺", "group": "travel",   "keywords": ["camping"]},
+
+    # ── Misc useful ────────────────────────────────────────────────
+    "moneybag":       {"unicode": "💰", "group": "objects",  "keywords": ["money", "cash"]},
+    "dollar":         {"unicode": "💵", "group": "objects",  "keywords": ["money"]},
+    "credit_card":    {"unicode": "💳", "group": "objects",  "keywords": ["payment"]},
+    "chart_up":       {"unicode": "📈", "group": "objects",  "keywords": ["growth"]},
+    "chart_down":     {"unicode": "📉", "group": "objects",  "keywords": ["decline"]},
+    "bar_chart":      {"unicode": "📊", "group": "objects",  "keywords": []},
+    "construction":   {"unicode": "🚧", "group": "symbols",  "keywords": ["wip"]},
+    "speech_balloon": {"unicode": "💬", "group": "symbols",  "keywords": ["comment"]},
+    "thought_balloon":{"unicode": "💭", "group": "symbols",  "keywords": ["idea"]},
+    "zzz":            {"unicode": "💤", "group": "symbols",  "keywords": ["sleep"]},
+    "bell":           {"unicode": "🔔", "group": "objects",  "keywords": ["notify"]},
+    "no_bell":        {"unicode": "🔕", "group": "objects",  "keywords": ["mute"]},
+    "loudspeaker":    {"unicode": "📢", "group": "objects",  "keywords": ["announce"]},
+    "mega":           {"unicode": "📣", "group": "objects",  "keywords": ["announce"]},
+
+    # ── Flags (small set) ──────────────────────────────────────────
+    "flag_us":        {"unicode": "🇺🇸", "group": "flags",   "keywords": []},
+    "flag_eu":        {"unicode": "🇪🇺", "group": "flags",   "keywords": []},
+    "flag_ro":        {"unicode": "🇷🇴", "group": "flags",   "keywords": []},
+    "checkered_flag": {"unicode": "🏁", "group": "symbols",  "keywords": ["finish", "done"]},
+    "white_flag":     {"unicode": "🏳️", "group": "symbols", "keywords": ["surrender"]},
+    "rainbow_flag":   {"unicode": "🏳️‍🌈", "group": "flags", "keywords": ["pride"]},
+}
+
+
+def is_valid(code: str) -> bool:
+    return code in CURATED_EMOJIS

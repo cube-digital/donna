@@ -66,6 +66,8 @@ class WorkspaceMiddleware:
         "/api/auth": ["POST", "GET"],
         "/health": ["GET"],
         "/api/v1/workspaces": ["POST", "GET"],
+        # Public token-based invitation endpoints — no tenant context.
+        "/api/v1/invitations": ["GET", "POST"],
         "/favicon.ico": ["GET"],
         # Frontend SPA routes — OAuth callbacks 302 to /app/... for UI feedback;
         # workspace context comes from the SPA session, not the URL.

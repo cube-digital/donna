@@ -56,7 +56,7 @@ const BASE =
   "border-2 border-ink rounded-full shadow-ink-1 " +
   // hover-press spring
   "transition-[transform,box-shadow] duration-[120ms] ease-spring " +
-  "hover:-translate-x-px hover:-translate-y-px hover:-rotate-2 hover:shadow-ink-3 " +
+  "hover:-translate-x-px hover:-translate-y-px hover:shadow-ink-3 " +
   "active:translate-x-0.5 active:translate-y-0.5 active:rotate-0 active:shadow-none " +
   // disabled
   "disabled:opacity-50 disabled:pointer-events-none";
@@ -122,12 +122,12 @@ const ICON_BTN_GLYPH: Record<GIconButtonSize, number> = {
 const ICON_BTN_BASE =
   "grid place-items-center text-text-2 " +
   "transition-[transform,background,color] duration-[140ms] ease-out " +
-  "hover:bg-bg-3 hover:text-text-0 hover:rotate-[8deg] " +
+  "hover:bg-bg-3 hover:text-text-0 " +
   "active:translate-x-0.5 active:translate-y-0.5";
 
 const ICON_BTN_OUTLINED =
   "border-2 border-ink shadow-ink-1 text-text-0 " +
-  "hover:-translate-x-px hover:-translate-y-px hover:rotate-[6deg] hover:shadow-ink-3 " +
+  "hover:-translate-x-px hover:-translate-y-px hover:shadow-ink-3 " +
   "active:translate-x-0.5 active:translate-y-0.5 active:shadow-none";
 
 export interface GIconButtonProps

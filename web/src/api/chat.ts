@@ -9,7 +9,14 @@
 // WorkspaceMiddleware + the channel queryset.
 
 import { apiFetch } from "./client";
-import type { Channel, Message, Paginated } from "../types";
+import type {
+  Channel,
+  ChannelDocument,
+  Message,
+  Paginated,
+  ReactionAgg,
+  UUID,
+} from "../types";
 
 export async function listChannels(): Promise<Channel[]> {
   // Donna's renderer puts rows directly in `data` (pagination in `meta`),
@@ -113,4 +120,115 @@ export async function markRead(
     method: "POST",
     body: { message_id: messageId },
   });
+}
+
+// ── DMs ─────────────────────────────────────────────────────────────────────
+
+export async function startDM(peerUserId: UUID): Promise<Channel> {
+  return apiFetch<Channel>("/api/v1/chat/dms/", {
+    method: "POST",
+    body: { peer_user_id: peerUserId },
+  });
+}
+
+export async function startGroupDM(peerUserIds: UUID[]): Promise<Channel> {
+  return apiFetch<Channel>("/api/v1/chat/dms/group/", {
+    method: "POST",
+    body: { peer_user_ids: peerUserIds },
+  });
+}
+
+// ── Pins ────────────────────────────────────────────────────────────────────
+
+export async function pinChannel(channelId: UUID): Promise<void> {
+  await apiFetch(`/api/v1/chat/channels/${channelId}/pin/`, { method: "POST" });
+}
+
+export async function unpinChannel(channelId: UUID): Promise<void> {
+  await apiFetch(`/api/v1/chat/channels/${channelId}/pin/`, { method: "DELETE" });
+}
+
+// ── Channel members ───────────────────────────────────────────────────────
+
+export async function addChannelMember(
+  channelId: UUID,
+  userId: UUID,
+  role: "admin" | "member" = "member",
+): Promise<void> {
+  await apiFetch(`/api/v1/chat/channels/${channelId}/members/`, {
+    method: "POST",
+    body: { user_id: userId, role },
+  });
+}
+
+export async function removeChannelMember(
+  channelId: UUID,
+  userId: UUID,
+): Promise<void> {
+  await apiFetch(`/api/v1/chat/channels/${channelId}/members/${userId}/`, {
+    method: "DELETE",
+  });
+}
+
+// ── Threading ────────────────────────────────────────────────────────────
+
+export async function getReplies(messageId: UUID): Promise<Message[]> {
+  const data = await apiFetch<Message[] | Paginated<Message>>(
+    `/api/v1/chat/messages/${messageId}/replies/`,
+  );
+  return Array.isArray(data) ? data : data.results;
+}
+
+export async function postReply(
+  channelId: UUID,
+  parentMessageId: UUID,
+  body: string,
+  clientMsgId?: string,
+): Promise<Message> {
+  return apiFetch<Message>(`/api/v1/chat/channels/${channelId}/messages/`, {
+    method: "POST",
+    body: {
+      body,
+      parent_id: parentMessageId,
+      ...(clientMsgId ? { client_msg_id: clientMsgId } : {}),
+    },
+  });
+}
+
+// ── Reactions ────────────────────────────────────────────────────────────
+
+export async function addReaction(messageId: UUID, emoji: string): Promise<ReactionAgg> {
+  return apiFetch<ReactionAgg>(`/api/v1/chat/messages/${messageId}/reactions/`, {
+    method: "POST",
+    body: { emoji },
+  });
+}
+
+export async function removeReaction(messageId: UUID, emoji: string): Promise<void> {
+  await apiFetch(`/api/v1/chat/messages/${messageId}/reactions/`, {
+    method: "DELETE",
+    body: { emoji },
+  });
+}
+
+// ── Channel documents (Cowork rail) ──────────────────────────────────────
+
+export async function listChannelDocuments(
+  channelId: UUID,
+  status?: "drafting" | "finalized" | "abandoned",
+): Promise<ChannelDocument[]> {
+  const qs = status ? `?status=${status}` : "";
+  const data = await apiFetch<ChannelDocument[] | Paginated<ChannelDocument>>(
+    `/api/v1/chat/channels/${channelId}/documents/${qs}`,
+  );
+  return Array.isArray(data) ? data : data.results;
+}
+
+export async function getChannelDocument(
+  channelId: UUID,
+  documentId: UUID,
+): Promise<ChannelDocument> {
+  return apiFetch<ChannelDocument>(
+    `/api/v1/chat/channels/${channelId}/documents/${documentId}/`,
+  );
 }

@@ -58,6 +58,80 @@ def _missing_target(method: str, target_id: UUID, source_id: UUID) -> None:
         )
 
 
+def _render_and_flag(entity: "CortexEntity") -> None:
+    """Post-commit vault hook (Phase 5, 2026-06-19).
+
+    Synchronously writes the entity's vault file + appends to the
+    scope ``_log.md``. Marks the parent folder dirty in Redis so the
+    next ``flush_vault_indexes`` beat regenerates ``_index.md``.
+
+    Best-effort: any failure logs + swallows. The cortex layer must
+    never break because the vault projection had a hiccup.
+    """
+    if not getattr(settings, "CORTEX_VAULT_ENABLED", True):
+        return
+    try:
+        from donna.cortex.vault_renderer import VaultRenderer
+
+        renderer = VaultRenderer()
+        vault_path = renderer.render_entity(entity)
+        if vault_path is None:
+            return
+
+        parent_path = (entity.extensions or {}).get("parent_path", "") or ""
+        renderer.append_log(
+            entity.workspace_id,
+            scope_prefix=_scope_prefix_from_parent(parent_path),
+            event={
+                "type":   entity.type,
+                "id":     str(entity.id),
+                "action": "saved",
+            },
+        )
+
+        # Coalesced index flush — push folder into the dirty-set; beat
+        # task SPOPs and renders.
+        try:
+            from django_redis import get_redis_connection
+
+            redis = get_redis_connection("default")
+            redis.sadd(f"vault:dirty:{entity.workspace_id}", parent_path)
+        except Exception as exc:  # noqa: BLE001
+            # Redis missing in unit tests — fall back to immediate
+            # render so tests still see consistent output.
+            logger.debug(
+                "vault_dirty_set_unavailable",
+                extra={"workspace_id": str(entity.workspace_id), "error": str(exc)},
+            )
+            try:
+                renderer.render_index(entity.workspace_id, parent_path)
+            except Exception:  # noqa: BLE001
+                logger.exception("vault_inline_index_failed")
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "vault_render_post_commit_failed",
+            extra={"entity_id": str(entity.id), "type": entity.type},
+        )
+
+
+def _scope_prefix_from_parent(parent_path: str) -> str:
+    """Reduce ``clients/acme/projects/x/emails/2026/05`` → ``clients/acme/projects/x``.
+
+    Append `_log.md` lives at the scope root (client/project) — not in
+    the leaf bucket — so siblings within the scope share one timeline.
+    """
+    if not parent_path:
+        return ""
+    parts = parent_path.strip("/").split("/")
+    if parts[0] == "clients" and len(parts) >= 4 and parts[2] == "projects":
+        return "/".join(parts[:4])
+    if parts[0] == "clients" and len(parts) >= 2:
+        return "/".join(parts[:2])
+    if parts[0] == "projects" and len(parts) >= 2:
+        return "/".join(parts[:2])
+    return ""
+
+
 class CortexEntityManager(models.Manager):
     """Custom manager — see module docstring."""
 
@@ -85,6 +159,11 @@ class CortexEntityManager(models.Manager):
                 self._assign_superseded_by(target_id, entity.id)
             for target_id in contradicts:
                 self._append_contradicts(target_id, entity.id)
+            # Phase 5 vault projection (2026-06-19) — hook fires only on
+            # successful commit, so an aborted txn never leaves a stale
+            # vault file. Best-effort; vault errors must not block
+            # cortex writes.
+            transaction.on_commit(lambda: _render_and_flag(entity))
         return entity
 
     # ── reverse edge writers ────────────────────────────────────────

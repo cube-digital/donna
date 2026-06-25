@@ -139,13 +139,19 @@ class CortexService(BaseService[CortexEntity]):
         doc_type: str | None = None,
         client_id: UUID | None = None,
         project_id: UUID | None = None,
+        relationship: str | None = None,
         limit: int = 8,
     ) -> list[QueryHit]:
         """Hybrid retrieval — dense + keyword, RRF-fused, heads-only.
 
-        Metadata filters apply FIRST (type, doc_type, client, project)
-        — narrows the candidate set before scoring per prod-grade RAG
-        guidance (00l field study).
+        Metadata filters apply FIRST (type, doc_type, client, project,
+        relationship) — narrows the candidate set before scoring per
+        prod-grade RAG guidance (00l field study).
+
+        ``relationship`` filters via the entity's ``client_id`` org's
+        ``extensions.relationship`` — e.g. ``relationship="client"``
+        returns only entities scoped to orgs tagged as clients,
+        excluding vendor / partner / peer noise.
         """
         if not text or not text.strip():
             return []
@@ -160,6 +166,7 @@ class CortexService(BaseService[CortexEntity]):
             doc_type=doc_type,
             client_id=client_id,
             project_id=project_id,
+            relationship=relationship,
         )
 
         dense_ranking = self._dense_channel(text=text, qs=base)
@@ -364,6 +371,7 @@ class CortexService(BaseService[CortexEntity]):
         doc_type: str | None,
         client_id: UUID | None,
         project_id: UUID | None,
+        relationship: str | None = None,
     ):
         # Heads-only — superseded rows are invisible to retrieval per R1.
         qs = CortexEntity.objects.filter(
@@ -378,6 +386,24 @@ class CortexService(BaseService[CortexEntity]):
             qs = qs.filter(client_id=client_id)
         if project_id is not None:
             qs = qs.filter(project_id=project_id)
+        if relationship is not None:
+            # Filter via the scope-client org's relationship.
+            # An entity's client_id points to an org row; we want only
+            # those where that org has the given relationship tag.
+            client_ids_in_rel = list(
+                CortexEntity.objects
+                .filter(
+                    workspace_id=workspace_id,
+                    type="org",
+                    extensions__relationship=relationship,
+                )
+                .values_list("id", flat=True)
+            )
+            if not client_ids_in_rel:
+                # Empty filter shortcut — no orgs match this relationship,
+                # so no entities can match either.
+                return qs.none()
+            qs = qs.filter(client_id__in=client_ids_in_rel)
         return qs
 
     def _dense_channel(self, *, text: str, qs) -> list[tuple[UUID, float]]:

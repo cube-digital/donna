@@ -99,7 +99,8 @@ def run_agent_turn(self, channel_id: str, message_id: str) -> None:
                     agent_session=session,
                 )
                 state = build_state(channel, session)
-                registry = build_registry(channel=channel, draft_enabled=False)
+                draft_enabled = bool((session.config or {}).get("draft_enabled", True))
+                registry = build_registry(channel=channel, draft_enabled=draft_enabled)
                 state = run_graph(state, ctx, registry)
 
                 persist_agent_message(channel, session, state.final_text or "")

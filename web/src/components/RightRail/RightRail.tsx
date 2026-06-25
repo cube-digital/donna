@@ -36,7 +36,7 @@ const HEADER_CLS =
 const HEADER_AI_CLS =
   "flex items-center gap-1.5 py-1 px-0.5 font-display font-semibold text-[12.5px] text-ai";
 const CARD_AI_CLS =
-  "mt-1.5 py-2.5 px-3 bg-ai-bg border-2 border-ai rounded-[12px] shadow-[2px_2px_0_var(--ai)]";
+  "mt-1.5 py-2.5 px-3 bg-ai-bg border-2 border-ai rounded-[12px] shadow-ai-stamp";
 
 const COMING_SOON_CLS = "mt-1 font-hand font-bold text-[15px] text-text-3 leading-none";
 
@@ -86,7 +86,7 @@ export function DocsSection({ channelId }: DocsSectionProps) {
   return (
     <section className={SECTION_CLS}>
       <div className={HEADER_CLS}>
-        <GlyphSlot name="doc" />
+        <GlyphSlot name="doc" size={15} />
         <span>Docs{list.length ? ` · ${list.length}` : ""}</span>
         <span className="flex-1" />
         <button
@@ -94,13 +94,13 @@ export function DocsSection({ channelId }: DocsSectionProps) {
           aria-label="New doc"
           className="grid place-items-center p-0.5 bg-transparent border-0 text-text-3 cursor-pointer hover:text-text-0"
         >
-          <GlyphSlot name="plus" />
+          <GlyphSlot name="plus" size={14} />
         </button>
       </div>
       <div className="flex flex-col gap-0.5 mt-1">
         {list.length === 0 ? (
           <div className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-3">
-            <GlyphSlot name="doc" className="text-text-3" />
+            <GlyphSlot name="doc" size={15} className="text-text-3" />
             <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               No docs yet
             </span>
@@ -110,9 +110,9 @@ export function DocsSection({ channelId }: DocsSectionProps) {
           list.map((d, i) => (
             <div
               key={d.id ?? `${d.name}-${i}`}
-              className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] text-text-1 hover:bg-bg-2 hover:text-text-0"
+              className="h-[34px] flex items-center gap-2 px-[10px] rounded-[9px] border border-border-soft bg-bg-1 text-[12.5px] text-text-1 hover:text-text-0"
             >
-              <GlyphSlot name="doc" className="text-text-3" />
+              <GlyphSlot name="doc" className="text-text-3" size={15} />
               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                 {d.name}
               </span>
@@ -186,15 +186,29 @@ export function ContextSection() {
     };
   }, [providers]);
 
+  const [open, setOpen] = useState(true);
+
   return (
     <section className={SECTION_CLS}>
-      <div className={HEADER_CLS}>
-        <GlyphSlot name="link" />
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={HEADER_CLS + " w-full bg-transparent border-0 cursor-pointer"}
+        aria-expanded={open}
+      >
+        <GlyphSlot name="link" size={15} />
         <span>Context</span>
         <span className="flex-1" />
-      </div>
+        <GlyphSlot
+          name="caret"
+          size={12}
+          className={
+            "transition-transform " + (open ? "" : "-rotate-90")
+          }
+        />
+      </button>
 
-      {providers.length === 0 && (
+      {open && providers.length === 0 && (
         <div className="flex items-center gap-2 py-1.5 px-2 rounded-md text-[12.5px] opacity-60">
           <span className="w-[18px] h-[18px] rounded-sm bg-bg-3 grid place-items-center text-text-1 text-[10px] font-mono">
             —
@@ -204,7 +218,7 @@ export function ContextSection() {
         </div>
       )}
 
-      {providers.map((p) => {
+      {open && providers.map((p) => {
         const conn = conns[p.slug];
         return (
           <Link
@@ -237,10 +251,9 @@ function ConnectorState({
   lastSyncedAt?: string | null;
 }) {
   switch (status) {
-    case "live": {
-      const suffix = lastSyncedAt ? ` · ${timeAgo(lastSyncedAt)}` : "";
-      return <span className="text-[11px] text-ok">live{suffix}</span>;
-    }
+    case "live":
+      void lastSyncedAt;
+      return <span className="text-[11px] font-semibold text-ok">live</span>;
     case "read-only":
       return <span className="text-[11px] text-text-3">read-only</span>;
     case "error":
@@ -369,20 +382,3 @@ function coerceSseToNotification(payload: unknown): Notification | null {
   };
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Short relative time ("12m ago", "2h ago", "3d ago", "Apr 2"). */
-function timeAgo(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const diffMs = Date.now() - d.getTime();
-  const sec = Math.round(diffMs / 1000);
-  if (sec < 60) return "just now";
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}

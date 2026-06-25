@@ -120,6 +120,19 @@ def ingest_drive_file(
         if not default_storage.exists(bin_key):
             default_storage.save(bin_key, ContentFile(binary_bytes))
 
+        # OCR (2026-06-19): PDFs were landing in cortex as title-only.
+        # Delegated to ``extract_to_sidecar`` (2026-06-19, E1) — shared
+        # with the mail-attachment ingest path. Mirror the markdown
+        # onto the metadata storage_key so pipeline._body_for() finds
+        # it via tier-1 sidecar lookup on the cortex hop below.
+        from donna.core.integrations.binary_extract import extract_to_sidecar
+
+        sidecar_path = extract_to_sidecar(bin_key, suffix=".pdf")
+        if sidecar_path:
+            with default_storage.open(sidecar_path, "rb") as f:
+                exported_text = f.read().decode("utf-8")
+            write_sidecar(default_storage, storage_key, exported_text)
+
     canonical = adapter.to_canonical()
 
     package, created = DeliveryPackage.objects.update_or_create(

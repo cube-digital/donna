@@ -23,9 +23,60 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from uuid import UUID
 
+if TYPE_CHECKING:
+    from donna.cortex.clustering import Scope
+
 logger = logging.getLogger(__name__)
+
+
+def scope_slugs_for(scope: "Scope") -> tuple[str | None, str | None]:
+    """Resolve ``client_id`` / ``project_id`` UUIDs → folder slugs.
+
+    Returns ``(client_prefix, project_slug)``:
+
+    - ``client_prefix`` is **relationship-aware**: for a client org with
+      ``relationship="vendor"`` and ``slug="animawings"`` you get
+      ``"vendors/animawings"``. For ``relationship="client"`` you get
+      ``"clients/animawings"``. ``relationship="self"`` returns ``""``
+      (workspace root). This lets ``folders.temporal("emails")`` produce
+      ``vendors/animawings/emails/2026/05`` without a separate lookup.
+    - ``project_slug`` stays the project's slug only. Project bucket
+      defaults to the parent client's bucket; rare standalone projects
+      land under ``projects/<slug>/``.
+
+    Either return may be ``None`` when the scope id is unset or the
+    entity row is missing.
+    """
+    # Local import: avoids module-load cycle with cortex.models, which
+    # transitively imports donna.workspaces (and back).
+    from donna.cortex.models import CortexEntity
+    from donna.cortex.folders import RELATIONSHIP_BUCKETS
+
+    client_prefix: str | None = None
+    project_slug: str | None = None
+
+    if scope.client_id is not None:
+        client = CortexEntity.objects.filter(id=scope.client_id).first()
+        if client:
+            ext = client.extensions or {}
+            own_slug = ext.get("slug")
+            relationship = ext.get("relationship", "unknown")
+            if own_slug:
+                if relationship == "self":
+                    client_prefix = ""  # workspace root
+                else:
+                    bucket = RELATIONSHIP_BUCKETS.get(relationship, "unknown")
+                    client_prefix = f"{bucket}/{own_slug}"
+
+    if scope.project_id is not None:
+        project = CortexEntity.objects.filter(id=scope.project_id).first()
+        if project:
+            project_slug = (project.extensions or {}).get("slug")
+
+    return client_prefix, project_slug
 
 
 @dataclass(frozen=True)

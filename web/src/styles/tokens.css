@@ -26,13 +26,13 @@
   --bg-3: oklch(0.905 0.045 92);
   --bg-4: oklch(0.86 0.06 92);
 
+  /* Mockup-aligned bold ink — used as the chunky 2px stroke on chrome
+   * stickers (workspace squares, topbar search pill, ⌘K badges). */
   --ink: oklch(0.26 0.03 285);
-  /* Layout-shell border — chunky 92 % ink reads as too harsh between
-   * adjacent paper surfaces (rail / sidebar / topbar / rightrail).
-   * 10 % alpha keeps the seam legible without competing with the
-   * sticker chrome that lives on the actual UI elements. */
-  --border: oklch(0.26 0.03 285 / 0.10);
-  --border-strong: oklch(0.20 0.03 285);
+  /* Layout-shell border — kept very light so seams between adjacent
+   * paper surfaces stay quiet. */
+  --border: oklch(0.26 0.03 285 / 0.09);
+  --border-strong: oklch(0.55 0.02 285 / 0.45);
   --paper-dot: oklch(0.26 0.03 285 / 0.05);
 
   --text-0: oklch(0.24 0.035 285);
@@ -42,14 +42,14 @@
   --text-4: oklch(0.66 0.024 285);
 
   --ai-h: 288;
-  --ai: oklch(0.55 0.23 var(--ai-h));
+  --ai: oklch(0.52 0.21 var(--ai-h));
   --ai-dim: oklch(0.62 0.17 var(--ai-h));
-  --ai-deep: oklch(0.42 0.20 var(--ai-h));
-  --ai-bg: oklch(0.55 0.23 var(--ai-h) / 0.12);
-  --ai-glow: oklch(0.55 0.23 var(--ai-h) / 0.45);
+  --ai-deep: oklch(0.40 0.18 var(--ai-h));
+  --ai-bg: oklch(0.52 0.21 var(--ai-h) / 0.10);
+  --ai-glow: oklch(0.52 0.21 var(--ai-h) / 0.45);
 
   /* Crayon-box accents — used directly + as button variants */
-  --pop-blue: oklch(0.58 0.20 255);
+  --pop-blue: oklch(0.52 0.22 258);
   --pop-coral: oklch(0.66 0.20 33);
   --pop-sun: oklch(0.84 0.16 92);
   --pop-mint: oklch(0.74 0.16 158);
@@ -59,16 +59,18 @@
   --warn: oklch(0.78 0.16 78);
   --danger: oklch(0.62 0.22 28);
 
-  /* Goofy radii — chunkier than the previous build */
-  --r-sm: 7px;
-  --r: 11px;
-  --r-lg: 16px;
-  --r-xl: 22px;
+  /* Refined radii — still rounded and friendly, just not bubble-gum. */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
 
-  /* Hard offset "sticker" shadows — colour is the ink token */
-  --shadow-1: 2px 2px 0 var(--ink);
-  --shadow-2: 5px 5px 0 var(--ink);
-  --shadow-ai: 5px 5px 0 var(--ai);
+  /* Soft modern shadows — keep a gentle sense of depth without the
+   * hard-offset "sticker" stamp. Tinted with the cool ink hue so they
+   * sit naturally on the cream paper. */
+  --shadow-1: 0 1px 2px oklch(0.26 0.03 285 / 0.08), 0 1px 3px oklch(0.26 0.03 285 / 0.10);
+  --shadow-2: 0 4px 10px oklch(0.26 0.03 285 / 0.10), 0 12px 24px oklch(0.26 0.03 285 / 0.08);
+  --shadow-ai: 0 4px 14px oklch(0.55 0.23 var(--ai-h) / 0.28);
 }
 
 body.theme-dark,

@@ -56,10 +56,17 @@ class FolderFn(Protocol):
 
 
 def _scope_prefix(client_slug: str | None, project_slug: str | None) -> str:
+    """Compose the scope-rooted path prefix.
+
+    ``client_slug`` is actually a *relationship-aware client prefix*
+    produced by ``scope.scope_slugs_for`` — e.g. ``"vendors/animawings"``,
+    ``"clients/cube-digital"``, or ``""`` for workspace-root (self org).
+    It already carries the bucket so this function just composes.
+    """
     if client_slug and project_slug:
-        return f"clients/{client_slug}/projects/{project_slug}"
-    if client_slug:
-        return f"clients/{client_slug}"
+        return f"{client_slug}/projects/{project_slug}".strip("/")
+    if client_slug is not None:        # may be "" for self → workspace root
+        return client_slug
     if project_slug:
         return f"projects/{project_slug}"
     return ""
@@ -120,19 +127,39 @@ def concept(*, type, occurred_at, extensions, client_slug, project_slug) -> str:
     return "concepts"
 
 
-def org(*, type, occurred_at, extensions, client_slug, project_slug) -> str:
-    """One ``org.md`` per scope.
+RELATIONSHIP_BUCKETS = {
+    "client":  "clients",
+    "partner": "partners",
+    "vendor":  "vendors",
+    "peer":    "peers",
+    "unknown": "unknown",
+    "competitor": "competitors",
+    "internal": "internal",
+}
 
-    - ``relationship=self`` → workspace root → ``""``
-    - any other relationship → under ``clients/<slug>``
-    - spawned org without a client slug → ``clients/`` parking lot
+
+def org(*, type, occurred_at, extensions, client_slug, project_slug) -> str:
+    """Org file anchors its own relationship-typed folder.
+
+    - ``relationship=self`` → workspace root → ``""`` (workspace owner)
+    - any other → ``<bucket>/<own-slug>`` so the org file lands at
+      ``<bucket>/<own-slug>/org.md`` alongside its emails/docs (filename
+      rewrite happens in VaultRenderer for type=org)
+    - missing own slug → ``<bucket>/`` parking lot (degenerate case)
+
+    Buckets follow the relationship taxonomy from 00m:
+    client → ``clients/``, partner → ``partners/``,
+    vendor → ``vendors/``, peer → ``peers/``,
+    unknown → ``unknown/``.
     """
-    relationship = (extensions or {}).get("relationship")
+    relationship = (extensions or {}).get("relationship", "unknown")
     if relationship == "self":
         return ""
-    if client_slug:
-        return f"clients/{client_slug}"
-    return "clients"
+    bucket = RELATIONSHIP_BUCKETS.get(relationship, "unknown")
+    own_slug = (extensions or {}).get("slug")
+    if own_slug:
+        return f"{bucket}/{own_slug}"
+    return bucket
 
 
 def project(*, type, occurred_at, extensions, client_slug, project_slug) -> str:

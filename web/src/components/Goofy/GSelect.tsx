@@ -24,7 +24,7 @@ const SELECT_SHELL =
   "relative inline-flex items-center h-[38px] " +
   "border-2 border-ink rounded-full shadow-ink-1 bg-bg-1 text-text-0 " +
   "transition-[box-shadow,border-color] duration-[120ms] " +
-  "focus-within:border-ai focus-within:shadow-[3px_3px_0_var(--ai)]";
+  "focus-within:border-ai focus-within:shadow-ai-stamp";
 
 const SELECT_CONTROL =
   "appearance-none bg-transparent pl-[14px] pr-9 py-1 text-[13.5px] " +
@@ -91,7 +91,7 @@ const MS_SHELL =
   "min-h-[38px] flex flex-wrap items-center gap-1.5 px-2 py-1 " +
   "border-2 border-ink rounded-[14px] shadow-ink-1 bg-bg-1 cursor-text " +
   "transition-[box-shadow,border-color] duration-[120ms] " +
-  "focus-within:border-ai focus-within:shadow-[3px_3px_0_var(--ai)]";
+  "focus-within:border-ai focus-within:shadow-ai-stamp";
 
 const MS_CHIP =
   "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full " +

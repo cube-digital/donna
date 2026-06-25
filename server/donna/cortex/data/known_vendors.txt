@@ -1,0 +1,184 @@
+# Known vendor domains — services orgs typically *consume* rather than
+# bill/serve. One domain per line. Comments with `#`.
+#
+# Bootstrap list (2026-06-19). Community PRs welcome. Order
+# doesn't matter. Subdomain matches roll up to root domain in
+# classifier (animawings.com matches m.animawings.com etc.).
+
+# ── Travel + hospitality ──────────────────────────────────────────────
+animawings.com
+ryanair.com
+wizzair.com
+easyjet.com
+lufthansa.com
+tarom.ro
+klm.com
+airbnb.com
+booking.com
+expedia.com
+agoda.com
+hotels.com
+trivago.com
+hilton.com
+marriott.com
+ihg.com
+accorhotels.com
+airfrance.com
+united.com
+delta.com
+aa.com
+britishairways.com
+norwegian.no
+turkishairlines.com
+emirates.com
+qatarairways.com
+swiss.com
+
+# ── Cloud infrastructure ──────────────────────────────────────────────
+aws.amazon.com
+amazon.com
+amazonaws.com
+azure.microsoft.com
+microsoft.com
+office.com
+googlecloud.com
+cloud.google.com
+digitalocean.com
+linode.com
+hetzner.com
+hetzner.de
+ovh.com
+ovhcloud.com
+contabo.com
+cloudflare.com
+fastly.com
+vercel.com
+netlify.com
+heroku.com
+fly.io
+render.com
+railway.app
+
+# ── Dev tools + SaaS ──────────────────────────────────────────────────
+github.com
+gitlab.com
+bitbucket.org
+atlassian.com
+jetbrains.com
+docker.com
+npmjs.com
+pypi.org
+sentry.io
+datadog.com
+datadoghq.com
+newrelic.com
+splunk.com
+pagerduty.com
+opsgenie.com
+
+# ── Payments + finance ────────────────────────────────────────────────
+stripe.com
+paypal.com
+wise.com
+revolut.com
+n26.com
+mercury.com
+brex.com
+ramp.com
+quickbooks.com
+intuit.com
+xero.com
+freshbooks.com
+
+# ── Communication + meetings ──────────────────────────────────────────
+slack.com
+zoom.us
+microsoft.com
+teams.microsoft.com
+webex.com
+notion.so
+notion.com
+linear.app
+asana.com
+monday.com
+clickup.com
+trello.com
+basecamp.com
+calendly.com
+loom.com
+fathom.video
+fireflies.ai
+otter.ai
+
+# ── CRM + sales tools ─────────────────────────────────────────────────
+hubspot.com
+salesforce.com
+pipedrive.com
+zendesk.com
+intercom.io
+intercom.com
+freshworks.com
+
+# ── Marketing + content ───────────────────────────────────────────────
+mailchimp.com
+sendgrid.com
+postmark.com
+mailgun.com
+substack.com
+medium.com
+buffer.com
+hootsuite.com
+
+# ── Identity + security ───────────────────────────────────────────────
+auth0.com
+okta.com
+1password.com
+lastpass.com
+duo.com
+yubico.com
+
+# ── Analytics ─────────────────────────────────────────────────────────
+google.com
+google-analytics.com
+googletagmanager.com
+mixpanel.com
+amplitude.com
+segment.com
+hotjar.com
+posthog.com
+plausible.io
+
+# ── Hosting + domain ──────────────────────────────────────────────────
+namecheap.com
+godaddy.com
+porkbun.com
+hover.com
+gandi.net
+
+# ── E-commerce + invoicing (vendor side) ──────────────────────────────
+shopify.com
+woocommerce.com
+gumroad.com
+paddle.com
+chargebee.com
+recurly.com
+
+# ── Recruiting / HR ───────────────────────────────────────────────────
+greenhouse.io
+lever.co
+workable.com
+deel.com
+gusto.com
+rippling.com
+
+# ── Education / learning ──────────────────────────────────────────────
+coursera.org
+udemy.com
+pluralsight.com
+egghead.io
+
+# ── Misc / known automated senders ────────────────────────────────────
+trustpilot.com
+glassdoor.com
+linkedin.com
+indeed.com

@@ -12,14 +12,14 @@ import { cn } from "../../lib/cn";
 export type GAvatarSize = "sm" | "md" | "lg" | "xl";
 
 const SIZE_CLS: Record<GAvatarSize, string> = {
-  sm: "w-[22px] h-[22px] border-[1.5px] rounded-md text-[10px]",
-  md: "w-[30px] h-[30px] border-2 rounded-[9px] text-[12px]",
-  lg: "w-[46px] h-[46px] border-2 rounded-[13px] text-[17px]",
-  xl: "w-[72px] h-[72px] border-[2.5px] rounded-[20px] text-[26px]",
+  sm: "w-[26px] h-[26px] rounded-[8px] text-[11px]",
+  md: "w-[30px] h-[30px] rounded-[9px] text-[12px]",
+  lg: "w-[46px] h-[46px] rounded-[13px] text-[17px]",
+  xl: "w-[72px] h-[72px] rounded-[20px] text-[26px]",
 };
 
 const BASE =
-  "gx-wiggle-target relative shrink-0 inline-grid place-items-center border-ink font-display font-semibold text-white";
+  "relative shrink-0 inline-grid place-items-center font-semibold text-white";
 
 function makeInitials(name: string): string {
   if (!name) return "??";
@@ -85,24 +85,22 @@ export const GAvatar = forwardRef<HTMLDivElement, GAvatarProps>(function GAvatar
       ...rest
     } = props;
     void _kind;
+    const letter = (name?.trim()?.[0] ?? "?").toUpperCase();
     return (
       <div
         ref={ref}
-        // Accessible name falls back to the agent name when the caller
-        // doesn't supply `aria-label`, so screen readers announce
-        // "Donna" rather than "DO" (raw initials).
         aria-label={ariaLabel ?? name}
         className={cn(
           BASE,
           SIZE_CLS[size],
-          "av-agent-gradient",
+          "bg-ai",
           pulsing && "av-pulse-ring",
           className,
         )}
         style={{ "--hue": hue ?? 288, ...style } as CSSProperties}
         {...rest}
       >
-        <span aria-hidden="true">{makeInitials(name)}</span>
+        <span aria-hidden="true">{letter}</span>
       </div>
     );
   }

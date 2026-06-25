@@ -69,8 +69,8 @@ export const GList = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 // above the text mid-line — the rows look 1-2 px off. Matching the
 // flex children's heights keeps everything optically square.
 const ITEM_BASE =
-  "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[9px] text-text-1 text-[13px] leading-4 cursor-pointer " +
-  "transition-colors duration-[100ms] hover:bg-bg-3 motion-safe:hover:animate-mini-wiggle " +
+  "flex items-center gap-[9px] py-1.5 px-[9px] rounded-[8px] text-text-2 text-[13px] leading-4 cursor-pointer " +
+  "transition-colors duration-[100ms] hover:bg-bg-3 " +
   "outline-none focus-visible:ring-2 focus-visible:ring-ai focus-visible:ring-offset-1 focus-visible:ring-offset-bg-1";
 
 // sun bg + ink border + sticker shadow = "this row is the chosen sticker"
@@ -80,7 +80,7 @@ const ITEM_BASE =
 // `cn(…)` chain in `GListItem`, so the smaller padding wins by
 // source order — no `!important` needed.
 const ITEM_ACTIVE =
-  "bg-pop-sun text-on-bright border-2 border-ink shadow-ink-1 font-semibold py-1 px-[7px]";
+  "bg-ai-bg text-ai-deep font-semibold shadow-[inset_3px_0_0_var(--ai)]";
 
 export interface GListItemProps extends HTMLAttributes<HTMLDivElement> {
   active?: boolean;
@@ -132,8 +132,8 @@ export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
         {icon ? (
           <span
             className={cn(
-              "w-4 h-4 grid place-items-center shrink-0",
-              active ? "text-on-bright" : "text-text-3",
+              "grid place-items-center shrink-0",
+              active ? "text-ai" : "text-text-3",
             )}
           >
             {icon}
@@ -143,7 +143,7 @@ export const GListItem = forwardRef<HTMLDivElement, GListItemProps>(
           <span
             className={cn(
               "w-3.5 text-center shrink-0",
-              active ? "text-on-bright" : "text-text-3",
+              active ? "text-ai" : "text-text-3",
             )}
           >
             {hash}

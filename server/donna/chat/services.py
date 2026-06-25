@@ -28,10 +28,13 @@ from django.utils import timezone
 from donna.workspaces.models import WorkspaceMembership
 
 from .models import (
+    AgentSession,
     Channel,
     ChannelMembership,
+    ChannelPin,
     ChannelReadState,
     Message,
+    MessageReaction,
 )
 
 
@@ -69,6 +72,102 @@ def _dispatch_agent_if_applicable(message: "Message") -> None:
         logger.exception("agent_dispatch_hook_failed", extra={"message_id": str(message.id)})
 
 
+def _force_dispatch_agent(message: "Message") -> None:
+    """@donna direct address — always run an agent turn (bypasses heuristic).
+
+    The agent worker's own turn_lock + already-replied checks make repeat
+    dispatches a no-op, so it's safe to call alongside maybe_dispatch_agent
+    if both fire.
+    """
+    try:
+        from .tasks import run_agent_turn
+        run_agent_turn.delay(str(message.channel_id), str(message.id))
+    except Exception:  # noqa: BLE001
+        logger.exception("agent_force_dispatch_failed", extra={"message_id": str(message.id)})
+
+
+def _fanout_mention_notifications(message: "Message", users: list, flags: dict[str, bool]) -> None:
+    """Create per-recipient notifications for @<user>, @channel, @everyone.
+
+    Skips the author (no self-notifications). Best-effort: failures here
+    must not roll the message back.
+    """
+    try:
+        from donna.notifications.services import NotificationService
+    except ImportError:
+        logger.warning("notifications_service_unavailable")
+        return
+
+    recipients = {u.id for u in users}
+    if flags.get("everyone"):
+        recipients.update(
+            WorkspaceMembership.objects
+            .filter(workspace_id=message.channel.workspace_id)
+            .exclude(user_id=message.author_user_id)
+            .values_list("user_id", flat=True)
+        )
+    elif flags.get("channel"):
+        recipients.update(
+            ChannelMembership.objects
+            .filter(channel_id=message.channel_id)
+            .exclude(user_id=message.author_user_id)
+            .values_list("user_id", flat=True)
+        )
+
+    # Self-mention sanity: never notify the author.
+    recipients.discard(message.author_user_id)
+
+    if not recipients:
+        return
+
+    svc = NotificationService()
+    payload = {
+        "channel_id": str(message.channel_id),
+        "message_id": str(message.id),
+        "preview":    (message.body or "")[:140],
+    }
+    for uid in recipients:
+        try:
+            # NotificationService is expected to expose a create(...) call.
+            # Fall back to a direct ORM write if the API differs.
+            create = getattr(svc, "create", None)
+            if callable(create):
+                create(user_id=uid, kind="mention", payload=payload)
+            else:
+                logger.debug(
+                    "notification_service_create_missing",
+                    extra={"user_id": str(uid)},
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("mention_notification_failed", extra={"user_id": str(uid)})
+
+
+def _record_agent_mention(message: "Message", channel: "Channel") -> None:
+    """Append @donna mention to AgentSession.memory['mentions'] (cap last 50).
+
+    Older entries are consolidated by AutoDream (plan 13 Phase 4). For now
+    we keep the rolling buffer in-process so the agent's state builder can
+    pull recent mentions as context at turn time.
+    """
+    try:
+        session = AgentSession.objects.filter(channel=channel).first()
+        if session is None:
+            return
+        memory = session.memory or {}
+        mentions = list(memory.get("mentions") or [])
+        mentions.append({
+            "message_id":     str(message.id),
+            "author_user_id": str(message.author_user_id) if message.author_user_id else None,
+            "body_preview":   (message.body or "")[:500],
+            "at":             message.created_at.isoformat() if message.created_at else None,
+        })
+        memory["mentions"] = mentions[-50:]
+        session.memory = memory
+        session.save(update_fields=["memory", "updated_at"])
+    except Exception:  # noqa: BLE001
+        logger.exception("agent_mention_record_failed", extra={"message_id": str(message.id)})
+
+
 # ── Service ──────────────────────────────────────────────────────────────────
 class ChannelService:
     """All chat mutations live here. Views + WS consumer call into it."""
@@ -76,22 +175,51 @@ class ChannelService:
     # ── Messages ────────────────────────────────────────────────────────────
     @staticmethod
     @transaction.atomic
-    def send_message(*, channel: Channel, sender_user, body: str, client_msg_id: str | None = None) -> Message:
+    def send_message(
+        *,
+        channel: Channel,
+        sender_user,
+        body: str,
+        client_msg_id: str | None = None,
+        parent: Message | None = None,
+    ) -> Message:
         """
         Persist a new message and push it to WS subscribers of the channel.
         Author is always ``sender_user``; agent-authored messages use a
         separate path (the agent worker writes the Message + group_send).
 
+        Threading: pass ``parent`` to attach as a reply. Top-level posts
+        leave it None. The UI enforces 1-level nesting (replies don't have
+        their own threads).
+
+        Mention parsing: body is scanned for ``@<handle>``, ``@donna``,
+        ``@channel``, ``@everyone``. Tagged users get notifications.
+        ``@donna`` additionally appends the message to the channel's
+        ``AgentSession.memory['mentions']`` (long-term context) and
+        dispatches the agent unconditionally.
+
         Agent dispatch hook (00j A1, 2026-06-14): after the row commits,
         ``maybe_dispatch_agent(message)`` decides whether to enqueue an
-        agent turn. The check + Celery enqueue runs in ``on_commit`` so
-        the trigger row is visible to the worker.
+        agent turn. ``@donna`` short-circuits that decision via the
+        mention path so the agent always runs on direct address.
         """
+        from .mentions import parse as parse_mentions
+
         message = Message.objects.create(
             channel=channel,
             author_user=sender_user,
             body=body,
+            parent=parent,
         )
+
+        # Parse + persist mentions.
+        mention_users, mention_flags = parse_mentions(body, channel)
+        if mention_users:
+            message.mentions.set(mention_users)
+        if any(mention_flags.values()):
+            message.mention_flags = mention_flags
+            message.save(update_fields=["mention_flags", "updated_at"])
+
         ChannelService._broadcast(
             channel_group(channel.id),
             {
@@ -99,10 +227,21 @@ class ChannelService:
                 "payload": _serialize_message(message, client_msg_id=client_msg_id),
             },
         )
-        # Anti-loop is enforced inside maybe_dispatch_agent (skips when
-        # author_agent is set), but the agent-authored Message path
-        # never enters this method anyway.
-        transaction.on_commit(lambda: _dispatch_agent_if_applicable(message))
+
+        # Notifications fanout (mentions only — generic message notifs
+        # are handled elsewhere if at all).
+        if mention_users or any(mention_flags.values()):
+            transaction.on_commit(
+                lambda: _fanout_mention_notifications(message, mention_users, mention_flags)
+            )
+
+        # @donna sugar — long-term memory + force agent dispatch.
+        if mention_flags.get("donna"):
+            transaction.on_commit(lambda: _record_agent_mention(message, channel))
+            transaction.on_commit(lambda: _force_dispatch_agent(message))
+        else:
+            # Normal dispatch heuristic (DM auto-replies, etc).
+            transaction.on_commit(lambda: _dispatch_agent_if_applicable(message))
         return message
 
     @staticmethod
@@ -542,6 +681,83 @@ class ChannelService:
             },
         )
         return True
+
+    # ── Pins ────────────────────────────────────────────────────────────────
+    @staticmethod
+    @transaction.atomic
+    def pin_channel(*, user, channel: Channel) -> ChannelPin:
+        """Idempotent per-user pin."""
+        pin, _ = ChannelPin.objects.get_or_create(user=user, channel=channel)
+        ChannelService._broadcast(
+            presence_group(user.id),
+            {
+                "type":    "chat.channel.pinned",
+                "payload": {"channel_id": str(channel.id)},
+            },
+        )
+        return pin
+
+    @staticmethod
+    @transaction.atomic
+    def unpin_channel(*, user, channel: Channel) -> bool:
+        deleted, _ = ChannelPin.objects.filter(user=user, channel=channel).delete()
+        ChannelService._broadcast(
+            presence_group(user.id),
+            {
+                "type":    "chat.channel.unpinned",
+                "payload": {"channel_id": str(channel.id)},
+            },
+        )
+        return deleted > 0
+
+    # ── Reactions ───────────────────────────────────────────────────────────
+    @staticmethod
+    @transaction.atomic
+    def add_reaction(*, user, message: Message, emoji: str) -> MessageReaction:
+        """Attach an emoji reaction. Idempotent (same user × emoji × message)."""
+        from .emojis import is_valid
+
+        if not is_valid(emoji):
+            raise ValueError(f"unknown emoji: {emoji!r}")
+
+        reaction, created = MessageReaction.objects.get_or_create(
+            message=message, emoji=emoji, author_user=user,
+        )
+        if created:
+            ChannelService._broadcast(
+                channel_group(message.channel_id),
+                {
+                    "type":    "chat.reaction.added",
+                    "payload": {
+                        "message_id": str(message.id),
+                        "channel_id": str(message.channel_id),
+                        "emoji":      emoji,
+                        "user_id":    str(user.id),
+                    },
+                },
+            )
+        return reaction
+
+    @staticmethod
+    @transaction.atomic
+    def remove_reaction(*, user, message: Message, emoji: str) -> bool:
+        deleted, _ = MessageReaction.objects.filter(
+            message=message, emoji=emoji, author_user=user,
+        ).delete()
+        if deleted:
+            ChannelService._broadcast(
+                channel_group(message.channel_id),
+                {
+                    "type":    "chat.reaction.removed",
+                    "payload": {
+                        "message_id": str(message.id),
+                        "channel_id": str(message.channel_id),
+                        "emoji":      emoji,
+                        "user_id":    str(user.id),
+                    },
+                },
+            )
+        return deleted > 0
 
     # ── Helpers ─────────────────────────────────────────────────────────────
     @staticmethod

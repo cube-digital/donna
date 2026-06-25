@@ -13,7 +13,7 @@ import { GlyphSlot } from "./GIcons";
 
 const CHECK_BASE =
   "w-[18px] h-[18px] shrink-0 inline-grid place-items-center border-2 border-ink rounded-md cursor-pointer text-transparent " +
-  "bg-bg-1 transition-transform duration-[120ms] ease-spring hover:-rotate-6 hover:scale-105";
+  "bg-bg-1 transition-transform duration-[120ms] ease-spring hover:scale-105";
 
 const CHECK_ON = "bg-ok text-white";
 

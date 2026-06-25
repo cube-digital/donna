@@ -78,6 +78,22 @@ export interface EventMap {
   "channel.updated": Record<string, unknown>;
   "channel.deleted": { channel_id: string };
   "channel.member.added": { channel_id: string; user_id: string };
+  "channel.member.removed": { channel_id: string; user_id: string; removed_by: string };
+  "channel.pinned": { channel_id: string };
+  "channel.unpinned": { channel_id: string };
+  "reaction.added": {
+    channel_id: string;
+    message_id: string;
+    emoji: string;
+    user_id: string;
+  };
+  "reaction.removed": {
+    channel_id: string;
+    message_id: string;
+    emoji: string;
+    user_id: string;
+  };
+  "document.updated": { channel_id: string; document: unknown };
   "read.advanced": {
     channel_id: string;
     user_id: string;

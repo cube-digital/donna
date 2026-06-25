@@ -152,7 +152,16 @@ class AgentSession(TimestampsMixin):
 
 
 class Message(TimestampsMixin):
-    """A message in a channel, authored by exactly one of: a User or an AgentSession."""
+    """A message in a channel, authored by exactly one of: a User or an AgentSession.
+
+    Threading: ``parent`` is a self-FK. Replies live as child rows; the UI
+    enforces 1-level nesting (replies-to-replies collapse to the top-level
+    thread). ``parent`` is indexed so reply lists are cheap.
+
+    Mentions: ``mentions`` M2M lists tagged users; ``mention_flags`` carries
+    special targets (``donna`` / ``channel`` / ``everyone``). Populated by
+    ``donna.chat.mentions.parse`` from the body on write.
+    """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     body = models.TextField()
@@ -177,6 +186,24 @@ class Message(TimestampsMixin):
         blank=True,
         related_name="messages",
     )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="replies",
+        help_text="Thread parent. Top-level messages have parent=NULL.",
+    )
+    mentions = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="mentioned_in_messages",
+        blank=True,
+    )
+    mention_flags = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Special mentions: {"donna": bool, "channel": bool, "everyone": bool}.',
+    )
 
     class Meta:
         db_table = "messages"
@@ -192,6 +219,7 @@ class Message(TimestampsMixin):
         ]
         indexes = [
             models.Index(fields=["channel", "created_at"]),
+            models.Index(fields=["parent", "created_at"]),
         ]
 
 
@@ -244,7 +272,24 @@ class ChannelReadState(TimestampsMixin):
 
 
 class Document(TimestampsMixin, UserAuditMixin):
-    """A Cowork-style collaborative artifact created within a channel."""
+    """A Cowork-style collaborative artifact created within a channel.
+
+    A2 (2026-06-20): now carries the drafting lifecycle. Exactly one
+    ``status=DRAFTING`` row may exist per channel (partial unique
+    constraint = the "draft lock" that prevents the agent from forking
+    two drafts in the same conversation). ``UpdateDraftSectionTool``
+    bumps ``version`` under ``select_for_update``; tools pass
+    ``expected_version`` to detect concurrent edits.
+
+    ``FinalizeDraftTool`` flips ``status`` to FINALIZED and pins
+    ``finalized_entity_id`` to the freshly-created ``CortexEntity``
+    UUID. ABANDONED is reserved for explicit cancel + audit-history use.
+    """
+
+    class Status(models.TextChoices):
+        DRAFTING = "drafting", "Drafting"
+        FINALIZED = "finalized", "Finalized"
+        ABANDONED = "abandoned", "Abandoned"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     channel = models.ForeignKey(
@@ -255,9 +300,103 @@ class Document(TimestampsMixin, UserAuditMixin):
     title = models.CharField(max_length=255)
     body = models.TextField(blank=True)
 
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.DRAFTING,
+    )
+    version = models.IntegerField(default=0)
+    target_doc_type = models.CharField(
+        max_length=32, blank=True, default="",
+        help_text="DocType vocab from cortex.schemas (passed to linter on finalize).",
+    )
+    finalized_entity_id = models.UUIDField(null=True, blank=True)
+
     class Meta:
         db_table = "documents"
         ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["channel"],
+                condition=models.Q(status="drafting"),
+                name="uq_one_active_draft_per_channel",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.title
+
+
+class ChannelPin(TimestampsMixin):
+    """Per-user pinned channel marker — drives the Sidebar "Pinned" section.
+
+    One row per (user, channel). Pin/unpin = create/delete. Idempotent at
+    the service layer.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="channel_pins",
+    )
+    channel = models.ForeignKey(
+        Channel,
+        on_delete=models.CASCADE,
+        related_name="pins",
+    )
+
+    class Meta:
+        db_table = "channel_pins"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "channel"],
+                name="uq_channel_pin_user_channel",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"pin({self.user_id}@{self.channel_id})"
+
+
+class MessageReaction(TimestampsMixin):
+    """User → message reaction. Peer-to-peer only — agents do NOT react.
+
+    Author is always a User (no agent FK). Emoji is a short code from the
+    curated set in ``donna.chat.emojis`` (e.g. ``"thumbsup"``). UI renders
+    the Unicode character from that lookup.
+
+    Unique on (message, emoji, author_user) → one user can attach each
+    emoji at most once per message; clicking again toggles via DELETE.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="reactions",
+    )
+    emoji = models.CharField(max_length=64)
+    author_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="message_reactions",
+    )
+
+    class Meta:
+        db_table = "message_reactions"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["message", "emoji", "author_user"],
+                name="uq_reaction_user_message_emoji",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["message", "emoji"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"reaction({self.author_user_id}:{self.emoji}@{self.message_id})"

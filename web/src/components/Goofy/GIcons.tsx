@@ -291,12 +291,63 @@ interface GlyphSlotProps extends Omit<IconProps, "width" | "height"> {
   size?: number;
 }
 
+// Map semantic icon name → Tabler-icons font class. Matches the
+// donna-ui-refresh-mockup vocabulary so glyphs render with the
+// mockup's exact stroke weight and shape.
+const TI: Record<IconName, string> = {
+  hash: "ti-hash",
+  search: "ti-search",
+  plus: "ti-plus",
+  check: "ti-check",
+  x: "ti-x",
+  send: "ti-send",
+  sparkle: "ti-sparkles",
+  bolt: "ti-bolt",
+  brain: "ti-brain",
+  doc: "ti-file",
+  smile: "ti-mood-smile",
+  reply: "ti-arrow-back-up",
+  more: "ti-dots",
+  edit: "ti-pencil",
+  trash: "ti-trash",
+  pin: "ti-pin",
+  share: "ti-share",
+  link: "ti-link",
+  bell: "ti-bell",
+  at: "ti-at",
+  sun: "ti-sun",
+  moon: "ti-moon",
+  home: "ti-home",
+  msg: "ti-message-circle",
+  file: "ti-file",
+  folder: "ti-folder",
+  star: "ti-star",
+  caret: "ti-chevron-down",
+  lock: "ti-lock",
+  thread: "ti-messages",
+  archive: "ti-archive",
+};
+
 /**
- * Render one icon by name + size. Identical to the design source's
- * `<GlyphSlot/>`; prefer the named imports when the icon is static so
- * the bundler can drop unused entries.
+ * Render one icon by name + size. Backed by Tabler-icons font so glyphs
+ * match the mockup. Falls back to the inline SVG library if the Tabler
+ * name is absent.
  */
-export function GlyphSlot({ name, size = 16, ...rest }: GlyphSlotProps) {
+export function GlyphSlot({ name, size = 17, className, style, ...rest }: GlyphSlotProps) {
+  const tiClass = TI[name];
+  if (tiClass) {
+    const { stroke: _s, strokeWidth: _sw, fill: _f, ...domRest } =
+      rest as Record<string, unknown>;
+    void _s; void _sw; void _f;
+    return (
+      <i
+        aria-hidden
+        className={`ti ${tiClass} leading-none inline-flex items-center justify-center ${className ?? ""}`}
+        style={{ fontSize: size, ...(style as object) }}
+        {...(domRest as object)}
+      />
+    );
+  }
   const IconCmp = GIc[name] as ComponentType<IconProps>;
-  return <IconCmp width={size} height={size} {...rest} />;
+  return <IconCmp width={size} height={size} className={className} style={style} {...rest} />;
 }

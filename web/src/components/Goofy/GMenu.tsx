@@ -172,8 +172,8 @@ export const GToolbar = forwardRef<HTMLDivElement, GToolbarProps>(function GTool
             // by being appended later — same-specificity selectors fall
             // back to source order in CSS, so no `!important` needed.
             a.ai
-              ? "hover:bg-ai-bg hover:text-ai hover:rotate-[6deg]"
-              : "hover:bg-bg-3 hover:text-text-0 hover:rotate-[6deg]",
+              ? "hover:bg-ai-bg hover:text-ai"
+              : "hover:bg-bg-3 hover:text-text-0",
           )}
         >
           <GlyphSlot name={a.icon} size={15} />

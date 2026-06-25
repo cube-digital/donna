@@ -18,7 +18,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ...models import Channel, ChannelMembership, ChannelReadState, Message
+from ...models import (
+    Channel,
+    ChannelMembership,
+    ChannelReadState,
+    Document,
+    Message,
+    MessageReaction,
+)
 from ...services import ChannelService
 from .serializers import (
     AddMemberSerializer,
@@ -28,10 +35,13 @@ from .serializers import (
     ChannelSerializer,
     ChannelUpdateSerializer,
     DMOpenSerializer,
+    DocumentSerializer,
     GroupDMOpenSerializer,
     MessageCreateSerializer,
     MessageEditSerializer,
     MessageSerializer,
+    ReactionCreateSerializer,
+    ReactionSerializer,
     ReadStateSerializer,
 )
 
@@ -64,7 +74,14 @@ class ChannelListCreateView(generics.ListCreateAPIView):
 
         DMs (kind=DIRECT) are always excluded from the browse path —
         public discovery wouldn't make sense for them.
+
+        Annotates ``_is_pinned`` per-row so the serializer renders
+        ``is_pinned`` without N+1 lookups.
         """
+        from django.db.models import Exists, OuterRef
+
+        from ...models import ChannelPin
+
         user = self.request.user
         workspace = self.request.workspace
         include_public = (
@@ -83,7 +100,15 @@ class ChannelListCreateView(generics.ListCreateAPIView):
             )
         else:
             qs = base.filter(memberships__user=user)
+        qs = qs.annotate(
+            _is_pinned=Exists(ChannelPin.objects.filter(user=user, channel=OuterRef("pk")))
+        )
         return qs.distinct().order_by("name")
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["request"] = self.request
+        return ctx
 
     def create(self, request, *args, **kwargs):
         serializer = ChannelCreateSerializer(data=request.data)
@@ -201,13 +226,27 @@ class ChannelMessageListCreateView(APIView):
 
         serializer = MessageCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        parent = None
+        parent_id = data.get("parent_id")
+        if parent_id:
+            parent = get_object_or_404(Message, id=parent_id, channel=channel)
+            # 1-level threading: replies-to-replies collapse to the top.
+            if parent.parent_id is not None:
+                parent = Message.objects.get(id=parent.parent_id)
+
         message = ChannelService.send_message(
             channel=channel,
             sender_user=request.user,
-            body=serializer.validated_data["body"],
-            client_msg_id=serializer.validated_data.get("client_msg_id"),
+            body=data["body"],
+            client_msg_id=data.get("client_msg_id"),
+            parent=parent,
         )
-        return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
+        return Response(
+            MessageSerializer(message, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class MessageDetailView(APIView):
@@ -480,3 +519,138 @@ class ChannelReadStateView(APIView):
             user=request.user, channel=channel
         )
         return Response(data)
+
+
+# ── Documents (A2 drafting visibility, 2026-06-21) ─────────────────────────
+class ChannelDocumentsView(generics.ListAPIView):
+    """``/chat/channels/{id}/documents/`` — read-only list.
+
+    Surfaces every Document attached to the channel — drafting,
+    finalized, abandoned — newest first. Polled by Bruno / frontend to
+    inspect draft state as the agent works (the A2 lifecycle has no
+    other HTTP surface; ``UpdateDraftSectionTool`` pushes
+    ``chat.document.updated`` over WS for live UIs).
+
+    Filter via ``?status=drafting`` (or ``finalized``/``abandoned``).
+    """
+
+    serializer_class = DocumentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        channel = get_object_or_404(
+            Channel, id=self.kwargs["id"], workspace=self.request.workspace
+        )
+        _require_channel_membership(self.request.user, channel)
+        qs = Document.objects.filter(channel=channel).order_by("-updated_at")
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+
+class ChannelDocumentDetailView(generics.RetrieveAPIView):
+    """``/chat/channels/{id}/documents/{doc_id}/`` — single Document."""
+
+    serializer_class = DocumentSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = "doc_id"
+
+    def get_queryset(self):
+        channel = get_object_or_404(
+            Channel, id=self.kwargs["id"], workspace=self.request.workspace
+        )
+        _require_channel_membership(self.request.user, channel)
+        return Document.objects.filter(channel=channel)
+
+
+# ── Pins ────────────────────────────────────────────────────────────────────
+class ChannelPinView(APIView):
+    """``/chat/channels/{id}/pin/`` — per-user pin / unpin.
+
+    POST  → pin (idempotent)
+    DELETE → unpin (idempotent)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        channel = _get_workspace_channel(request, id)
+        _require_channel_membership(request.user, channel)
+        ChannelService.pin_channel(user=request.user, channel=channel)
+        return Response({"pinned": True})
+
+    def delete(self, request, id):
+        channel = _get_workspace_channel(request, id)
+        _require_channel_membership(request.user, channel)
+        ChannelService.unpin_channel(user=request.user, channel=channel)
+        return Response({"pinned": False})
+
+
+# ── Replies (thread view) ───────────────────────────────────────────────────
+class MessageRepliesView(APIView):
+    """``GET /chat/messages/{id}/replies/`` — flat list of child messages.
+
+    Channel membership required (replies inherit the parent's channel ACL).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        parent = get_object_or_404(
+            Message, id=id, channel__workspace=request.workspace
+        )
+        _require_channel_membership(request.user, parent.channel)
+
+        replies = (
+            Message.objects
+            .filter(parent=parent)
+            .order_by("created_at")
+        )
+        return Response(
+            MessageSerializer(replies, many=True, context={"request": request}).data
+        )
+
+
+# ── Reactions ───────────────────────────────────────────────────────────────
+class MessageReactionsView(APIView):
+    """``/chat/messages/{id}/reactions/``
+
+    POST   — add reaction (body: ``{emoji}``)
+    DELETE — remove own reaction (body: ``{emoji}``)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        message = get_object_or_404(
+            Message, id=id, channel__workspace=request.workspace
+        )
+        _require_channel_membership(request.user, message.channel)
+
+        serializer = ReactionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            reaction = ChannelService.add_reaction(
+                user=request.user,
+                message=message,
+                emoji=serializer.validated_data["emoji"],
+            )
+        except ValueError as exc:
+            raise ValidationError({"emoji": str(exc)}) from exc
+        return Response(ReactionSerializer(reaction).data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, id):
+        message = get_object_or_404(
+            Message, id=id, channel__workspace=request.workspace
+        )
+        _require_channel_membership(request.user, message.channel)
+
+        serializer = ReactionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ChannelService.remove_reaction(
+            user=request.user,
+            message=message,
+            emoji=serializer.validated_data["emoji"],
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

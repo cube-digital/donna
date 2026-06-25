@@ -95,12 +95,14 @@ TicketStatus = str  # provider-specific; spec leaves open
 
 
 OrgRelationship = Literal[
-    "client",
-    "vendor",
-    "partner",
+    "self",        # exactly one per workspace — the workspace owner
+    "client",      # we bill / serve / deliver to them
+    "partner",     # co-build / co-sell / referral
+    "vendor",      # we consume their service (SaaS, suppliers, travel)
+    "peer",        # industry contacts, prospects-in-conversation
     "competitor",
     "internal",
-    "self",  # exactly one per workspace — the workspace owner
+    "unknown",     # default for first-touch orgs; classifier hasn't tagged yet
 ]
 
 
@@ -200,13 +202,37 @@ class PersonExtensions(BaseModel):
 
 
 class OrgExtensions(BaseModel):
-    """``relationship: 'self'`` reserved for the workspace owner's own org."""
+    """``relationship: 'self'`` reserved for the workspace owner's own org.
+
+    Classifier ladder (see 00m): Tier A rules fire at spawn time and
+    nightly; Tier B LLM judge fills the remainder. Manual override
+    flips ``relationship_locked=True`` so subsequent classifier runs
+    skip the row.
+
+    Multi-role (00m §Multi-label, 2026-06-19): an org may carry more
+    than one role — e.g. a vendor that's also a client (we bill them
+    for consulting). ``relationship`` is the PRIMARY for folder routing;
+    ``roles`` is the full set. When promoting an org from single to
+    multi-label, classifier writes ``roles=[relationship]`` for
+    consistency.
+
+    Indirect relationships (00m §Indirect): ``client_of`` lists other
+    org UUIDs for which THIS org is a client. Example: ki is client of
+    weasweb (our partner). Surfaces in vault _index.md badges; no
+    folder-routing impact.
+    """
 
     model_config = ConfigDict(extra="allow")
     legal_name: str | None = None
     email_domains: list[str] = Field(default_factory=list)
     industry: str | None = None
-    relationship: OrgRelationship = "client"
+    relationship: OrgRelationship = "unknown"          # primary — folder routing
+    roles: list[OrgRelationship] = Field(default_factory=list)  # multi-label
+    client_of: list[str] = Field(default_factory=list)          # UUIDs of orgs this org is client OF
+    relationship_confidence: float = 0.0
+    relationship_basis: str = ""                       # "rule:noreply" | "rule:allowlist" | "rule:direction" | "rule:vocab" | "rule:self" | "llm:haiku" | "manual"
+    relationship_locked: bool = False                  # True → manual override; classifier skips
+    relationship_evidence: list[str] = Field(default_factory=list)  # short audit trail
 
 
 class ProjectExtensions(BaseModel):

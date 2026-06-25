@@ -1,0 +1,23 @@
+meta {
+  name: Channel Document Detail
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/v1/chat/channels/{{channelId}}/documents/{{documentId}}/
+  body: none
+  auth: inherit
+}
+
+headers {
+  X-Workspace-Id: {{workspaceId}}
+}
+
+docs {
+  Single Document by id. Use to fetch the full body markdown of one
+  draft (List view returns body too — Detail just narrows to one row).
+
+  Set ``documentId`` env var from a List response, then poll Detail
+  to watch ``version`` bump as the agent calls update_draft_section.
+}

@@ -31,12 +31,13 @@ import type { AgentRef, Channel, IntegrationProvider } from "../../types";
 import {
   GAvatar,
   GConnectorIcon,
-  GIconButton,
   GListItem,
   GlyphSlot,
   type GListDot,
 } from "../Goofy";
 import { CreateChannelDialog } from "../Channel/CreateChannelDialog";
+import { StartDMDialog } from "../Channel/StartDMDialog";
+import { InviteToWorkspaceDialog } from "./InviteToWorkspaceDialog";
 
 // Section header — small Fredoka label on the left, optional sticker
 // `+` icon on the right. The AI Teammates header recolours the label
@@ -53,18 +54,20 @@ function GroupHeader({
   return (
     <div
       className={cn(
-        "font-display font-semibold text-[12.5px] px-2.5 pt-3 pb-1.5 flex items-center justify-between",
-        ai ? "text-ai" : "text-text-2",
+        "text-[11px] font-semibold uppercase tracking-[0.05em] px-1.5 pt-[15px] pb-[5px] flex items-center justify-between",
+        ai ? "text-ai" : "text-text-4",
       )}
     >
       <span>{label}</span>
       {onAdd ? (
-        <GIconButton
-          icon="plus"
-          size="xs"
+        <button
+          type="button"
           aria-label={`Add ${label}`}
           onClick={onAdd}
-        />
+          className="text-text-4 hover:text-text-1 bg-transparent border-0 p-0 leading-none"
+        >
+          <GlyphSlot name="plus" size={13} />
+        </button>
       ) : null}
     </div>
   );
@@ -84,7 +87,7 @@ function statusToDot(status: IntegrationProvider["status"]): GListDot {
 // every row's leading icon column when a status dot exists.
 const TRAIL_DOT_CLS: Record<GListDot, string> = {
   online: "bg-ok",
-  ai: "bg-ai shadow-[0_0_0_2px_var(--ai-glow)]",
+  ai: "bg-ai",
   muted: "bg-text-3",
 };
 function TrailDot({ kind }: { kind: GListDot }) {
@@ -110,19 +113,26 @@ export default function Sidebar() {
   const activeChannelId = channelMatch?.params.channelId ?? null;
   const activeAgentId = agentMatch?.params.agentId ?? null;
   const [createOpen, setCreateOpen] = useState(false);
+  const [startDmOpen, setStartDmOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const pinChannel = useChannels((s) => s.pinChannel);
+  const unpinChannel = useChannels((s) => s.unpinChannel);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeId);
 
-  const { directs, publicChannels } = useMemo(() => {
+  const { directs, pinned, publicChannels } = useMemo(() => {
     const dms: Channel[] = [];
+    const pin: Channel[] = [];
     const chs: Channel[] = [];
     for (const c of channels) {
       if (c.kind === "direct") dms.push(c);
+      else if (c.is_pinned) pin.push(c);
       else chs.push(c);
     }
     chs.sort((a, b) => a.name.localeCompare(b.name));
+    pin.sort((a, b) => a.name.localeCompare(b.name));
     dms.sort((a, b) => a.name.localeCompare(b.name));
-    return { directs: dms, publicChannels: chs };
+    return { directs: dms, pinned: pin, publicChannels: chs };
   }, [channels]);
 
   // AI teammates — scan every loaded message across every channel,
@@ -150,63 +160,97 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="[grid-area:sidebar] bg-bg-1 border-r border-border-soft overflow-y-auto pt-2 px-1.5 pb-4"
+      className="h-full bg-bg-2 border-r border-border-soft overflow-y-auto py-3 px-[11px]"
       aria-label="Channels and direct messages"
     >
-      <header className="flex items-center justify-between px-2.5 pt-1.5 pb-2.5">
+      <header className="flex items-center justify-between px-1.5 pt-1 pb-2.5">
         <div>
           <div className="font-display font-semibold text-text-0 text-[14px] tracking-[-0.005em]">
             {activeWorkspace?.name ?? "Workspace"}
           </div>
           {activeWorkspace?.slug ? (
-            <div className="font-mono text-[10.5px] text-text-3">
+            <div className="text-[11px] text-text-4">
               {activeWorkspace.slug}
             </div>
           ) : null}
         </div>
-        <GIconButton
-          icon="edit"
-          size="xs"
+        <button
+          type="button"
           title="Workspace settings"
           aria-label="Workspace settings"
-        />
+          className="text-text-4 hover:text-text-1 bg-transparent border-0 p-0"
+        >
+          <GlyphSlot name="edit" size={15} />
+        </button>
       </header>
 
       {/* Top-level nav */}
       <div className="mt-2">
-        <GListItem
-          active={isSearchActive}
+        <button
+          type="button"
           aria-label="Search"
+          aria-current={isSearchActive ? "page" : undefined}
           onClick={() => navigate("/search")}
-          icon={<GlyphSlot name="search" />}
-          badge={
-            <kbd className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
-              ⌘&nbsp;K
-            </kbd>
-          }
+          className="w-full flex items-center gap-[9px] py-2 px-2.5 rounded-[9px] bg-bg-1 border border-border-soft text-text-3 text-[13px] hover:border-border-strong"
         >
-          Search
-        </GListItem>
+          <GlyphSlot name="search" size={16} />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="font-mono text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] border-[1.5px] border-ink bg-pop-sun text-on-bright">
+            ⌘&nbsp;K
+          </kbd>
+        </button>
         <GListItem
           active={isPersonalActive}
           aria-label="Personal AI"
           onClick={() => navigate("/personal")}
-          icon={<GlyphSlot name="sparkle" className="text-ai" />}
+          icon={<GlyphSlot name="sparkle" size={16} className="text-ai" />}
           badge={<TrailDot kind="ai" />}
         >
           Personal · Donna
         </GListItem>
-        <GListItem aria-label="Activity" icon={<GlyphSlot name="bell" />}>
+        <GListItem aria-label="Activity" icon={<GlyphSlot name="bell" size={16} />}>
           Activity
         </GListItem>
-        <GListItem aria-label="Threads" icon={<GlyphSlot name="thread" />}>
+        <GListItem aria-label="Threads" icon={<GlyphSlot name="thread" size={16} />}>
           Threads
         </GListItem>
       </div>
 
+      {/* Pinned channels — surfaced above DMs / Channels for quick access. */}
+      {pinned.length > 0 && (
+        <div>
+          <GroupHeader label="pinned" />
+          {pinned.map((c) => (
+            <GListItem
+              key={c.id}
+              hash="#"
+              active={activeChannelId === c.id}
+              aria-label={`# ${c.name} (pinned)`}
+              onClick={() => navigate(`/channels/${c.id}`)}
+              badge={
+                <button
+                  type="button"
+                  aria-label="Unpin"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void unpinChannel(c.id);
+                  }}
+                  className="text-text-3 hover:text-text-0 text-[14px] leading-none"
+                  title="Unpin"
+                >
+                  ★
+                </button>
+              }
+            >
+              {c.name}
+            </GListItem>
+          ))}
+        </div>
+      )}
+
       {/* Direct messages */}
       <div>
-        <GroupHeader label="direct messages" />
+        <GroupHeader label="direct messages" onAdd={() => setStartDmOpen(true)} />
         {directs.length === 0 ? (
           <GListItem className="text-text-3 italic">
             No direct messages yet
@@ -216,11 +260,11 @@ export default function Sidebar() {
             <GListItem
               key={c.id}
               active={activeChannelId === c.id}
-              aria-label={c.name}
+              aria-label={c.name || "Direct message"}
               onClick={() => navigate(`/channels/${c.id}`)}
-              icon={<GAvatar size="sm" name={c.name} />}
+              icon={<GAvatar size="sm" name={c.name || "DM"} />}
             >
-              {c.name}
+              {c.name || "Direct message"}
             </GListItem>
           ))
         )}
@@ -233,7 +277,15 @@ export default function Sidebar() {
         {teammates.length === 0 ? (
           <GListItem
             aria-label="Donna"
-            icon={<GAvatar kind="agent" size="sm" name="Donna" hue={282} />}
+            icon={
+              <GAvatar
+                kind="agent"
+                size="sm"
+                name="Donna"
+                hue={282}
+                className="!bg-ai !bg-none !border-0 !rounded-md"
+              />
+            }
             badge={<TrailDot kind="ai" />}
           >
             Donna
@@ -251,6 +303,7 @@ export default function Sidebar() {
                   size="sm"
                   name={a.name}
                   hue={hueForAgent(a.id)}
+                  className="!bg-ai !bg-none !border-0 !rounded-md"
                 />
               }
               badge={<TrailDot kind="ai" />}
@@ -276,6 +329,20 @@ export default function Sidebar() {
               active={activeChannelId === c.id}
               aria-label={`# ${c.name}`}
               onClick={() => navigate(`/channels/${c.id}`)}
+              badge={
+                <button
+                  type="button"
+                  aria-label="Pin channel"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void pinChannel(c.id);
+                  }}
+                  className="text-text-3 hover:text-ai opacity-0 group-hover:opacity-100 text-[14px] leading-none"
+                  title="Pin"
+                >
+                  ☆
+                </button>
+              }
             >
               {c.name}
             </GListItem>
@@ -283,10 +350,31 @@ export default function Sidebar() {
         )}
       </div>
 
+      {/* Invite to workspace */}
+      <div className="px-1.5 pt-2">
+        <button
+          type="button"
+          onClick={() => setInviteOpen(true)}
+          className="w-full flex items-center justify-center gap-1.5 px-2 py-2 text-[13px] font-medium border border-dashed border-border-strong rounded-[8px] text-text-3 hover:text-text-0 hover:border-ink"
+        >
+          <GlyphSlot name="plus" size={14} />
+          Invite teammates
+        </button>
+      </div>
+
       <CreateChannelDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={(ch) => navigate(`/channels/${ch.id}`)}
+      />
+      <StartDMDialog
+        open={startDmOpen}
+        onClose={() => setStartDmOpen(false)}
+        onOpened={(ch) => navigate(`/channels/${ch.id}`)}
+      />
+      <InviteToWorkspaceDialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
       />
 
       {/* Connections — connected integrations (Gmail, Drive, Fathom, ...).
@@ -305,7 +393,7 @@ export default function Sidebar() {
           // out of the focus order keeps the keyboard tour purposeful.
           tabIndex={-1}
           className="opacity-60 cursor-not-allowed"
-          icon={<GlyphSlot name="bolt" />}
+          icon={<GlyphSlot name="bolt" size={16} />}
         >
           Workflows
         </GListItem>

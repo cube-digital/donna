@@ -157,7 +157,7 @@ export const GRun = forwardRef<HTMLDivElement, GRunProps>(function GRun(
           <button
             type="button"
             onClick={onApprove}
-            className="text-[11.5px] font-semibold py-1 px-2.5 rounded-md bg-ai text-white border-[1.5px] border-ink shadow-[1.5px_1.5px_0_var(--ink)]"
+            className="text-[11.5px] font-semibold py-1 px-2.5 rounded-md bg-ai text-white border-[1.5px] border-ink shadow-ink-1"
           >
             {footerOpts?.approveLabel ?? "Approve"}
           </button>

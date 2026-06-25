@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -59,6 +60,9 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Matches bare email or extracts the addr part from ``"Name <a@b.c>"``.
+_EMAIL_RE = re.compile(r"[A-Za-z0-9_.+\-]+@[A-Za-z0-9\-]+\.[A-Za-z0-9\-.]+")
 
 
 # Map connector ``provider_item_type`` → canonical Silver type.
@@ -210,6 +214,7 @@ class CortexPipeline:
 
         candidate_domains: list[str] = []
         meta = dp.metadata or {}
+        # Legacy metadata sources (pre-Phase-2 adapters dumped raw dicts here).
         for src in ("host", "sender", "owner"):
             obj = meta.get(src)
             if isinstance(obj, dict) and obj.get("email"):
@@ -219,6 +224,24 @@ class CortexPipeline:
                 addr = item.get("email") if isinstance(item, dict) else (item if isinstance(item, str) else None)
                 if addr and "@" in addr:
                     candidate_domains.append(addr.split("@", 1)[-1].lower())
+        # Canonical sources (Phase 2+) — typed Pydantic Participants live
+        # under canonical_payload.extensions. EmailExtensions uses ``addr``;
+        # MeetingExtensions uses ``email``; cover both.
+        canonical_ext = ((dp.canonical_payload or {}).get("extensions") or {})
+        for item in canonical_ext.get("participants_emails") or []:
+            addr = (
+                item.get("addr") if isinstance(item, dict)
+                else (item if isinstance(item, str) else None)
+            )
+            if addr:
+                # ``addr`` may be a bare email or ``"Display Name <a@b.c>"``.
+                m = _EMAIL_RE.search(addr)
+                if m:
+                    candidate_domains.append(m.group(0).split("@", 1)[-1].lower())
+        for item in canonical_ext.get("attendees") or []:
+            addr = item.get("email") if isinstance(item, dict) else None
+            if addr and "@" in addr:
+                candidate_domains.append(addr.split("@", 1)[-1].lower())
 
         suggestion = suggest_scope(
             workspace_id=dp.workspace_id,
@@ -504,15 +527,11 @@ class CortexPipeline:
         return f"{scheme}://{kind}/{dp.provider_item_id}"
 
     def _scope_slugs(self, scope: Scope) -> tuple[str | None, str | None]:
-        """Resolve ``client_id`` / ``project_id`` → folder slugs."""
-        client_slug = None
-        project_slug = None
-        if scope.client_id is not None:
-            client = CortexEntity.objects.filter(id=scope.client_id).first()
-            if client:
-                client_slug = (client.extensions or {}).get("slug")
-        if scope.project_id is not None:
-            project = CortexEntity.objects.filter(id=scope.project_id).first()
-            if project:
-                project_slug = (project.extensions or {}).get("slug")
-        return client_slug, project_slug
+        """Resolve ``client_id`` / ``project_id`` → folder slugs.
+
+        Thin instance wrapper; the real impl lives at
+        ``donna.cortex.scope.scope_slugs_for`` so the vault renderer can
+        reuse it without depending on a pipeline instance.
+        """
+        from donna.cortex.scope import scope_slugs_for
+        return scope_slugs_for(scope)

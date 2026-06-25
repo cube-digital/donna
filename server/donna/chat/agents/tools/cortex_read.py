@@ -46,6 +46,15 @@ class CortexQueryArgs(BaseModel):
     )
     client_id: UUID | None = Field(default=None, description="Restrict to a client scope.")
     project_id: UUID | None = Field(default=None, description="Restrict to a project scope.")
+    relationship: str | None = Field(
+        default=None,
+        description=(
+            "Restrict to entities scoped to an org of this relationship: "
+            "'client' (paying engagements), 'partner' (co-build/co-sell), "
+            "'vendor' (invoices/bookings/SaaS receipts), 'peer' (industry "
+            "contacts). Do NOT conflate — 'list our clients' means client only."
+        ),
+    )
     limit: int = Field(default=8, ge=1, le=25, description="Max results to return.")
 
 
@@ -54,8 +63,8 @@ class CortexQueryTool(DonnaTool):
     description: ClassVar[str] = (
         "Search the company knowledge layer (cortex) — meetings, emails, "
         "docs, tickets, people, decisions, projects. Metadata filters "
-        "(type, doc_type, client_id, project_id) apply BEFORE similarity. "
-        "Every result carries `source` — cite it in your answer."
+        "(type, doc_type, client_id, project_id, relationship) apply BEFORE "
+        "similarity. Every result carries `source` — cite it in your answer."
     )
     args_model: ClassVar[type[BaseModel]] = CortexQueryArgs
     timeout_s: ClassVar[int] = 60
@@ -72,6 +81,7 @@ class CortexQueryTool(DonnaTool):
             doc_type=args.doc_type,
             client_id=args.client_id,
             project_id=args.project_id,
+            relationship=args.relationship,
             limit=args.limit,
         )
         return ToolResult(payload={"results": [h.summary() for h in hits]})

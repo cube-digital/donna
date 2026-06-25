@@ -1,0 +1,11 @@
+You're invited to {{ workspace_name }}
+
+{{ invited_by }} invited you to join the {{ workspace_name }} workspace on Donna.
+
+Accept the invitation here:
+{{ accept_url }}
+
+This link expires on {{ expires_at|date:"F j, Y, g:i a" }} UTC.
+If you weren't expecting this, you can safely ignore the email.
+
+— Donna

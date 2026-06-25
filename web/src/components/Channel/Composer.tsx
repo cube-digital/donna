@@ -43,11 +43,10 @@ import { useMessages } from "../../state/messages";
 import { comingSoonToast } from "../../state/toasts";
 import {
   GChip,
-  GField,
-  GIconButton,
   GlyphSlot,
 } from "../Goofy";
 import type { Message } from "../../types";
+import { EmojiPicker } from "./EmojiPicker";
 
 interface ComposerProps {
   channelId: string;
@@ -85,11 +84,8 @@ function isTypingInsideField(el: Element | null): boolean {
   return false;
 }
 
-// Typography-style format button (B / I / S). Kept as small ink-bordered
-// stickers so they read as part of the same toolbar family as the icon
-// buttons, but with the actual letter glyph instead of an SVG.
 const FMT_TYPO_BTN =
-  "border-2 border-ink rounded-[6px] w-7 h-7 grid place-items-center hover:bg-bg-3 font-bold text-text-1 transition-colors";
+  "w-6 h-6 grid place-items-center text-text-4 hover:text-text-2 transition-colors";
 
 export default function Composer({
   channelId,
@@ -153,6 +149,38 @@ export default function Composer({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Emoji picker state.
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiAnchor, setEmojiAnchor] = useState<DOMRect | null>(null);
+  const emojiBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const insertAtCursor = useCallback(
+    (snippet: string) => {
+      const el = textareaRef.current;
+      if (!el) {
+        setText(text + snippet);
+        return;
+      }
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const next = text.slice(0, start) + snippet + text.slice(end);
+      setText(next);
+      requestAnimationFrame(() => {
+        if (!textareaRef.current) return;
+        const pos = start + snippet.length;
+        textareaRef.current.selectionStart = pos;
+        textareaRef.current.selectionEnd = pos;
+        textareaRef.current.focus();
+      });
+    },
+    [text],
+  );
+
+  const openEmoji = () => {
+    setEmojiAnchor(emojiBtnRef.current?.getBoundingClientRect() ?? null);
+    setEmojiOpen(true);
+  };
+
   const ready = text.trim().length > 0;
   const ph =
     placeholder ?? "Message — Shift+Enter for newline, / to focus, @ to mention";
@@ -163,79 +191,16 @@ export default function Composer({
   const charCount = text.length;
   const lineCount = text ? text.split("\n").length : 0;
 
-  return (
-    <div className="mx-[18px] mt-2 mb-3.5 flex flex-col gap-2">
-      {/* Format toolbar — sticker strip above the note-card. Each
-          button is its own small sticker; the typography buttons (B/I/S)
-          carry the glyph as text instead of an icon. */}
-      <div className="inline-flex items-center gap-1 p-1.5 border-2 border-ink rounded-[10px] shadow-ink-1 bg-bg-1 w-fit">
-        <button
-          type="button"
-          className={FMT_TYPO_BTN}
-          aria-label="Bold"
-          tabIndex={0}
-          title="Bold"
-        >
-          <b>B</b>
-        </button>
-        <button
-          type="button"
-          className={FMT_TYPO_BTN}
-          aria-label="Italic"
-          tabIndex={0}
-          title="Italic"
-        >
-          <i>I</i>
-        </button>
-        <button
-          type="button"
-          className={FMT_TYPO_BTN}
-          aria-label="Strikethrough"
-          tabIndex={0}
-          title="Strikethrough"
-        >
-          <s>S</s>
-        </button>
-        <span className="w-px h-5 bg-border-soft mx-1" />
-        <GIconButton
-          icon="bolt"
-          outlined
-          aria-label="Code"
-          title="Code"
-          size="sm"
-        />
-        <GIconButton
-          icon="reply"
-          outlined
-          aria-label="Quote"
-          title="Quote"
-          size="sm"
-        />
-        <GIconButton
-          icon="link"
-          outlined
-          aria-label="Link"
-          title="Link"
-          size="sm"
-        />
-        <span className="w-px h-5 bg-border-soft mx-1" />
-        <GIconButton
-          icon="doc"
-          outlined
-          aria-label="List"
-          title="List"
-          size="sm"
-        />
-      </div>
+  void ai;
 
-      <GField
+  return (
+    <div className="mx-auto mt-2 mb-4 max-w-[720px] w-[calc(100%-36px)] border border-border-soft rounded-[14px] bg-bg-1 overflow-hidden">
+      <textarea
         ref={textareaRef}
-        ai={ai}
         value={text}
         onChange={(e) => {
           const next = e.target.value;
           setText(next);
-          // Throttle typing emits — see TYPING_EMIT_MS comment above.
           const now = Date.now();
           if (
             next.length > 0 &&
@@ -248,59 +213,94 @@ export default function Composer({
         onKeyDown={onKeyDown}
         placeholder={ph}
         rows={2}
-        trailing={
-          <>
-            {charCount > 0 ? (
-              <div className="mt-1 text-[11px] text-text-3 flex gap-2 tabular-nums">
-                <span>
-                  {charCount} char{charCount === 1 ? "" : "s"}
-                </span>
-                {lineCount > 1 ? <span>· {lineCount} lines</span> : null}
-              </div>
-            ) : null}
-            <div className="flex items-center gap-1 mt-2">
-              <GIconButton
-                icon="plus"
-                title="Attach file"
-                aria-label="Attach file"
-                size="sm"
-                onClick={() => comingSoonToast("Attachments")}
-              />
-              <GIconButton
-                icon="at"
-                title="Mention agent"
-                aria-label="Mention agent"
-                size="sm"
-                onClick={() => comingSoonToast("Agent mention")}
-              />
-              <GIconButton
-                icon="smile"
-                title="Emoji"
-                aria-label="Emoji"
-                size="sm"
-                onClick={() => comingSoonToast("Emoji picker")}
-              />
-              <GChip variant="ai" size="sm">
-                <GlyphSlot name="sparkle" size={12} className="text-white" />
-                Agents on standby
-              </GChip>
-              <span className="flex-1" />
-              <GIconButton
-                icon="send"
-                outlined
-                onClick={send}
-                disabled={!ready}
-                aria-label="Send message"
-                title="Send"
-                // Prime the send sticker in AI grape once there's actually
-                // something to send. Appended last in the `cn(…)` chain
-                // inside `GIconButton`, so it wins over the outlined
-                // `text-text-0` without needing `!important`.
-                className={ready ? "bg-ai text-white" : ""}
-              />
-            </div>
-          </>
-        }
+        className="w-full resize-none bg-transparent px-4 py-3 text-[14px] text-text-0 placeholder:text-text-3 outline-none border-0"
+      />
+
+      {charCount > 0 ? (
+        <div className="px-4 -mt-1 mb-1 text-[11px] text-text-3 flex gap-2 tabular-nums">
+          <span>
+            {charCount} char{charCount === 1 ? "" : "s"}
+          </span>
+          {lineCount > 1 ? <span>· {lineCount} lines</span> : null}
+        </div>
+      ) : null}
+
+      <div className="flex items-center gap-3 px-3 py-2 border-t border-border-soft">
+        <div className="flex items-center gap-[13px] text-text-4">
+          <button type="button" className={FMT_TYPO_BTN} aria-label="Bold" title="Bold">
+            <b className="text-[14px]">B</b>
+          </button>
+          <button type="button" className={FMT_TYPO_BTN} aria-label="Italic" title="Italic">
+            <i className="text-[14px]">I</i>
+          </button>
+          <button type="button" className={FMT_TYPO_BTN} aria-label="Link" title="Link">
+            <GlyphSlot name="link" size={15} />
+          </button>
+          <button type="button" className={FMT_TYPO_BTN} aria-label="Code" title="Code">
+            <GlyphSlot name="bolt" size={15} />
+          </button>
+          <button
+            ref={emojiBtnRef}
+            type="button"
+            aria-label="Insert emoji"
+            title="Emoji"
+            onClick={openEmoji}
+            className={FMT_TYPO_BTN}
+          >
+            <GlyphSlot name="smile" size={15} />
+          </button>
+          <button
+            type="button"
+            className={FMT_TYPO_BTN}
+            aria-label="Mention"
+            title="Mention"
+            onClick={() => comingSoonToast("Agent mention")}
+          >
+            <GlyphSlot name="at" size={15} />
+          </button>
+          <button
+            type="button"
+            className={FMT_TYPO_BTN}
+            aria-label="Attach"
+            title="Attach"
+            onClick={() => comingSoonToast("Attachments")}
+          >
+            <GlyphSlot name="plus" size={15} />
+          </button>
+        </div>
+
+        <span className="flex-1" />
+
+        <GChip variant="ai" size="sm" className="!border-0 !shadow-none font-semibold text-[11px]">
+          <GlyphSlot name="sparkle" size={12} className="text-white" />
+          Agents on standby
+        </GChip>
+
+        <button
+          type="button"
+          onClick={send}
+          disabled={!ready}
+          aria-label="Send message"
+          title="Send"
+          className={
+            "w-8 h-8 grid place-items-center rounded-[9px] border border-border-soft bg-bg-1 transition-opacity " +
+            (ready
+              ? "text-ai-deep hover:opacity-90"
+              : "text-text-3 cursor-not-allowed")
+          }
+        >
+          <GlyphSlot name="send" size={16} />
+        </button>
+      </div>
+
+      <EmojiPicker
+        open={emojiOpen}
+        anchorRect={emojiAnchor}
+        onClose={() => setEmojiOpen(false)}
+        onPick={(e) => {
+          insertAtCursor(e.unicode);
+          setEmojiOpen(false);
+        }}
       />
     </div>
   );

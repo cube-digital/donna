@@ -74,7 +74,7 @@ export function useRightRail(node: ReactNode | null): void {
 export function RightRailOutlet() {
   const ctx = useContext(RightRailContext);
   return (
-    <aside className="[grid-area:rightrail] bg-bg-1 border-l border-border-soft overflow-y-auto px-3.5 py-3">
+    <aside className="h-full bg-bg-2 border-l border-border-soft overflow-y-auto px-3.5 py-3">
       {ctx?.node ?? null}
     </aside>
   );

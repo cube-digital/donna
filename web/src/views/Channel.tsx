@@ -41,16 +41,17 @@
 // rules; the label sits in the middle column. The wrapper supplies the
 // uppercase/tracking text style.
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import ChannelHeader from "../components/Channel/ChannelHeader";
 import Composer from "../components/Channel/Composer";
+import { DocumentsRail } from "../components/Channel/DocumentsRail";
 import Message from "../components/Channel/Message";
+import { ThreadPanel } from "../components/Channel/ThreadPanel";
 import {
   ContextSection,
   DocsSection,
-  ProgressStub,
 } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
 import { getChatWs } from "../lib/ws";
@@ -347,7 +348,6 @@ export default function Channel() {
   const rrNode = useMemo(
     () => (
       <>
-        <ProgressStub />
         <DocsSection channelId={channelId} />
         <ContextSection />
       </>
@@ -355,6 +355,14 @@ export default function Channel() {
     [channelId],
   );
   useRightRail(rrNode);
+
+  // Right-rail state — Thread takes priority when set, otherwise the
+  // DocumentsRail shows. Hooks must precede any early-return; React
+  // hook order has to stay stable across channelId transitions.
+  const [threadParent, setThreadParent] = useState<MessageT | null>(null);
+  // Default closed — the existing global right rail already shows
+  // Docs; flip via a future header toggle to enlarge inline.
+  const [showDocs] = useState(false);
 
   if (!channelId) {
     return <div className="p-10">No channel selected.</div>;
@@ -366,38 +374,49 @@ export default function Channel() {
   const typingLabel = formatTypingLabel(typingUserIds);
 
   return (
-    <div className="flex flex-col h-full">
-      {channel ? (
-        <ChannelHeader channel={channel} channelMessages={list} />
-      ) : (
-        <div className="flex items-center gap-3 px-[18px] py-2.5 border-b border-border-soft shrink-0">
-          <div className="flex items-center gap-1.5 text-[15px] font-semibold text-text-0 tracking-[-0.01em]">
-            <span className="text-text-3">#</span>Loading…
+    <div className="flex h-full">
+      <div className="flex flex-col flex-1 min-w-0">
+        {channel ? (
+          <ChannelHeader channel={channel} channelMessages={list} />
+        ) : (
+          <div className="flex items-center gap-3 px-[18px] py-2.5 border-b border-border-soft shrink-0">
+            <div className="flex items-center gap-1.5 text-[15px] font-semibold text-text-0 tracking-[-0.01em]">
+              <span className="text-text-3">#</span>Loading…
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto pt-3.5 pb-2" ref={scrollRef}>
+          <div className="max-w-[720px] mx-auto px-4">
+            {restoreAnchorRef.current !== null ? (
+              <CenteredStatus label="Loading older messages…" />
+            ) : null}
+            {loading && list.length === 0 ? <CenteredStatus label="Loading…" /> : null}
+            {rows.map((row) =>
+              row.type === "divider" ? (
+                <DayDivider key={row.key} label={row.label} />
+              ) : (
+                <Message key={row.key} msg={row.msg} onReply={setThreadParent} />
+              ),
+            )}
           </div>
         </div>
-      )}
 
-      <div className="flex-1 overflow-y-auto pt-3.5 pb-2" ref={scrollRef}>
-        {restoreAnchorRef.current !== null ? (
-          <CenteredStatus label="Loading older messages…" />
+        {typingLabel ? (
+          <div className="px-[22px] pt-0.5 pb-1 text-text-3 text-[11.5px] italic min-h-[18px]">
+            {typingLabel}
+          </div>
         ) : null}
-        {loading && list.length === 0 ? <CenteredStatus label="Loading…" /> : null}
-        {rows.map((row) =>
-          row.type === "divider" ? (
-            <DayDivider key={row.key} label={row.label} />
-          ) : (
-            <Message key={row.key} msg={row.msg} />
-          ),
-        )}
+
+        <Composer channelId={channelId} />
       </div>
 
-      {typingLabel ? (
-        <div className="px-[22px] pt-0.5 pb-1 text-text-3 text-[11.5px] italic min-h-[18px]">
-          {typingLabel}
-        </div>
+      {/* Right rail — Thread takes priority over Documents when active. */}
+      {threadParent ? (
+        <ThreadPanel parent={threadParent} onClose={() => setThreadParent(null)} />
+      ) : showDocs ? (
+        <DocumentsRail channelId={channelId} />
       ) : null}
-
-      <Composer channelId={channelId} />
     </div>
   );
 }

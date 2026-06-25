@@ -34,11 +34,12 @@
 
 import { create } from "zustand";
 
-import { getMessages } from "../api/chat";
+import { getMessages, getReplies } from "../api/chat";
 import type {
   AgentRunMetadata,
   Message,
   MessageKind,
+  ReactionAgg,
 } from "../types";
 import type { MessageWsPayload } from "../lib/ws";
 
@@ -46,6 +47,9 @@ interface MessagesState {
   /** Per-channel ordered list, oldest → newest. */
   byChannel: Record<string, Message[]>;
   loading: Record<string, boolean>;
+  /** Per-parent-message thread reply list. */
+  threads: Record<string, Message[]>;
+  threadsLoading: Record<string, boolean>;
   loadInitial(channelId: string): Promise<void>;
   loadMore(channelId: string, beforeId: string): Promise<void>;
   appendFromEvent(channelId: string, payload: MessageWsPayload): void;
@@ -56,6 +60,22 @@ interface MessagesState {
     channelId: string,
     clientMsgId: string,
     real: Message,
+  ): void;
+  // Threading
+  loadThread(parentId: string): Promise<void>;
+  appendReply(parentId: string, reply: Message): void;
+  // Reactions
+  applyReactionAdded(
+    channelId: string,
+    messageId: string,
+    emoji: string,
+    isMe: boolean,
+  ): void;
+  applyReactionRemoved(
+    channelId: string,
+    messageId: string,
+    emoji: string,
+    isMe: boolean,
   ): void;
 }
 
@@ -154,6 +174,8 @@ function insertSorted(list: Message[], msg: Message): Message[] {
 export const useMessages = create<MessagesState>((set, get) => ({
   byChannel: {},
   loading: {},
+  threads: {},
+  threadsLoading: {},
 
   loadInitial: async (channelId) => {
     set((s) => ({ loading: { ...s.loading, [channelId]: true } }));
@@ -292,4 +314,83 @@ export const useMessages = create<MessagesState>((set, get) => ({
       return { byChannel: { ...s.byChannel, [channelId]: copy } };
     });
   },
+
+  // ── Threading ──────────────────────────────────────────────────────────
+  loadThread: async (parentId) => {
+    set((s) => ({ threadsLoading: { ...s.threadsLoading, [parentId]: true } }));
+    try {
+      const replies = await getReplies(parentId);
+      const normalised = replies.map(normalize);
+      set((s) => ({
+        threads: { ...s.threads, [parentId]: normalised },
+        threadsLoading: { ...s.threadsLoading, [parentId]: false },
+      }));
+    } catch {
+      set((s) => ({
+        threadsLoading: { ...s.threadsLoading, [parentId]: false },
+      }));
+    }
+  },
+
+  appendReply: (parentId, reply) => {
+    const normalised = normalize(reply);
+    set((s) => {
+      const existing = s.threads[parentId] ?? [];
+      if (existing.some((m) => m.id === normalised.id)) return s;
+      return {
+        threads: { ...s.threads, [parentId]: [...existing, normalised] },
+      };
+    });
+  },
+
+  // ── Reactions ─────────────────────────────────────────────────────────
+  applyReactionAdded: (channelId, messageId, emoji, isMe) => {
+    set((s) => {
+      const list = s.byChannel[channelId];
+      if (!list) return s;
+      const idx = list.findIndex((m) => m.id === messageId);
+      if (idx < 0) return s;
+      const copy = list.slice();
+      copy[idx] = bumpReaction(copy[idx], emoji, +1, isMe);
+      return { byChannel: { ...s.byChannel, [channelId]: copy } };
+    });
+  },
+
+  applyReactionRemoved: (channelId, messageId, emoji, isMe) => {
+    set((s) => {
+      const list = s.byChannel[channelId];
+      if (!list) return s;
+      const idx = list.findIndex((m) => m.id === messageId);
+      if (idx < 0) return s;
+      const copy = list.slice();
+      copy[idx] = bumpReaction(copy[idx], emoji, -1, isMe);
+      return { byChannel: { ...s.byChannel, [channelId]: copy } };
+    });
+  },
 }));
+
+function bumpReaction(
+  msg: Message,
+  emoji: string,
+  delta: 1 | -1,
+  isMe: boolean,
+): Message {
+  const current: ReactionAgg[] = msg.reactions ?? [];
+  const idx = current.findIndex((r) => r.emoji === emoji);
+  let next: ReactionAgg[];
+  if (idx < 0) {
+    if (delta < 0) return msg;
+    next = [...current, { emoji, count: 1, by_me: isMe }];
+  } else {
+    const cur = current[idx];
+    const count = cur.count + delta;
+    if (count <= 0) {
+      next = current.filter((_, i) => i !== idx);
+    } else {
+      const by_me = delta < 0 && isMe ? false : isMe ? true : cur.by_me;
+      next = current.slice();
+      next[idx] = { ...cur, count, by_me };
+    }
+  }
+  return { ...msg, reactions: next };
+}

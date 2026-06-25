@@ -351,3 +351,270 @@ def reap_orphan_bodies() -> dict:
                     )
                     deleted += 1
     return {"scanned": scanned, "deleted": deleted}
+
+
+def _body_excerpt_for(dp) -> str:
+    """Cheap body excerpt — read sidecar if present, else empty.
+
+    Used by the relationship classifier to give Haiku enough text
+    to judge the relationship type.
+    """
+    if not dp.storage_key:
+        return ""
+    try:
+        from django.core.files.storage import default_storage
+        from donna.core.integrations.bronze import sidecar_key_for
+
+        sidecar = sidecar_key_for(dp.storage_key)
+        if not default_storage.exists(sidecar):
+            return ""
+        with default_storage.open(sidecar, "rb") as f:
+            text = f.read().decode("utf-8", errors="replace")
+        # Drop leading email headers (From:/To:/etc.) to maximise body
+        # signal in the truncation window.
+        lines = [
+            ln for ln in text.splitlines()
+            if not ln.startswith(("From:", "To:", "Cc:", "Bcc:", "Subject:", "Date:", "**From:"))
+        ]
+        return " ".join(lines)[:300]
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+# ─── Org relationship reclassification (00m) ─────────────────────────
+
+
+@shared_task(name="cortex.reclassify_orgs")
+def reclassify_orgs(workspace_id: str | None = None, use_llm: bool = True) -> dict:
+    """Re-run the relationship classifier ladder over orgs.
+
+    Tier A (rules) → Tier B (Haiku, gated by use_llm).
+
+    - ``workspace_id`` None → every workspace.
+    - Skips orgs with ``relationship_locked=True`` (manual override).
+    - Always re-derives ``parent_path`` so the vault re-files on next
+      render.
+
+    Returns counts: ``{tier_a_decided, tier_b_decided, unchanged,
+    skipped_locked}``.
+    """
+    from collections import defaultdict
+    import re
+
+    from donna.cortex.folders import org as org_folder_resolver
+    from donna.cortex.models import CortexEntity
+    from donna.cortex.relationship_classifier import classify_with_history
+    from donna.integrations.models import DeliveryPackage
+    from donna.workspaces.models import Workspace
+
+    EMAIL_RE = re.compile(r"[A-Za-z0-9_.+\-]+@[A-Za-z0-9\-]+\.[A-Za-z0-9\-.]+")
+
+    if workspace_id is not None:
+        workspaces = list(Workspace.objects.filter(id=workspace_id))
+    else:
+        workspaces = list(Workspace.objects.all())
+
+    tier_a = tier_b = unchanged = skipped = 0
+
+    for ws in workspaces:
+        primary = ws.primary_domain or ""
+
+        # Build per-domain stats once per workspace
+        per_domain: dict[str, dict] = defaultdict(
+            lambda: {"senders": set(), "inbound": 0, "outbound": 0, "bodies": []}
+        )
+        for dp in DeliveryPackage.objects.filter(
+            workspace=ws, provider="gmail",
+        ).iterator(chunk_size=100):
+            canon_ext = (dp.canonical_payload or {}).get("extensions") or {}
+            participants = canon_ext.get("participants_emails") or []
+            sender_domain = sender_email = None
+            to_domains: list[str] = []
+            for p in participants:
+                if not isinstance(p, dict):
+                    continue
+                addr_raw = p.get("addr") or ""
+                m = EMAIL_RE.search(addr_raw)
+                if not m:
+                    continue
+                addr = m.group(0).lower()
+                domain = addr.split("@", 1)[-1]
+                role = (p.get("role") or "").lower()
+                if role == "from":
+                    sender_domain = domain
+                    sender_email = addr
+                else:
+                    to_domains.append(domain)
+            if sender_domain and sender_domain != primary:
+                d = per_domain[sender_domain]
+                d["senders"].add(sender_email)
+                d["inbound"] += 1
+                # Pull richer signal — DP title + sidecar excerpt
+                body_excerpt = _body_excerpt_for(dp)
+                d["bodies"].append(
+                    f"{dp.title or ''} | {body_excerpt}"[:800]
+                )
+            if sender_domain == primary:
+                for td in set(to_domains):
+                    if td != primary:
+                        per_domain[td]["outbound"] += 1
+                # Outbound emails also contribute body signal — the
+                # user's tone toward this org reveals the relationship.
+                body_excerpt = _body_excerpt_for(dp)
+                for td in set(to_domains):
+                    if td != primary:
+                        per_domain[td]["bodies"].append(
+                            f"[outbound] {dp.title or ''} | {body_excerpt}"[:800]
+                        )
+
+        for org in CortexEntity.objects.filter(workspace=ws, type="org"):
+            ext = dict(org.extensions or {})
+            if ext.get("relationship_locked"):
+                skipped += 1
+                continue
+
+            domains = ext.get("email_domains") or []
+            agg_senders: set[str] = set()
+            agg_in = agg_out = 0
+            agg_bodies: list[str] = []
+            for d in domains:
+                stats = per_domain.get(d.lower())
+                if stats:
+                    agg_senders.update(stats["senders"])
+                    agg_in += stats["inbound"]
+                    agg_out += stats["outbound"]
+                    agg_bodies.extend(stats["bodies"])
+
+            # Tier A
+            verdict = classify_with_history(
+                org_domain=domains[0] if domains else None,
+                workspace_primary_domain=primary,
+                sender_emails=list(agg_senders),
+                inbound_count=agg_in,
+                outbound_count=agg_out,
+                body_samples=agg_bodies[:10],
+            )
+
+            # Tier B fallback for unknowns
+            if verdict.relationship == "unknown" and use_llm:
+                from donna.cortex.relationship_classifier_llm import classify_via_llm
+
+                verdict = classify_via_llm(
+                    org_title=org.title,
+                    org_domains=domains,
+                    sender_emails=agg_senders,
+                    inbound_count=agg_in,
+                    outbound_count=agg_out,
+                    body_samples=agg_bodies,
+                )
+                if verdict.relationship != "unknown":
+                    tier_b += 1
+            elif verdict.relationship != "unknown":
+                tier_a += 1
+
+            old_rel = ext.get("relationship", "unknown")
+            if verdict.relationship == old_rel:
+                unchanged += 1
+                continue
+
+            ext["relationship"] = verdict.relationship
+            # Seed multi-label ``roles`` from primary so downstream
+            # consumers (vault renderer, agent query, _index.md) can
+            # branch uniformly. Manual correction CLI later extends
+            # this with additional roles.
+            ext["roles"] = [verdict.relationship] if verdict.relationship != "unknown" else []
+            ext["relationship_confidence"] = verdict.confidence
+            ext["relationship_basis"] = verdict.basis
+            ext["relationship_evidence"] = verdict.evidence
+            ext["parent_path"] = org_folder_resolver(
+                type="org",
+                occurred_at=None,
+                extensions=ext,
+                client_slug=None,
+                project_slug=None,
+            )
+            org.extensions = ext
+            org.save(update_fields=["extensions", "updated_at"])
+
+    logger.info(
+        "cortex_reclassify_orgs_done",
+        extra={
+            "tier_a_decided": tier_a,
+            "tier_b_decided": tier_b,
+            "unchanged":      unchanged,
+            "skipped_locked": skipped,
+        },
+    )
+    return {
+        "tier_a_decided": tier_a,
+        "tier_b_decided": tier_b,
+        "unchanged":      unchanged,
+        "skipped_locked": skipped,
+    }
+
+
+# ─── Phase 5 vault projection ────────────────────────────────────────
+
+
+@shared_task(name="cortex.flush_vault_indexes")
+def flush_vault_indexes() -> dict:
+    """Drain the per-workspace ``vault:dirty:<ws>`` Redis sets and
+    regenerate every flagged folder's ``_index.md``.
+
+    Per-entity render + ``_log.md`` append happen synchronously in the
+    manager's post-commit hook (cheap); only ``_index.md`` is debounced
+    here (it has to re-query all heads for the folder, so it benefits
+    from coalescing several writes into one render).
+
+    Uses ``SPOP`` to claim-then-process: another writer that re-dirties
+    a folder during render gets picked up on the next flush.
+    """
+    from donna.cortex.vault_renderer import VaultRenderer
+
+    try:
+        from django_redis import get_redis_connection
+
+        redis = get_redis_connection("default")
+    except Exception:  # noqa: BLE001
+        logger.warning("vault_flush_skip_no_redis")
+        return {"workspaces": 0, "folders": 0}
+
+    renderer = VaultRenderer()
+    workspace_count = 0
+    folder_count = 0
+
+    # Scan all dirty-sets — one per workspace.
+    cursor = 0
+    keys: list[bytes] = []
+    while True:
+        cursor, batch = redis.scan(cursor=cursor, match="vault:dirty:*", count=200)
+        keys.extend(batch)
+        if cursor == 0:
+            break
+
+    for key in keys:
+        key_str = key.decode() if isinstance(key, bytes) else key
+        workspace_id = key_str.split(":", 2)[2]
+        workspace_count += 1
+        # Drain — pop folders one at a time to bound memory; the rare
+        # re-dirty during render is caught by the next beat run.
+        while True:
+            popped = redis.spop(key_str)
+            if popped is None:
+                break
+            folder = popped.decode() if isinstance(popped, bytes) else popped
+            try:
+                renderer.render_index(workspace_id, folder)
+                folder_count += 1
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "vault_flush_index_failed",
+                    extra={"workspace_id": workspace_id, "folder": folder},
+                )
+
+    if folder_count:
+        logger.info(
+            "vault_flush_completed",
+            extra={"workspaces": workspace_count, "folders": folder_count},
+        )
+    return {"workspaces": workspace_count, "folders": folder_count}

@@ -17,7 +17,7 @@ const INPUT_SHELL =
   "flex items-center gap-[9px] h-[38px] px-[14px] " +
   "border-2 border-ink rounded-full shadow-ink-1 bg-bg-1 text-text-2 " +
   "transition-[box-shadow,border-color] duration-[120ms] " +
-  "focus-within:border-ai focus-within:shadow-[3px_3px_0_var(--ai)]";
+  "focus-within:border-ai focus-within:shadow-ai-stamp";
 
 const INPUT_KBD =
   "font-mono text-[10.5px] font-semibold px-1.5 py-0.5 rounded-[5px] " +
@@ -66,13 +66,13 @@ export const GInput = forwardRef<HTMLInputElement, GInputProps>(function GInput(
 // ── Field (note card / textarea) ────────────────────────────────────────
 
 const FIELD_BASE =
-  "border-[2.5px] border-ink rounded-[14px] shadow-[3px_3px_0_var(--ink)] " +
+  "border-2 border-ink rounded-[14px] shadow-ink-1 " +
   "bg-bg-1 px-[14px] py-3 " +
   "transition-[box-shadow,border-color] duration-[120ms] " +
-  "focus-within:border-ai focus-within:shadow-[3px_3px_0_var(--ai)]";
+  "focus-within:border-ai focus-within:shadow-ai-stamp";
 
 const FIELD_AI =
-  "bg-ai-bg border-ai shadow-[3px_3px_0_var(--ai)]";
+  "bg-ai-bg border-ai shadow-ai-stamp";
 
 export interface GFieldProps
   extends TextareaHTMLAttributes<HTMLTextAreaElement> {

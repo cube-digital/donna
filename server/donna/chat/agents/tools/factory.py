@@ -24,8 +24,13 @@ QA_TOOL_NAMES: tuple[str, ...] = (
     "prepare_context",
 )
 
-# Draft tools added when draft_enabled. Populated in A2.
-DRAFT_TOOL_NAMES: tuple[str, ...] = ()
+# Draft tools added when draft_enabled. A2 (2026-06-20).
+DRAFT_TOOL_NAMES: tuple[str, ...] = (
+    "create_draft",
+    "read_draft",
+    "update_draft_section",
+    "finalize_draft",
+)
 
 
 def build_registry(*, channel: Channel, draft_enabled: bool = False) -> ToolRegistry:
@@ -53,4 +58,29 @@ def register_qa_tools() -> None:
             ReadEntityTool(),
             GetContextTool(),
             PrepareContextTool(),
+        )
+
+
+def register_draft_tools() -> None:
+    """Register A2 draft tools on GLOBAL_REGISTRY.
+
+    Called from ``donna.chat.apps.ChatConfig.ready()`` after
+    ``register_qa_tools`` and BEFORE ``freeze()``. Channel-level
+    gating happens in ``build_registry(draft_enabled=...)``.
+    """
+    from .draft_tools import (
+        CreateDraftTool,
+        FinalizeDraftTool,
+        ReadDraftTool,
+        UpdateDraftSectionTool,
+    )
+
+    if GLOBAL_REGISTRY.frozen:
+        return
+    if not GLOBAL_REGISTRY.has("create_draft"):
+        GLOBAL_REGISTRY.register(
+            CreateDraftTool(),
+            ReadDraftTool(),
+            UpdateDraftSectionTool(),
+            FinalizeDraftTool(),
         )

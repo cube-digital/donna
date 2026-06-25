@@ -27,6 +27,7 @@ import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
 import IntegrationDetail from "./views/IntegrationDetail";
+import AcceptInvitation from "./views/AcceptInvitation";
 
 // The Showcase route pulls in the entire Goofy library — split it out
 // of the main chunk via React.lazy so users who never visit /showcase
@@ -39,10 +40,10 @@ const Showcase = lazy(() => import("./views/Showcase"));
 function ShowcaseFallback() {
   return (
     <div
-      className="min-h-screen grid place-items-center bg-bg-0 text-text-2"
-      style={{ fontFamily: "'Caveat', cursive", fontSize: 22, fontWeight: 700 }}
+      className="min-h-screen grid place-items-center bg-bg-0 text-text-2 font-display"
+      style={{ fontSize: 16, fontWeight: 600 }}
     >
-      loading the sticker book…
+      loading…
     </div>
   );
 }
@@ -87,6 +88,7 @@ export default function App() {
           <Route path="/showcase" element={<LazyShowcase />} />
           <Route path="/auth/*" element={<Auth />} />
           <Route path="/oauth/return" element={<OAuthReturn />} />
+          <Route path="/invitations/:token/accept" element={<AcceptInvitation />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
       );
@@ -98,6 +100,7 @@ export default function App() {
           <Route path="/showcase" element={<LazyShowcase />} />
           <Route path="/workspaces" element={<WorkspacePicker />} />
           <Route path="/oauth/return" element={<OAuthReturn />} />
+          <Route path="/invitations/:token/accept" element={<AcceptInvitation />} />
           <Route path="*" element={<Navigate to="/workspaces" replace />} />
         </Routes>
       );
@@ -107,6 +110,7 @@ export default function App() {
       <Routes>
         <Route path="/showcase" element={<LazyShowcase />} />
         <Route path="/oauth/return" element={<OAuthReturn />} />
+        <Route path="/invitations/:token/accept" element={<AcceptInvitation />} />
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/channels" replace />} />
           <Route path="/channels" element={<ComingSoon title="Pick a channel" />} />

@@ -41,6 +41,18 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255, blank=True)
 
+    # Mention handle (resolves @<handle>). Backfilled from email-prefix at
+    # signup; collisions disambiguate with numeric suffix. Editable later
+    # via profile settings; stays unique workspace-wide-globally to keep
+    # mention parsing trivial across workspaces.
+    handle = models.CharField(
+        max_length=40,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Lowercase mention handle, e.g. 'alice' resolves @alice.",
+    )
+
     # Email verification — soft gate. v1: signup allowed without verifying,
     # frontend nags the user. Google login flips this to True (Google has
     # already attested the email).

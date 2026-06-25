@@ -19,9 +19,12 @@ migration lesson). See plans/08a-gmail-integration.md.
 """
 from __future__ import annotations
 
+import base64
 import json
 import logging
 from datetime import datetime, timezone
+from pathlib import PurePosixPath
+from typing import Iterator
 
 from celery import shared_task
 from django.core.files.base import ContentFile
@@ -38,6 +41,16 @@ logger = logging.getLogger(__name__)
 # DeliveryPackage unique constraint absorbs duplicates if our 1-hour
 # window overlaps with the previous tick (which it will).
 _RECENT_WINDOW = "newer_than:1h"
+
+# Attachment extract allowlist — v1 mirrors the Drive ingest task
+# (PDFs only). Add docx/xlsx/pptx once the OCR ladder grows strategies
+# for them; until then non-PDF attachments are stored raw without a
+# markdown sidecar (still indexed by filename via DP metadata).
+_ATTACHMENT_EXTRACT_SUFFIXES = {".pdf"}
+
+# Skip tiny inline images (signatures, tracking pixels). Anything under
+# this threshold is almost certainly chrome, not content.
+_INLINE_SKIP_MIN_BYTES = 5 * 1024
 
 
 # ─── Per-message ingest ──────────────────────────────────────────────────────
@@ -134,10 +147,29 @@ def ingest_gmail_message(self, workspace_id: str, message_id: str) -> dict:
             },
         )
 
+    # Attachments — extracted to their own DPs (canonical_type="doc")
+    # so they're searchable independently and share OCR with the Drive
+    # connector via the shared ``extract_to_sidecar`` util.
+    attachments_ingested = 0
+    try:
+        with provider.client(conn.token) as att_client:
+            attachments_ingested = _ingest_attachments(
+                att_client, workspace_id, message, package,
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "gmail_attachments_failed",
+            extra={
+                "workspace_id":        workspace_id,
+                "delivery_package_id": str(package.id),
+            },
+        )
+
     return {
         "storage_key":         storage_key,
         "delivery_package_id": str(package.id),
         "cortex_entity_id":    cortex_entity_id,
+        "attachments":         attachments_ingested,
         "created":             created,
     }
 
@@ -280,3 +312,165 @@ def _update_state_after_sync(state: dict) -> None:
     g = state.setdefault("global", {})
     g["cold_start_done"] = True
     g["last_synced_at"] = datetime.now(tz=timezone.utc).isoformat()
+
+
+# ─── Attachment ingestion (2026-06-19, E3) ──────────────────────────────────
+def _b64url_decode(data: str | None) -> bytes:
+    """Gmail returns URL-safe base64 with stripped padding."""
+    if not data:
+        return b""
+    pad = "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(data + pad)
+
+
+def _iter_attachment_parts(payload: dict) -> Iterator[dict]:
+    """Walk MIME tree, yield leaf parts that look like real attachments.
+
+    A part qualifies if it carries a ``filename`` (so not just a body
+    fragment) and either inline ``body.data`` or a ``body.attachmentId``
+    pointer for ``messages.attachments.get``.
+    """
+    if not payload:
+        return
+    parts = payload.get("parts") or []
+    if not parts:
+        body = payload.get("body") or {}
+        filename = payload.get("filename") or ""
+        if filename and (body.get("data") or body.get("attachmentId")):
+            yield payload
+        return
+    for part in parts:
+        yield from _iter_attachment_parts(part)
+
+
+def _ingest_attachments(client, workspace_id: str, message: dict, parent: object) -> int:
+    """Walk attachments, ingest each as its own doc DP.
+
+    Stores binary at content-addressed bronze key, runs the shared
+    ``extract_to_sidecar`` (PDF only in v1), emits a DeliveryPackage
+    with ``canonical_type="doc"`` and metadata linking back to the
+    parent email message + DP.
+
+    Returns the count of attachment DPs upserted (filtered by allowlist
+    + tiny-blob threshold).
+    """
+    from donna.core.integrations.binary_extract import extract_to_sidecar
+    from donna.core.integrations.bronze import bronze_key
+    from donna.integrations.models import DeliveryPackage
+
+    payload = message.get("payload") or {}
+    msg_id = message.get("id")
+    if not msg_id:
+        return 0
+
+    count = 0
+    for part in _iter_attachment_parts(payload):
+        filename = part.get("filename") or ""
+        mime_type = part.get("mimeType") or "application/octet-stream"
+        suffix = (PurePosixPath(filename).suffix or "").lower()
+        if suffix not in _ATTACHMENT_EXTRACT_SUFFIXES:
+            continue
+
+        body = part.get("body") or {}
+        att_id = body.get("attachmentId")
+        part_id = part.get("partId") or "0"
+
+        if att_id:
+            try:
+                att = client.get_attachment(msg_id, att_id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "gmail_attachment_fetch_failed",
+                    extra={
+                        "message_id":   msg_id,
+                        "attachment_id": att_id,
+                        "error":        str(exc),
+                    },
+                )
+                continue
+            raw = _b64url_decode(att.get("data"))
+        else:
+            raw = _b64url_decode(body.get("data"))
+
+        if not raw or len(raw) < _INLINE_SKIP_MIN_BYTES:
+            continue
+
+        item_id = f"{msg_id}:{att_id or part_id}"
+        att_bronze = bronze_key(
+            workspace_id, "google", "mail/attachments", item_id, raw,
+        )
+        if not default_storage.exists(att_bronze):
+            default_storage.save(att_bronze, ContentFile(raw))
+
+        extract_to_sidecar(att_bronze, suffix=suffix)
+
+        # Minimal canonical doc payload. The cortex pipeline's tier-A
+        # heuristic doc-type classifier upgrades ``doc_type`` from
+        # "other" when filename / mime / body match a known pattern.
+        canonical_payload = {
+            "entity_type": "doc",
+            "external_id": item_id,
+            "title":       filename,
+            "occurred_at": (
+                parent.occurred_at.isoformat()
+                if parent.occurred_at
+                else datetime.now(tz=timezone.utc).isoformat()
+            ),
+            "extensions": {
+                "doc_type": "other",
+                "mime":     mime_type,
+                "filename": filename,
+            },
+        }
+
+        att_package, _created = DeliveryPackage.objects.update_or_create(
+            workspace_id=workspace_id,
+            provider="gmail",
+            provider_item_id=item_id,
+            defaults={
+                "provider_item_type": "email_attachment",
+                "title":              filename,
+                "occurred_at":        parent.occurred_at,
+                "storage_key":        att_bronze,
+                "metadata": {
+                    "parent_message_id":  msg_id,
+                    "parent_package_id":  str(parent.id),
+                    "attachment_id":      att_id,
+                    "part_id":            part_id,
+                    "filename":           filename,
+                    "mime_type":          mime_type,
+                    "size":               len(raw),
+                },
+                "canonical_type":     "doc",
+                "canonical_payload":  canonical_payload,
+            },
+        )
+
+        # Cortex hop for attachment — best-effort, mirrors message path.
+        try:
+            from donna.cortex.pipeline import CortexPipeline
+
+            CortexPipeline().write(att_package)
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "cortex_write_attachment_failed",
+                extra={
+                    "workspace_id":        workspace_id,
+                    "delivery_package_id": str(att_package.id),
+                    "parent_message_id":   msg_id,
+                },
+            )
+
+        count += 1
+        logger.info(
+            "gmail_attachment_ingested",
+            extra={
+                "workspace_id":        workspace_id,
+                "parent_message_id":   msg_id,
+                "attachment_filename": filename,
+                "size_bytes":          len(raw),
+                "bronze_key":          att_bronze,
+            },
+        )
+
+    return count

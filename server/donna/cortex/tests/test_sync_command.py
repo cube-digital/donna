@@ -28,9 +28,13 @@ class CortexSyncCommandTests(TestCase):
         with self.assertRaises(CommandError):
             call_command("cortex_sync")
 
-    def test_rebuild_flag_blocked(self) -> None:
-        with self.assertRaises(CommandError):
-            call_command("cortex_sync", "--rebuild")
+    def test_rebuild_flag_runs(self) -> None:
+        # Phase 5 (2026-06-19): --rebuild now walks the vault and
+        # reconstructs CortexEntity rows from frontmatter. Empty
+        # workspace + empty vault → zero work done, no error.
+        out = io.StringIO()
+        call_command("cortex_sync", "--rebuild", "--workspace", self.workspace.slug, stdout=out)
+        self.assertIn("rebuild", out.getvalue())
 
     def test_workspace_resolution_by_slug(self) -> None:
         # Empty workspace + dry-run reindex prints "would_update: 0"

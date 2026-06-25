@@ -54,10 +54,14 @@ const config: Config = {
         danger: "var(--danger)",
       },
       fontFamily: {
-        sans: ["Geist", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        // Inter is the primary typeface across the app (matches the docs
+        // site). Body, display headings, and the former hand-lettered
+        // accents all resolve to Inter now — the playful Fredoka/Caveat
+        // faces were retired as part of the clean refresh.
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
         mono: ['"Geist Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
-        display: ["Fredoka", "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
-        hand: ["Caveat", "cursive"],
+        display: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        hand: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "var(--r)",
@@ -72,9 +76,9 @@ const config: Config = {
         "ink-1": "var(--shadow-1)",
         "ink-2": "var(--shadow-2)",
         "ai-stamp": "var(--shadow-ai)",
-        // press-down sticker hover state
-        "ink-3": "3px 3px 0 var(--ink)",
-        "ink-4": "4px 4px 0 var(--ink)",
+        // Refined hover-lift shadows (was a hard-offset press-down stamp).
+        "ink-3": "0 3px 8px oklch(0.26 0.03 285 / 0.12), 0 6px 16px oklch(0.26 0.03 285 / 0.10)",
+        "ink-4": "0 6px 16px oklch(0.26 0.03 285 / 0.14), 0 14px 30px oklch(0.26 0.03 285 / 0.10)",
       },
       keyframes: {
         "gx-pulse-ring": {
@@ -115,10 +119,11 @@ const config: Config = {
         "pulse-ring": "gx-pulse-ring 1.6s ease-out infinite",
         "led-blink": "gx-blink 1.2s ease-in-out infinite",
         "dots-pulse": "gx-dots 1s steps(3, end) infinite",
-        wiggle: "gx-wiggle 0.9s ease-in-out infinite",
-        // Single-shot for hover affordances. Don't make this `infinite`
-        // — the whole point is one polite "hello" tilt on hover-enter.
-        "mini-wiggle": "gx-mini-wiggle 0.35s ease-in-out",
+        // Refined: hover wiggles removed for a calmer, more professional
+        // feel. Mapped to `none` so existing `animate-wiggle` /
+        // `animate-mini-wiggle` utilities become no-ops.
+        wiggle: "none",
+        "mini-wiggle": "none",
         bob: "gx-bob 1.6s ease-in-out infinite",
         "pop-in": "gx-pop-in 0.4s cubic-bezier(.34,1.56,.64,1) both",
         "spin-360": "gx-spin 1.2s linear infinite",
