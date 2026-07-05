@@ -1,0 +1,76 @@
+# Cloud CI (staging). On push to main:
+#   build → OIDC assume the deploy role → push to ECR → bump the image tag in the
+#   GitOps repo (donna-cloud-infra). ArgoCD then reconciles the cluster.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   AWS_DEPLOY_ROLE_ARN  = arn:aws:iam::026090552963:role/tf-donna-staging-gha-deploy
+#   INFRA_REPO_PAT       = fine-grained PAT, Contents:RW on cube-digital/donna-cloud-infra
+name: cloud-deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - ".github/workflows/cloud-deploy.yml"
+
+concurrency:
+  group: cloud-deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # OIDC → AWS
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPO: donna-server
+  IMAGE_ENV_TAG: staging
+
+jobs:
+  build-push-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── AWS auth via OIDC (no long-lived keys) ─────────────────────────────
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      # ── Build + push (linux/amd64) ─────────────────────────────────────────
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: server
+          file: server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ env.IMAGE_ENV_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Bump image.tag in the GitOps repo → ArgoCD deploys ─────────────────
+      - uses: actions/checkout@v4
+        with:
+          repository: cube-digital/donna-cloud-infra
+          token: ${{ secrets.INFRA_REPO_PAT }}
+          path: infra
+
+      - name: Bump image tag
+        run: |
+          cd infra
+          yq -i '.image.tag = strenv(SHA)' argocd/apps/donna/values.yaml
+          git config user.name  "donna-bot"
+          git config user.email "bot@cube-digital.dev"
+          if git diff --quiet; then echo "no change"; exit 0; fi
+          git commit -am "staging: donna ${SHA:0:7} (from ${{ github.repository }}@${{ github.sha }})"
+          git push
+        env:
+          SHA: ${{ github.sha }}

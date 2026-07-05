@@ -1,0 +1,9 @@
+apiVersion: v2
+name: donna
+description: Donna server + workers + beat (cloud and self-host)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/donna/donna
+sources:
+  - https://github.com/donna/donna

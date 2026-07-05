@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "donna.fullname" . }}-worker
+  labels: {{- include "donna.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.worker }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: worker
+    spec:
+      serviceAccountName: {{ include "donna.serviceAccountName" . }}
+      containers:
+        - name: worker
+          image: {{ include "donna.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["celery", "-A", "donna", "worker", "--loglevel=info", "--concurrency=2"]
+          envFrom: {{- include "donna.envFrom" . | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "celery -A donna inspect ping -d celery@$HOSTNAME"]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            timeoutSeconds: 15
+          resources: {{- toYaml .Values.resources.worker | nindent 12 }}
