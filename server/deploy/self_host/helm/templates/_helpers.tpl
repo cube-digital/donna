@@ -5,7 +5,12 @@
 {{- end -}}
 
 {{- define "donna.fullname" -}}
-{{- printf "%s-%s" .Release.Name (include "donna.name" .) | trunc 63 | trimSuffix "-" -}}
+{{- $name := include "donna.name" . -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "donna.image" -}}

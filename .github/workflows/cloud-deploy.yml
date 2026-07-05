@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - "server/**"
+      - "!server/deploy/**"   # chart/compose changes don't need an image rebuild
       - ".github/workflows/cloud-deploy.yml"
 
 concurrency:
