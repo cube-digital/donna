@@ -17,14 +17,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history so gitleaks can scan past commits
 
+      # Use the gitleaks CLI directly — gitleaks-action@v2 requires a paid
+      # GITLEAKS_LICENSE for organization repos, which blocks every PR.
+      # The CLI is free and scans the working tree against .gitleaks.toml.
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional: a paid GITLEAKS_LICENSE enables organization-wide config.
-          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
-        with:
-          config-path: .gitleaks.toml
+        run: |
+          VERSION=8.21.2
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks detect --no-git --source . --config .gitleaks.toml --redact --no-banner
