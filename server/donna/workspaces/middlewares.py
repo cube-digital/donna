@@ -64,7 +64,7 @@ class WorkspaceMiddleware:
         "/admin": ["GET", "POST", "PATCH", "PUT", "DELETE"],
         "/swagger": ["GET", "POST", "PATCH", "PUT", "DELETE"],
         "/api/auth": ["POST", "GET"],
-        "/health": ["GET"],
+        "/api/health": ["GET"],
         "/api/v1/workspaces": ["POST", "GET"],
         # Public token-based invitation endpoints — no tenant context.
         "/api/v1/invitations": ["GET", "POST"],

@@ -1,0 +1,27 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "donna.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels: {{- include "donna.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    helm.sh/hook-weight: "-5"
+    # Under ArgoCD, Helm hooks map to PreSync automatically.
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  template:
+    metadata:
+      labels: {{- include "donna.labels" . | nindent 8 }}
+    spec:
+      # No serviceAccountName — this runs as a pre-install hook BEFORE the SA
+      # resource is created, and migrate needs no AWS/K8s API (just DB via env).
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: {{ include "donna.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "manage.py", "migrate", "--noinput"]
+          envFrom: {{- include "donna.envFrom" . | nindent 12 }}
+{{- end }}

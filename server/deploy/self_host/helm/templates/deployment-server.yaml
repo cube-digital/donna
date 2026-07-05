@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "donna.fullname" . }}-server
+  labels: {{- include "donna.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.server }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: server
+    spec:
+      serviceAccountName: {{ include "donna.serviceAccountName" . }}
+      containers:
+        - name: server
+          image: {{ include "donna.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          envFrom: {{- include "donna.envFrom" . | nindent 12 }}
+          readinessProbe:
+            httpGet: { path: /api/health/, port: 8000 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet: { path: /api/health/, port: 8000 }
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources: {{- toYaml .Values.resources.server | nindent 12 }}

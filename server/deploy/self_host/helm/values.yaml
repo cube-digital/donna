@@ -1,0 +1,67 @@
+# Default values (self-host-leaning). Cloud overrides live in
+# donna-cloud-infra/argocd/apps/donna/values.yaml.
+
+image:
+  repository: ghcr.io/donna/donna-server
+  tag: ""            # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+# Deployment mode passed to the app (currently informational; settings.py is
+# env-driven regardless).
+deployment: cloud
+
+replicaCount:
+  server: 1
+  worker: 1
+  beat: 1            # MUST stay 1 — concurrent beats double-fire schedules
+
+resources:
+  server: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: "1", memory: 1Gi } }
+  worker: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: "1", memory: 1Gi } }
+  beat:   { requests: { cpu: 50m,  memory: 128Mi }, limits: { cpu: 250m, memory: 256Mi } }
+
+# ServiceAccount — annotate with an IRSA role ARN if the app needs AWS access
+# via the pod role (not used today; app uses static S3 keys).
+serviceAccount:
+  create: true
+  name: donna
+  annotations: {}
+
+# Non-secret env (rendered into a ConfigMap). Secrets come from the Secret named
+# in `secrets.externalSecretName` (built by external-secrets from SSM).
+config:
+  DJANGO_SETTINGS_MODULE: donna.settings
+  DEBUG: "false"
+  ALLOWED_HOSTS: "*"
+  DONNA_STORAGE_BACKEND: s3
+  DONNA_S3_BUCKET: ""        # set per-env
+  DONNA_S3_REGION: eu-west-1
+  LOG_FORMAT: json
+  CELERY_TASK_ALWAYS_EAGER: "false"
+
+# The app's secret env vars come from this pre-existing Secret (external-secrets
+# builds `donna-app`). The chart does NOT create it in cloud mode.
+secrets:
+  externalSecretName: donna-app
+
+migrations:
+  enabled: true             # run `migrate` as a pre-install/upgrade Job
+  backoffLimit: 2
+
+service:
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: alb
+  host: ""                  # optional; empty = host-less rule (any host)
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health/
+
+# HPA (off by default)
+autoscaling:
+  enabled: false

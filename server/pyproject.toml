@@ -38,4 +38,16 @@ dependencies = [
     "watchfiles>=1.0.0",
     "whitenoise>=6.12.0",
     "sentence-transformers>=5.5.1",
+    "torch>=2.5",
 ]
+
+# CPU-only PyTorch. sentence-transformers pulls torch transitively; the default
+# wheel bundles the full NVIDIA CUDA runtime (~4.6GB: nvidia/* + torch + triton)
+# which is dead weight on CPU nodes. Pin torch to PyTorch's CPU index → ~1GB image.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
