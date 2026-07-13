@@ -32,3 +32,10 @@ class ChatConfig(AppConfig):
             GLOBAL_REGISTRY.freeze()
         except Exception:  # noqa: BLE001 — never block app boot on registry wire
             logger.exception("agent_global_registry_boot_failed")
+
+        # Plan 13 §2.3 — discover bundled hooks. Import side-effects
+        # register them on the per-event registry.
+        try:
+            from donna.chat.agents.hooks import bundled  # noqa: F401
+        except Exception:  # noqa: BLE001
+            logger.exception("agent_hooks_boot_failed")

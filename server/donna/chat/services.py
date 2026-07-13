@@ -59,6 +59,83 @@ def presence_group(user_id) -> str:
     return f"presence-user-{user_id}"
 
 
+def broadcast_agent_status(
+    *,
+    channel,
+    agent_session,
+    state: str,
+    detail: str = "",
+    eta: str = "",
+) -> None:
+    """Plan 13 §8.2 — surface ambient agent state to the channel.
+
+    States the frontend chip understands:
+    - ``typing``         — Q&A reply mid-flight (cheap chat turn)
+    - ``drafting``       — drafter/planner mid-flight (writing an artifact)
+    - ``waiting_on_user`` — paused on an AskUserQuestion (§1.3 / §1.5)
+    - ``running_tool``   — dispatching tool calls this round
+    - ``scheduled_for``  — has a Schedule that fires next at ``eta``
+    - ``idle``           — back to default
+
+    Best-effort: a missed status update never blocks the agent loop.
+    """
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    try:
+        async_to_sync(layer.group_send)(
+            channel_group(channel.id),
+            {
+                "type": "chat.agent.status",
+                "payload": {
+                    "session_id": str(agent_session.id),
+                    "channel_id": str(channel.id),
+                    "state": state,
+                    "detail": detail,
+                    "eta": eta,
+                },
+            },
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def send_synthetic_agent_message(
+    *,
+    channel: "Channel",
+    agent_session,
+    body: str,
+) -> "Message":
+    """Plan 13 §7.1 — write an agent-authored message that LOOKS like the
+    agent spoke without going through the normal user-message turn loop.
+
+    Used by the schedule worker so a cron-driven kickoff lands as a
+    visible message in the channel and the agent runner picks up the
+    next turn naturally.
+    """
+    from donna.chat.models import Message
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+
+    from donna.chat.models import Message
+
+    message = Message.objects.create(
+        channel=channel,
+        author_agent=agent_session,
+        body=body,
+    )
+    layer = get_channel_layer()
+    if layer is not None:
+        try:
+            async_to_sync(layer.group_send)(
+                channel_group(channel.id),
+                {"type": "chat.message", "payload": _serialize_message(message)},
+            )
+        except Exception:  # noqa: BLE001 — broadcast is best-effort
+            pass
+    return message
+
+
 def agent_run_group(run_id) -> str:
     return f"agent-run-{run_id}-tokens"
 
@@ -773,7 +850,7 @@ class ChannelService:
 
 # ── Serialization (kept tiny — DRF serializers handle the HTTP REST side) ────
 def _serialize_message(message: Message, client_msg_id: str | None = None) -> dict:
-    return {
+    out = {
         "id":           str(message.id),
         "channel_id":   str(message.channel_id),
         "body":         message.body,
@@ -783,6 +860,19 @@ def _serialize_message(message: Message, client_msg_id: str | None = None) -> di
         "updated_at":   message.updated_at.isoformat() if message.updated_at else None,
         "client_msg_id": client_msg_id,
     }
+    # Plan 13 §1.3 / §1.5 — emit HIL fields only when this row is a
+    # question or answer. The chat fast path stays compact.
+    if message.kind != Message.Kind.CHAT:
+        out["server_kind"] = message.kind
+        if message.kind == Message.Kind.QUESTION:
+            out["question_options"] = message.question_options or []
+            out["expires_at"] = (
+                message.expires_at.isoformat() if message.expires_at else None
+            )
+        out["answer_payload"] = message.answer_payload
+        if message.answered_message_id:
+            out["answered_message"] = str(message.answered_message_id)
+    return out
 
 
 def _serialize_channel(channel: Channel) -> dict:

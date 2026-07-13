@@ -2,7 +2,7 @@
 
 Four tools form a small lifecycle:
 
-1. ``create_draft`` — open a new ``Document(status=DRAFTING)`` in the
+1. ``create_draft`` — open a new ``Artifact(status=DRAFTING)`` in the
    channel. Partial unique constraint enforces one active draft per
    channel; second call returns a friendly error.
 2. ``read_draft`` — return the current draft (body + version) so the
@@ -23,7 +23,7 @@ or ``read_draft`` first. This keeps the partial-unique semantics
 unambiguous.
 
 WS broadcast: every state change (create/update/finalize/abandon)
-fires a ``chat.document.updated`` event onto the channel group so
+fires a ``chat.artifact.updated`` event onto the channel group so
 the frontend can re-render the draft pane.
 """
 from __future__ import annotations
@@ -39,7 +39,7 @@ from pydantic import BaseModel, Field
 
 from donna.chat.agents.nodes.drafter import DrafterNode
 from donna.chat.agents.tools.base import DonnaTool, ToolContext, ToolResult
-from donna.chat.models import Document
+from donna.chat.models import Artifact
 from donna.chat.services import channel_group
 from donna.cortex.services import CortexService
 
@@ -50,24 +50,26 @@ logger = logging.getLogger(__name__)
 # ── helpers ────────────────────────────────────────────────────────────
 
 
-def _broadcast_doc_updated(channel_id, draft: Document, action: str) -> None:
-    """Push a ``chat.document.updated`` event onto the channel group."""
+def _broadcast_doc_updated(channel_id, draft: Artifact, action: str) -> None:
+    """Push a ``chat.artifact.updated`` event onto the channel group."""
     layer = get_channel_layer()
     if layer is None:
         logger.warning("channel_layer_missing_for_doc_broadcast")
         return
     payload = {
-        "type": "chat.document.updated",
-        "data": {
+        "type": "chat.artifact.updated",
+        "payload": {
             "channel_id":            str(channel_id),
-            "document_id":           str(draft.id),
-            "status":                draft.status,
-            "version":               draft.version,
-            "title":                 draft.title,
-            "target_doc_type":       draft.target_doc_type or "",
-            "finalized_entity_id":   (
-                str(draft.finalized_entity_id) if draft.finalized_entity_id else None
-            ),
+            "artifact":              {
+                "id":                    str(draft.id),
+                "status":                draft.status,
+                "version":               draft.version,
+                "title":                 draft.title,
+                "target_doc_type":       draft.target_doc_type or "",
+                "finalized_entity_id":   (
+                    str(draft.finalized_entity_id) if draft.finalized_entity_id else None
+                ),
+            },
             "action":                action,
         },
     }
@@ -75,8 +77,8 @@ def _broadcast_doc_updated(channel_id, draft: Document, action: str) -> None:
         async_to_sync(layer.group_send)(channel_group(channel_id), payload)
     except Exception:  # noqa: BLE001
         logger.exception(
-            "chat_document_broadcast_failed",
-            extra={"channel_id": str(channel_id), "document_id": str(draft.id)},
+            "chat_artifact_broadcast_failed",
+            extra={"channel_id": str(channel_id), "artifact_id": str(draft.id)},
         )
 
 
@@ -110,11 +112,11 @@ class CreateDraftTool(DonnaTool):
     def run(self, args: CreateDraftArgs, ctx: ToolContext) -> ToolResult:
         try:
             with transaction.atomic():
-                draft = Document.objects.create(
+                draft = Artifact.objects.create(
                     channel=ctx.channel,
                     title=args.title,
                     body="",
-                    status=Document.Status.DRAFTING,
+                    status=Artifact.Status.DRAFTING,
                     version=0,
                     target_doc_type=args.target_doc_type or "other",
                     created_by=ctx.user,
@@ -122,20 +124,20 @@ class CreateDraftTool(DonnaTool):
                 )
         except IntegrityError:
             existing = (
-                Document.objects
-                .filter(channel=ctx.channel, status=Document.Status.DRAFTING)
+                Artifact.objects
+                .filter(channel=ctx.channel, status=Artifact.Status.DRAFTING)
                 .first()
             )
             existing_id = str(existing.id) if existing else "unknown"
             return ToolResult.fail(
                 f"A draft is already active in this channel "
-                f"(document_id={existing_id}). Call read_draft first, "
+                f"(artifact_id={existing_id}). Call read_draft first, "
                 f"then update_draft_section to revise it."
             )
 
         _broadcast_doc_updated(ctx.channel.id, draft, action="created")
         return ToolResult(payload={
-            "document_id":     str(draft.id),
+            "artifact_id":     str(draft.id),
             "version":         draft.version,
             "status":          draft.status,
             "title":           draft.title,
@@ -163,8 +165,8 @@ class ReadDraftTool(DonnaTool):
 
     def run(self, args: ReadDraftArgs, ctx: ToolContext) -> ToolResult:
         draft = (
-            Document.objects
-            .filter(channel=ctx.channel, status=Document.Status.DRAFTING)
+            Artifact.objects
+            .filter(channel=ctx.channel, status=Artifact.Status.DRAFTING)
             .first()
         )
         if draft is None:
@@ -172,7 +174,7 @@ class ReadDraftTool(DonnaTool):
                 "No active draft in this channel. Call create_draft first."
             )
         return ToolResult(payload={
-            "document_id":     str(draft.id),
+            "artifact_id":     str(draft.id),
             "version":         draft.version,
             "title":           draft.title,
             "target_doc_type": draft.target_doc_type,
@@ -231,9 +233,9 @@ class UpdateDraftSectionTool(DonnaTool):
     def run(self, args: UpdateDraftSectionArgs, ctx: ToolContext) -> ToolResult:
         with transaction.atomic():
             draft = (
-                Document.objects
+                Artifact.objects
                 .select_for_update()
-                .filter(channel=ctx.channel, status=Document.Status.DRAFTING)
+                .filter(channel=ctx.channel, status=Artifact.Status.DRAFTING)
                 .first()
             )
             if draft is None:
@@ -261,8 +263,20 @@ class UpdateDraftSectionTool(DonnaTool):
             draft.save(update_fields=["body", "version", "updated_at", "modified_by"])
 
         _broadcast_doc_updated(ctx.channel.id, draft, action="updated")
+
+        # Plan 13 §6.1 — refresh sibling status artifact in the
+        # background so the team can read "where we are" without
+        # scanning the whole body. Best-effort; failure is silent.
+        try:
+            from donna.chat.agents.magicdocs.draft_status_updater import (
+                update_draft_status_doc,
+            )
+            update_draft_status_doc.delay(str(draft.id))
+        except Exception:  # noqa: BLE001
+            pass
+
         return ToolResult(payload={
-            "document_id": str(draft.id),
+            "artifact_id": str(draft.id),
             "version":     draft.version,
             "summary":     out.summary,
         })
@@ -294,8 +308,8 @@ class FinalizeDraftTool(DonnaTool):
 
     def run(self, args: FinalizeDraftArgs, ctx: ToolContext) -> ToolResult:
         draft = (
-            Document.objects
-            .filter(channel=ctx.channel, status=Document.Status.DRAFTING)
+            Artifact.objects
+            .filter(channel=ctx.channel, status=Artifact.Status.DRAFTING)
             .first()
         )
         if draft is None:
@@ -322,7 +336,7 @@ class FinalizeDraftTool(DonnaTool):
         if not getattr(verdict, "ok", False):
             return ToolResult(payload={
                 "rejected_codes": list(getattr(verdict, "codes", []) or []),
-                "document_id":    str(draft.id),
+                "artifact_id":    str(draft.id),
                 "version":        draft.version,
             })
 
@@ -336,7 +350,7 @@ class FinalizeDraftTool(DonnaTool):
         )
 
         with transaction.atomic():
-            draft.status = Document.Status.FINALIZED
+            draft.status = Artifact.Status.FINALIZED
             draft.finalized_entity_id = entity.id
             draft.modified_by = ctx.user
             draft.save(update_fields=[
@@ -346,7 +360,7 @@ class FinalizeDraftTool(DonnaTool):
         _broadcast_doc_updated(ctx.channel.id, draft, action="finalized")
         return ToolResult(payload={
             "entity_id":   str(entity.id),
-            "document_id": str(draft.id),
+            "artifact_id": str(draft.id),
             "version":     draft.version,
         })
 

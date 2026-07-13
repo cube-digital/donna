@@ -56,3 +56,25 @@ def parse(body: str, channel: "Channel") -> tuple[list["User"], dict[str, bool]]
         .distinct()
     )
     return users, flags
+
+
+# Plan 13 §5.2.2 — channel-resident agent mention dispatch.
+def resolve_resident_agents(body: str, channel: "Channel") -> list:
+    """Return ``AgentSession`` rows whose ``resident_handle`` matches an
+    ``@<handle>`` in ``body``. Used by ``ChatService.send_message`` to
+    fan out the turn to channel-resident teammates (ContractBot etc.)
+    instead of (or in addition to) the channel's default agent.
+    """
+    from donna.chat.models import AgentSession
+
+    raw_handles = {m.group(1).lower() for m in _MENTION_RE.finditer(body or "")}
+    candidate = raw_handles - SPECIAL
+    if not candidate:
+        return []
+    return list(
+        AgentSession.objects.filter(
+            channel=channel,
+            is_channel_resident=True,
+            resident_handle__in=candidate,
+        )
+    )

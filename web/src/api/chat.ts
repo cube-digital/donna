@@ -11,7 +11,7 @@
 import { apiFetch } from "./client";
 import type {
   Channel,
-  ChannelDocument,
+  ChannelArtifact,
   Message,
   Paginated,
   ReactionAgg,
@@ -213,22 +213,93 @@ export async function removeReaction(messageId: UUID, emoji: string): Promise<vo
 
 // ── Channel documents (Cowork rail) ──────────────────────────────────────
 
-export async function listChannelDocuments(
+export async function listChannelArtifacts(
   channelId: UUID,
   status?: "drafting" | "finalized" | "abandoned",
-): Promise<ChannelDocument[]> {
+): Promise<ChannelArtifact[]> {
   const qs = status ? `?status=${status}` : "";
-  const data = await apiFetch<ChannelDocument[] | Paginated<ChannelDocument>>(
-    `/api/v1/chat/channels/${channelId}/documents/${qs}`,
+  const data = await apiFetch<ChannelArtifact[] | Paginated<ChannelArtifact>>(
+    `/api/v1/chat/channels/${channelId}/artifacts/${qs}`,
   );
   return Array.isArray(data) ? data : data.results;
 }
 
-export async function getChannelDocument(
+export async function getChannelArtifact(
   channelId: UUID,
   documentId: UUID,
-): Promise<ChannelDocument> {
-  return apiFetch<ChannelDocument>(
-    `/api/v1/chat/channels/${channelId}/documents/${documentId}/`,
+): Promise<ChannelArtifact> {
+  return apiFetch<ChannelArtifact>(
+    `/api/v1/chat/channels/${channelId}/artifacts/${documentId}/`,
+  );
+}
+
+export interface MentionCandidate {
+  kind: "agent" | "user" | "special";
+  id: string;
+  handle: string;
+  label: string;
+  email?: string;
+}
+
+export async function getMentionCandidates(
+  channelId: UUID,
+  q = "",
+  limit = 20,
+): Promise<MentionCandidate[]> {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  params.set("limit", String(limit));
+  const data = await apiFetch<{ data: MentionCandidate[] }>(
+    `/api/v1/chat/channels/${channelId}/mention-candidates/?${params}`,
+  );
+  return data.data ?? [];
+}
+
+// ── Plan 13 §1.3 / §1.5 — HIL answer endpoint ─────────────────────────────
+export interface AnswerQuestionBody {
+  value: string | null;
+  text?: string | null;
+}
+
+export interface AnswerQuestionResponse {
+  question_id: UUID;
+  answer_id: UUID;
+  answer_payload: { value: string | null; text: string | null };
+}
+
+export async function answerQuestion(
+  questionId: UUID,
+  body: AnswerQuestionBody,
+): Promise<AnswerQuestionResponse> {
+  return apiFetch<AnswerQuestionResponse>(
+    `/api/v1/chat/messages/${questionId}/answer/`,
+    { method: "POST", body },
+  );
+}
+
+// ── Plan 13 §5.2.2 — channel-resident agent install / uninstall ──────────
+export interface ChannelAgentInstall {
+  session_id: UUID;
+  handle: string;
+  name: string;
+}
+
+export async function installChannelAgent(
+  channelId: UUID,
+  payload: { handle: string; name?: string },
+): Promise<ChannelAgentInstall> {
+  return apiFetch<ChannelAgentInstall>(
+    `/api/v1/chat/channels/${channelId}/agents/install/`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
+export async function uninstallChannelAgent(
+  channelId: UUID,
+  handle: string,
+): Promise<void> {
+  await apiFetch<void>(
+    `/api/v1/chat/channels/${channelId}/agents/${handle}/`,
+    { method: "DELETE" },
   );
 }

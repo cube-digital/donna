@@ -5,7 +5,7 @@ different prompt + temperature + structured-output contract:
 
 - The conversation agent decides WHEN to call tools and stitches
   together a final answer to the user.
-- The drafter generates / revises a markdown body for a Document
+- The drafter generates / revises a markdown body for a Artifact
   being co-authored in a channel. It accepts retrieved context
   snippets that may contain tainted text and is responsible for
   treating them as DATA, not instructions (mirrors the citation
@@ -73,7 +73,7 @@ class DrafterNode:
             context: Retrieved cortex snippets the drafter may weave in.
                 Each item: ``{"source": "<uri>", "text": "..."}``. May
                 be empty.
-            title: Document title for prompt framing.
+            title: Artifact title for prompt framing.
             target_doc_type: One of cortex.schemas.DocType — informs
                 tone/structure cues in the prompt.
 

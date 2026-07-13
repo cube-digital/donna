@@ -62,6 +62,16 @@ export interface MessageWsPayload {
   created_at: ISODateTime | null;
   updated_at: ISODateTime | null;
   client_msg_id?: string | null;
+  // Plan 13 §1.3 / §1.5 — only present on question/answer rows.
+  server_kind?: "chat" | "question" | "answer";
+  question_options?: { label: string; value: string; description?: string }[];
+  answer_payload?: {
+    value: string | null;
+    text: string | null;
+    expired?: boolean;
+  } | null;
+  answered_message?: UUID | null;
+  expires_at?: ISODateTime | null;
 }
 
 export interface EventMap {
@@ -93,12 +103,41 @@ export interface EventMap {
     emoji: string;
     user_id: string;
   };
-  "document.updated": { channel_id: string; document: unknown };
+  "artifact.updated": { channel_id: string; artifact: unknown };
   "read.advanced": {
     channel_id: string;
     user_id: string;
     message_id: string;
     read_at: string | null;
+  };
+  // ── Plan 13 ────────────────────────────────────────────────────────
+  // §1.2 — Haiku one-line tool batch summary. Emitted on the agent_run
+  // group after each tool batch completes; ChannelView renders a chip
+  // under the last agent message.
+  "agent.tool_summary": { summary: string; tool_count: number };
+  // §8.2 — ambient agent state chip (drafting / waiting_on_user / ...).
+  "chat.agent.status": {
+    session_id: string;
+    channel_id: string;
+    state:
+      | "typing"
+      | "drafting"
+      | "waiting_on_user"
+      | "running_tool"
+      | "scheduled_for"
+      | "idle";
+    detail: string;
+    eta: string;
+  };
+  // §5.3.2 (deferred — preserved for forward compat). Subagent
+  // transcripts broadcast to the parent channel for cross-agent
+  // visibility. The renderer is stubbed in v1.
+  "chat.subagent.message": {
+    parent_session_id: string;
+    subagent_type: string;
+    subagent_name: string;
+    message_text: string;
+    round: number;
   };
   error: { code: string; detail: string };
 }
@@ -238,7 +277,12 @@ class Client implements ChatWsClient {
     }
 
     this._status = "connecting";
-    const url = buildWsUrl();
+    // Pass the token both as a subprotocol (preferred) AND as a query
+    // param (fallback). Vite's dev proxy + some reverse proxies strip
+    // the Sec-WebSocket-Protocol header; query params always survive.
+    const baseUrl = buildWsUrl();
+    const sep = baseUrl.includes("?") ? "&" : "?";
+    const url = `${baseUrl}${sep}token=${encodeURIComponent(token)}`;
     let ws: WebSocket;
     try {
       ws = new WebSocket(url, ["bearer", token]);

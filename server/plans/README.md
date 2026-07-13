@@ -26,6 +26,11 @@ The `/docs/` files remain useful as background on the original problem and trust
 9. [08b-google-drive-integration.md](08b-google-drive-integration.md) — Drive integration: hybrid Google Picker + custom folder browser; progressive OAuth scope (`drive.file` → `drive.readonly` upgrade); v1 file-type coverage; Shared Drives included.
 10. [09-auth-and-notifications.md](09-auth-and-notifications.md) — User authentication (email/password + Google login + password reset + email verification) and in-app notifications (DB feed + SSE). Cherry-picked from narrio's production code.
 11. [10-realtime-layer.md](10-realtime-layer.md) — Realtime architecture: SSE per-(user, workspace) for notifications + Django Channels WebSockets for chat / DMs / presence / agent token streaming. One Redis pubsub backbone, two transports.
+12. [11-nango-integration.md](11-nango-integration.md) — Nango as the long-tail fleet for low-priority connectors; relationship to the Tier 1 (custom) integration framework.
+13. [12-deployment-pipelines.md](12-deployment-pipelines.md) — Cloud GitOps + self-host tagged releases (GHCR + Helm); settings split; Dockerfile + entrypoint hardening; CI/CD workflows. Coordinates w/ [13](13-agent-runtime-maturity.md) Phase 3.4 on the `worker-io` / `worker-cpu` compose split.
+14. [13-agent-runtime-maturity.md](13-agent-runtime-maturity.md) — Drafting, memory, multi-agent, automation. Eight-phase build sequence taking the chat agent from generic to channel-resident ambient teammates. Renamed 2026-06-25 from the original "Claude Code pattern adoption" framing — every pattern is adopted *because* it serves Donna's Cowork shape, not because Donna is becoming Claude Code.
+15. [14-frontend-integration.md](14-frontend-integration.md) — Eight frontend feature deliverables; tracks the web client against the backend phases shipped by 09, 10, 13.
+16. [15-remaining-roadmap.md](15-remaining-roadmap.md) — Consolidated index of what's left across plans 11, 12, 13, 14 + cortex. Fourteen phases tier-ordered S/A/B/C with cross-references back to each originating plan. Refreshed 2026-06-28 from the post-v1 audit.
 
 ## Reference / deep dives
 

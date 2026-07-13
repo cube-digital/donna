@@ -3,7 +3,7 @@
 > Source of decisions: 2026-06-25 chat with Rares.
 > Source of current state: `server/donna/chat/models.py`, `server/donna/workspaces/models.py`,
 > `web/src/`, `desktop/src/main.ts` (verified 2026-06-25).
-> Out of scope: cortex Phase 6, Claude Code pattern adoption (see [13](13-claude-code-pattern-adoption.md)),
+> Out of scope: cortex Phase 6, agent runtime maturity (see [13](13-agent-runtime-maturity.md)),
 > Nango integration (see [11](11-nango-integration.md)), deployment pipelines (see [12](12-deployment-pipelines.md)).
 > Desktop client (`desktop/`) is empty shell; this plan ships against `web/` only.
 > Desktop will reuse the same API surface in a future iteration.

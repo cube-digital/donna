@@ -19,6 +19,7 @@ urlpatterns = [
     path("api/v1/notifications/", include("donna.notifications.urls")),
     path("api/v1/chat/", include("donna.chat.urls")),
     path("api/v1/cortex/", include("donna.cortex.urls")),
+    path("api/v1/automation/", include("donna.automation.urls")),
 
     # API schema + Swagger UI. Always mounted; gate behind auth in prod
     # via SPECTACULAR_SETTINGS["SERVE_PERMISSIONS"] if needed.

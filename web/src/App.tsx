@@ -23,6 +23,7 @@ import WorkspacePicker from "./views/WorkspacePicker";
 import AppShell from "./components/Shell/AppShell";
 import { ToastStack } from "./components/Shell/ToastStack";
 import Channel from "./views/Channel";
+import Files from "./views/Files";
 import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
@@ -120,6 +121,8 @@ export default function App() {
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/integrations/:slug" element={<IntegrationDetail />} />
           <Route path="/search" element={<ComingSoon title="Search & history" />} />
+          <Route path="/cortex" element={<Files />} />
+          <Route path="/files" element={<Navigate to="/cortex" replace />} />
           <Route path="/agents/:agentId" element={<ComingSoon title="Agent profile" />} />
           <Route path="/projects/:projectId" element={<ComingSoon title="Project overview" />} />
           <Route path="*" element={<Navigate to="/channels" replace />} />

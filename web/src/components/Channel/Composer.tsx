@@ -47,6 +47,8 @@ import {
 } from "../Goofy";
 import type { Message } from "../../types";
 import { EmojiPicker } from "./EmojiPicker";
+import { MentionPopover } from "./MentionPopover";
+import type { MentionCandidate } from "../../api/chat";
 
 interface ComposerProps {
   channelId: string;
@@ -154,6 +156,60 @@ export default function Composer({
   const [emojiAnchor, setEmojiAnchor] = useState<DOMRect | null>(null);
   const emojiBtnRef = useRef<HTMLButtonElement | null>(null);
 
+  // Mention popover state.
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const mentionAnchorRef = useRef<{ start: number; end: number } | null>(null);
+
+  function detectMentionAtCursor(value: string, cursor: number): { start: number; q: string } | null {
+    // Walk back from cursor to find an `@` not preceded by an alnum/underscore.
+    let i = cursor - 1;
+    while (i >= 0) {
+      const ch = value[i];
+      if (ch === "@") {
+        const prev = i > 0 ? value[i - 1] : "";
+        if (prev && /[A-Za-z0-9_]/.test(prev)) return null;
+        return { start: i, q: value.slice(i + 1, cursor) };
+      }
+      if (/\s/.test(ch)) return null;
+      i--;
+    }
+    return null;
+  }
+
+  const onComposerChange = (next: string, cursor: number) => {
+    setText(next);
+    const m = detectMentionAtCursor(next, cursor);
+    if (m) {
+      mentionAnchorRef.current = { start: m.start, end: cursor };
+      setMentionQuery(m.q);
+    } else {
+      mentionAnchorRef.current = null;
+      setMentionQuery(null);
+    }
+  };
+
+  const onMentionSelect = (c: MentionCandidate) => {
+    const anchor = mentionAnchorRef.current;
+    if (!anchor) {
+      setMentionQuery(null);
+      return;
+    }
+    const before = text.slice(0, anchor.start);
+    const after = text.slice(anchor.end);
+    const insertion = `@${c.handle} `;
+    const next = before + insertion + after;
+    setText(next);
+    setMentionQuery(null);
+    mentionAnchorRef.current = null;
+    requestAnimationFrame(() => {
+      if (!textareaRef.current) return;
+      const pos = (before + insertion).length;
+      textareaRef.current.selectionStart = pos;
+      textareaRef.current.selectionEnd = pos;
+      textareaRef.current.focus();
+    });
+  };
+
   const insertAtCursor = useCallback(
     (snippet: string) => {
       const el = textareaRef.current;
@@ -194,13 +250,14 @@ export default function Composer({
   void ai;
 
   return (
-    <div className="mx-auto mt-2 mb-4 max-w-[720px] w-[calc(100%-36px)] border border-border-soft rounded-[14px] bg-bg-1 overflow-hidden">
+    <div className="mx-auto mt-2 mb-4 max-w-[720px] w-[calc(100%-36px)] border border-border-soft rounded-[14px] bg-bg-1 overflow-visible relative">
       <textarea
         ref={textareaRef}
         value={text}
         onChange={(e) => {
           const next = e.target.value;
-          setText(next);
+          const cursor = e.target.selectionStart ?? next.length;
+          onComposerChange(next, cursor);
           const now = Date.now();
           if (
             next.length > 0 &&
@@ -214,6 +271,14 @@ export default function Composer({
         placeholder={ph}
         rows={2}
         className="w-full resize-none bg-transparent px-4 py-3 text-[14px] text-text-0 placeholder:text-text-3 outline-none border-0"
+      />
+      <MentionPopover
+        channelId={channelId}
+        query={mentionQuery ?? ""}
+        open={mentionQuery !== null}
+        onSelect={onMentionSelect}
+        onClose={() => setMentionQuery(null)}
+        inputRef={textareaRef}
       />
 
       {charCount > 0 ? (

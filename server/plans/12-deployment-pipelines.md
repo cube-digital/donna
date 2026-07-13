@@ -696,6 +696,17 @@ IGNORED_PATHS = [
 **Goal:** dev compose stays at repo root; new compose lives under
 `deploy/self_host/` for customers to consume.
 
+> **Coordinate w/ Plan 13 Phase 3.4 (Celery worker split).** The
+> single `worker:` service shown below is the *current* shape. Plan 13
+> Phase 3.4 splits it into `worker-io` (gevent pool, queues:
+> `webhooks,notifications,integrations,schedules`) and `worker-cpu`
+> (prefork pool, queues: `agents,memory,dreams,feedback`). Whichever
+> plan ships first wins the topology; the self-host compose under
+> `deploy/self_host/` MUST land the two-worker shape from day one
+> (don't ship a single-worker self-host that customers then have to
+> migrate from). The entrypoint dispatches by `CELERY_WORKER_POOL`
+> env var.
+
 ### 2.1 Restructure
 
 **Move:** `server/docker-compose.yml` → `server/docker-compose.dev.yml`.

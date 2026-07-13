@@ -79,16 +79,41 @@ class SubprotocolJWTAuthMiddleware(BaseMiddleware):
     """
 
     async def __call__(self, scope, receive, send):
-        token = _extract_token(scope.get("subprotocols") or [])
+        subprotocols = scope.get("subprotocols") or []
+        token = _extract_token(subprotocols)
+        # Fallback: token in querystring (?token=<jwt>). Some proxies
+        # (vite-dev, nginx without ws subprotocol pass-through) strip
+        # Sec-WebSocket-Protocol headers. Query-string is universally
+        # forwarded.
+        if not token:
+            token = _extract_token_from_qs(scope.get("query_string") or b"")
         if token:
             scope["user"] = await resolve_jwt_user(token)
-            # Record so the consumer can accept the matching subprotocol.
-            scope["jwt_subprotocol"] = (
-                "bearer" if " " not in token and "." not in token else None
-            )
+            # When the client offered a subprotocol we must echo one back
+            # or some browsers (Chrome) abort the handshake with code 1006
+            # even though Channels' default accept() permits it. Echo
+            # "bearer" whenever the client offered it; otherwise None.
+            if any(sp.lower() == "bearer" for sp in subprotocols):
+                scope["jwt_subprotocol"] = "bearer"
+            else:
+                scope["jwt_subprotocol"] = None
         else:
             scope["user"] = AnonymousUser()
         return await super().__call__(scope, receive, send)
+
+
+def _extract_token_from_qs(query_string: bytes) -> str | None:
+    """Pull ``token=<jwt>`` from the WS query string."""
+    from urllib.parse import parse_qs
+
+    try:
+        params = parse_qs(query_string.decode("utf-8"))
+    except UnicodeDecodeError:
+        return None
+    values = params.get("token") or params.get("access_token")
+    if not values:
+        return None
+    return values[0] or None
 
 
 def _extract_token(subprotocols: list[str]) -> str | None:

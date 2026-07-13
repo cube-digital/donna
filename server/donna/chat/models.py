@@ -128,13 +128,31 @@ class AgentSession(TimestampsMixin):
     but the schema admits multiple personas/specialists without restructuring.
     Memory and config are kept here so they have their own lifecycle —
     resetting an agent = ``session.delete() + AgentSession.objects.create(...)``.
+
+    ``mode`` (Plan 13 §2.1) gates which tools the agent can use this turn:
+    chat (Q&A only), drafting (Q&A + draft mutations), planning (read-only
+    rehearsal — no writes until user approves).
     """
+
+    class Mode(models.TextChoices):
+        CHAT = "chat", "chat"
+        DRAFTING = "drafting", "drafting"
+        PLANNING = "planning", "planning"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120, default="Donna")
+    mode = models.CharField(max_length=16, choices=Mode.choices, default=Mode.CHAT)
     memory = models.JSONField(default=dict, blank=True)
     config = models.JSONField(default=dict, blank=True)
     last_active_at = models.DateTimeField(null=True, blank=True)
+
+    # Plan 13 §5.2.2 — channel-resident named agents. When True, the
+    # session belongs to a channel-installed teammate addressable via
+    # ``@<resident_handle>`` (e.g. ContractBot installed in #legal).
+    # The unique constraint below prevents two agents owning the same
+    # handle in one channel.
+    is_channel_resident = models.BooleanField(default=False)
+    resident_handle = models.SlugField(max_length=40, blank=True, default="")
 
     # Relationships
     channel = models.ForeignKey(
@@ -146,9 +164,84 @@ class AgentSession(TimestampsMixin):
     class Meta:
         db_table = "agent_sessions"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["channel", "resident_handle"],
+                condition=models.Q(is_channel_resident=True),
+                name="uniq_resident_agent_per_channel",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.name}@{self.channel_id}"
+
+
+class SessionMemory(TimestampsMixin):
+    """Plan 13 §4.1 + §4.4 — per-turn extracted notes.
+
+    Replaces the unbounded ``AgentSession.memory`` JSONField for
+    accumulating learnings. Each turn the post-turn extractor (Haiku)
+    emits zero or more rows tagged by ``scope`` so cross-session reads
+    can shard by relationship — "what does Donna know about Acme?" is a
+    cheap index hit, not a full JSON scan.
+
+    The ``scope`` discriminator:
+    - ``user``    : facts about the active user
+    - ``channel`` : facts about the channel itself (project, focus area)
+    - ``peer``    : facts about another participant
+    - ``project`` : facts about a cortex Project entity
+    - ``org``     : facts about a client / vendor / peer org
+    - ``self``    : facts the agent learned about its own behavior
+
+    ``scope_ref`` is the foreign id (user_id / channel_id / project_id /
+    org_id). Stored as a CharField so cross-app references stay loose;
+    the cortex consolidation worker (§4.2) hydrates as needed.
+    """
+
+    class Scope(models.TextChoices):
+        USER = "user", "user"
+        CHANNEL = "channel", "channel"
+        PEER = "peer", "peer"
+        PROJECT = "project", "project"
+        ORG = "org", "org"
+        SELF = "self", "self"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        "AgentSession",
+        on_delete=models.CASCADE,
+        related_name="memory_entries",
+    )
+    turn_id = models.CharField(max_length=40)
+    scope = models.CharField(
+        max_length=16, choices=Scope.choices, default=Scope.USER,
+    )
+    scope_ref = models.CharField(max_length=80, blank=True, default="")
+    body = models.TextField()
+    confidence = models.FloatField(default=0.7)
+    # Snapshot of the AutoDream daily worker's last consolidation pass,
+    # so we don't re-consolidate already-merged notes. NULL = unprocessed.
+    consolidated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "chat_session_memory"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["session", "scope"]),
+            # §4.4 — cross-session lookup by (scope, scope_ref):
+            # "show me everything Donna knows about Acme."
+            models.Index(fields=["scope", "scope_ref"]),
+            # AutoDream picks unprocessed rows.
+            models.Index(
+                fields=["consolidated_at"],
+                condition=models.Q(consolidated_at__isnull=True),
+                name="sessionmem_pending_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        body_preview = self.body[:60].replace("\n", " ")
+        return f"[{self.scope}:{self.scope_ref}] {body_preview}"
 
 
 class Message(TimestampsMixin):
@@ -205,6 +298,45 @@ class Message(TimestampsMixin):
         help_text='Special mentions: {"donna": bool, "channel": bool, "everyone": bool}.',
     )
 
+    # Plan 13 §1.3 / §1.5 — HIL question/answer kind. ``chat`` (default)
+    # behaves as before; ``question`` is an agent-authored message awaiting
+    # user input; ``answer`` is the user's reply, linked via
+    # ``answered_message``. ``answer_payload`` is mirrored onto the
+    # question row on resolution so the agent can read it without a join.
+    class Kind(models.TextChoices):
+        CHAT = "chat", "chat"
+        QUESTION = "question", "question"
+        ANSWER = "answer", "answer"
+
+    kind = models.CharField(
+        max_length=16,
+        choices=Kind.choices,
+        default=Kind.CHAT,
+    )
+    question_options = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Question-kind only: [{label, value, description}] for the picker.",
+    )
+    answer_payload = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Set on a QUESTION row when answered, OR carries the answer body on an ANSWER row.",
+    )
+    answered_message = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="answers",
+        help_text="ANSWER kind: points back to the QUESTION it resolves.",
+    )
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="QUESTION kind: cleanup cron retires the question after this time.",
+    )
+
     class Meta:
         db_table = "messages"
         ordering = ["created_at"]
@@ -220,6 +352,12 @@ class Message(TimestampsMixin):
         indexes = [
             models.Index(fields=["channel", "created_at"]),
             models.Index(fields=["parent", "created_at"]),
+            # Plan 13 §1.5 — cheap "open questions in this channel" query.
+            models.Index(
+                fields=["channel", "kind", "expires_at"],
+                condition=models.Q(kind="question", answer_payload__isnull=True),
+                name="msg_open_question_idx",
+            ),
         ]
 
 
@@ -271,7 +409,7 @@ class ChannelReadState(TimestampsMixin):
         return f"read({self.user_id}@{self.channel_id})"
 
 
-class Document(TimestampsMixin, UserAuditMixin):
+class Artifact(TimestampsMixin, UserAuditMixin):
     """A Cowork-style collaborative artifact created within a channel.
 
     A2 (2026-06-20): now carries the drafting lifecycle. Exactly one
@@ -295,7 +433,7 @@ class Document(TimestampsMixin, UserAuditMixin):
     channel = models.ForeignKey(
         Channel,
         on_delete=models.CASCADE,
-        related_name="documents",
+        related_name="artifacts",
     )
     title = models.CharField(max_length=255)
     body = models.TextField(blank=True)
@@ -312,8 +450,18 @@ class Document(TimestampsMixin, UserAuditMixin):
     )
     finalized_entity_id = models.UUIDField(null=True, blank=True)
 
+    # Plan 13 §6.1 + §6.3 — free-form metadata bag.
+    #
+    # §6.1 (MagicDocs): when the agent updates this artifact, a sibling
+    #   "status" artifact tracks the agent's progress notes via
+    #   ``metadata['status_artifact_id']``.
+    # §6.3 (multi-audience): when the drafter emits N artifacts for N
+    #   audiences, each carries ``metadata['audience'] = "team" |
+    #   "customer" | "executive" | ...`` so the rail can group them.
+    metadata = models.JSONField(default=dict, blank=True)
+
     class Meta:
-        db_table = "documents"
+        db_table = "artifacts"
         ordering = ["-updated_at"]
         constraints = [
             models.UniqueConstraint(

@@ -236,7 +236,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             raise ValueError("channel_id required")
         if not await self._authorize_channel(cid):
             raise PermissionError(f"no membership in channel {cid}")
-        ChannelService.emit_typing(channel_id=cid, user_id=self.user.id)
+        # Native async — never wrap in async_to_sync from an async consumer.
+        from channels.layers import get_channel_layer
+        from donna.chat.services import channel_typing_group
+        layer = get_channel_layer()
+        if layer is not None:
+            await layer.group_send(
+                channel_typing_group(cid),
+                {
+                    "type":    "chat.typing",
+                    "payload": {"channel_id": str(cid), "user_id": str(self.user.id)},
+                },
+            )
 
     async def _action_mark_read(self, content):
         cid = content.get("channel_id")
@@ -326,6 +337,23 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_dm_opened(self, event):
         await self.send_json({"event": "dm.opened", **event["payload"]})
+
+    async def chat_artifact_updated(self, event):
+        await self.send_json({"event": "artifact.updated", **event["payload"]})
+
+    # Plan 13 §8.2 — ambient agent status (drafting / waiting_on_user / …)
+    # broadcast on the channel group by ``broadcast_agent_status``.
+    async def chat_agent_status(self, event):
+        await self.send_json({"event": "chat.agent.status", **event["payload"]})
+
+    # Plan 13 §1.2 — Haiku tool-batch one-liner; broadcast on the
+    # agent_run group, but useful on channel context too. The frontend
+    # ToolSummaryChip listens for it; we forward whatever lands.
+    async def chat_tool_summary(self, event):
+        await self.send_json({"event": "agent.tool_summary", **event["payload"]})
+
+    async def agent_tool_summary(self, event):
+        await self.send_json({"event": "agent.tool_summary", **event["payload"]})
 
     # ── Internals ───────────────────────────────────────────────────────────
     async def _group_add(self, group: str) -> None:

@@ -30,6 +30,9 @@ import { useMemo } from "react";
 import { GIconButton, GlyphSlot } from "../Goofy";
 import { useChannels } from "../../state/channels";
 import type { AgentRef, Channel, Message, User } from "../../types";
+import { AgentStatusChip } from "./AgentStatusChip";
+import { FilesToggle } from "./FilesToggle";
+import { ToolSummaryChip } from "./ToolSummaryChip";
 
 interface ChannelHeaderProps {
   channel: Channel;
@@ -95,6 +98,10 @@ export default function ChannelHeader({
           <span className="font-display font-semibold text-[16px] text-text-0">
             {channel.name || (isDM ? "Direct message" : "channel")}
           </span>
+          {/* Plan 13 §8.2 — ambient agent state inline next to the name. */}
+          <AgentStatusChip channelId={channel.id} />
+          {/* Plan 13 §1.2 — Haiku one-liner under the header when fresh. */}
+          <ToolSummaryChip channelId={channel.id} />
           <GIconButton
             icon="star"
             size="sm"
@@ -111,6 +118,8 @@ export default function ChannelHeader({
       </div>
 
       <div className="flex-1" />
+
+      <FilesToggle channelId={channel.id} />
 
       <span
         className="inline-flex items-center gap-[5px] text-[11px] font-semibold px-[9px] py-[3px] rounded-md bg-ai-bg text-ai-deep"

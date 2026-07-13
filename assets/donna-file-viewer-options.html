@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donna — file/note viewer · palette options</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.31.0/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:oklch(0.965 0.02 92);--paper:oklch(0.995 0.006 92);--panel:oklch(0.955 0.02 92);
+    --line:oklch(0.30 0.02 285/.10);--line2:oklch(0.30 0.02 285/.16);
+    --ink:oklch(0.26 0.03 285);--onbright:oklch(0.22 0.04 285);
+    --t0:oklch(0.24 0.03 285);--t2:oklch(0.44 0.025 285);--t3:oklch(0.55 0.02 285);--t4:oklch(0.64 0.018 285);
+    --grape:oklch(0.52 0.21 288);--gdeep:oklch(0.40 0.18 288);--gbg:oklch(0.52 0.21 288/.10);
+    --amberbg:oklch(0.84 0.16 80/.32);--amberink:oklch(0.42 0.11 60);
+    --paper-dot:oklch(0.26 0.03 285/.05);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#cfcabb;font-family:'Inter',system-ui,sans-serif;color:var(--t2);min-height:100vh;padding:32px;}
+  h1{font-size:18px;color:#2a2438;margin-bottom:4px;}
+  .note{font-size:12px;color:#6b6478;margin-bottom:22px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;max-width:1100px;}
+  .col{display:flex;flex-direction:column;}
+  .lab{font-size:12px;color:#2a2438;font-weight:600;margin:0 0 8px 2px;}
+  .mono{font-family:ui-monospace,monospace;}
+  .panel{background:var(--cream);background-image:radial-gradient(var(--paper-dot) 1.2px,transparent 1.2px);background-size:15px 15px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;height:340px;display:flex;flex-direction:column;}
+  .chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:5px;}
+  .ver{font-size:10px;font-weight:600;color:var(--t4);}
+  .docttl{font-weight:700;color:var(--t0);font-size:14px;line-height:1.25;}
+  .body{flex:1;overflow:hidden;font-size:10.5px;line-height:1.6;color:var(--t2);}
+  .body b{color:var(--t0);font-weight:700;}
+  .x{margin-left:auto;font-size:13px;}
+  .foot{padding:8px 11px;display:flex;align-items:center;gap:7px;font-size:10px;color:var(--t3);}
+  .ahd{background:var(--gbg);padding:9px 11px;display:flex;align-items:center;gap:7px;color:var(--gdeep);}
+  .acard{margin:11px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+  .bhd{background:var(--paper);border-bottom:2px solid var(--ink);padding:9px 11px;display:flex;align-items:center;gap:7px;color:var(--t0);}
+  .bpath{font-size:9px;color:var(--t3);background:var(--gbg);padding:2px 7px;border-radius:5px;border:1px solid var(--line2);}
+  .bcard{margin:11px;background:var(--paper);border:2px solid var(--ink);border-radius:10px;padding:12px;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+  .chd{padding:11px 12px 0;display:flex;align-items:center;gap:6px;}
+  .eyebrow{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gdeep);}
+  .cwrap{padding:10px 13px;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+  .rule{height:1px;background:var(--line);}
+  .dcard{margin:11px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--grape);border-radius:8px;padding:12px;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+  .dhd{padding:9px 11px;display:flex;align-items:center;gap:7px;color:var(--t2);border-bottom:1px solid var(--line);}
+</style>
+</head>
+<body>
+  <h1>Donna · file / note viewer — palette options</h1>
+  <p class="note">Same cortex note, four ways to fit the cream-and-grape palette. Type chip = grape, status chip = amber (drafting). Pick one or mix.</p>
+  <div class="grid">
+
+    <div class="col">
+      <p class="lab">A · Grape header + chips</p>
+      <div class="panel">
+        <div class="ahd"><i class="ti ti-file-text" style="font-size:13px;"></i><b style="font-size:11px;">File</b><span class="mono" style="font-size:9px;opacity:.85;">note/client-status…</span><i class="ti ti-x x"></i></div>
+        <div class="acard">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="chip" style="background:var(--gbg);color:var(--gdeep);">note</span>
+            <span class="chip" style="background:var(--amberbg);color:var(--amberink);">drafting</span>
+            <span class="ver" style="margin-left:auto;">v6</span>
+          </div>
+          <div class="docttl">Client Status Update — Feature Launch</div>
+          <div class="body"><b>TODO:</b> The instruction requests a full replacement with an essay about the OSI model. This conflicts with the document title, which implies client-facing project communication rather than technical networking docs. Awaiting clarification before proceeding.</div>
+        </div>
+        <div class="foot" style="border-top:1px solid var(--line);"><span class="mono" style="color:var(--t4);">status:</span><span style="color:var(--amberink);font-weight:600;">drafting</span><span style="color:var(--t4);">·</span><span style="color:var(--gdeep);font-weight:600;">note</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p class="lab">B · Flat bold chrome</p>
+      <div class="panel">
+        <div class="bhd"><i class="ti ti-menu-2" style="font-size:13px;"></i><b style="font-size:11px;">File</b><span class="bpath mono">note/client-status…</span><i class="ti ti-x x"></i></div>
+        <div class="bcard">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="chip" style="background:var(--grape);color:#fff;">note</span>
+            <span class="chip" style="background:var(--paper);color:var(--t0);border:1.5px solid var(--ink);">drafting</span>
+            <span class="ver mono" style="margin-left:auto;">v6</span>
+          </div>
+          <div class="docttl">Client Status Update — Feature Launch</div>
+          <div class="body"><b>TODO:</b> The instruction requests a full replacement with an essay about the OSI model. This conflicts with the document title, which implies client-facing project communication rather than technical networking docs. Awaiting clarification before proceeding.</div>
+        </div>
+        <div class="foot" style="border-top:2px solid var(--ink);"><span class="mono" style="color:var(--t4);">status:</span><span style="color:var(--t0);font-weight:700;">drafting</span><span style="color:var(--t4);">·</span><span style="color:var(--gdeep);font-weight:700;">note</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p class="lab">C · Minimal editorial</p>
+      <div class="panel">
+        <div class="chd"><i class="ti ti-file-text" style="color:var(--grape);font-size:13px;"></i><span class="mono" style="font-size:9px;color:var(--t4);">note/client-status…</span><i class="ti ti-x x" style="color:var(--t4);"></i></div>
+        <div class="cwrap">
+          <div class="eyebrow"><i class="ti ti-note" style="font-size:10px;"></i>note · drafting · v6</div>
+          <div class="docttl" style="font-size:15px;">Client Status Update — Feature Launch</div>
+          <div class="rule"></div>
+          <div class="body"><b>TODO:</b> The instruction requests a full replacement with an essay about the OSI model. This conflicts with the document title, which implies client-facing project communication rather than technical networking docs. Awaiting clarification before proceeding.</div>
+        </div>
+        <div class="foot" style="border-top:1px solid var(--line);"><i class="ti ti-circle-dot" style="font-size:10px;color:var(--amberink);"></i><span style="color:var(--t3);">Drafting · last saved 10:51</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p class="lab">D · Grape accent bar</p>
+      <div class="panel">
+        <div class="dhd"><i class="ti ti-file-text" style="font-size:13px;color:var(--grape);"></i><b style="font-size:11px;color:var(--t0);">File</b><span class="mono" style="font-size:9px;color:var(--t4);">note/client-status…</span><i class="ti ti-x x" style="color:var(--t4);"></i></div>
+        <div class="dcard">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="chip" style="background:var(--gbg);color:var(--gdeep);"><i class="ti ti-note" style="font-size:9px;"></i>note</span>
+            <span class="chip" style="background:var(--amberbg);color:var(--amberink);">drafting</span>
+            <span class="ver" style="margin-left:auto;">v6</span>
+          </div>
+          <div class="docttl">Client Status Update — Feature Launch</div>
+          <div class="body"><b>TODO:</b> The instruction requests a full replacement with an essay about the OSI model. This conflicts with the document title, which implies client-facing project communication rather than technical networking docs. Awaiting clarification before proceeding.</div>
+        </div>
+        <div class="foot" style="border-top:1px solid var(--line);"><i class="ti ti-clock" style="font-size:10px;color:var(--t4);"></i><span style="color:var(--t3);">Last saved 10:51 · note</span></div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

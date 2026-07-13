@@ -19,10 +19,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ...models import (
+    AgentSession,
     Channel,
     ChannelMembership,
     ChannelReadState,
-    Document,
+    Artifact,
     Message,
     MessageReaction,
 )
@@ -35,7 +36,7 @@ from .serializers import (
     ChannelSerializer,
     ChannelUpdateSerializer,
     DMOpenSerializer,
-    DocumentSerializer,
+    ArtifactSerializer,
     GroupDMOpenSerializer,
     MessageCreateSerializer,
     MessageEditSerializer,
@@ -282,6 +283,132 @@ class MessageDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# ── Plan 13 §1.5 — answer an AskUserQuestion ────────────────────────────────
+class MessageAnswerView(APIView):
+    """``POST /chat/messages/{id}/answer`` — resolve a HIL question.
+
+    Body: ``{"value": <picked-value>, "text": "<optional free text>"}``.
+
+    Side effects (atomic):
+    1. Writes an ANSWER message child linked via ``answered_message``.
+    2. Mirrors the payload onto the parent QUESTION row's
+       ``answer_payload`` so the resumer can read it without a join.
+    3. Enqueues ``chat.resume_turn`` so the suspended agent loop
+       continues from the saved graph state on AgentSession.memory.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        from django.db import transaction
+        from django.utils import timezone
+
+        question = get_object_or_404(
+            Message,
+            id=id,
+            channel__workspace=request.workspace,
+            kind=Message.Kind.QUESTION,
+        )
+        if question.answer_payload is not None:
+            raise ValidationError("question is already answered")
+        if question.expires_at and question.expires_at < timezone.now():
+            raise ValidationError("question has expired")
+
+        payload = {
+            "value": request.data.get("value"),
+            "text": request.data.get("text"),
+        }
+        with transaction.atomic():
+            answer = Message.objects.create(
+                channel=question.channel,
+                author_user=request.user,
+                body=request.data.get("text") or str(payload["value"] or ""),
+                kind=Message.Kind.ANSWER,
+                answered_message=question,
+                answer_payload=payload,
+                parent=question.parent_id and question.parent or None,
+            )
+            # Mirror onto the question row for the resumer's join-free read.
+            question.answer_payload = payload
+            question.save(update_fields=["answer_payload", "updated_at"])
+
+        # Best-effort resume kick — task lives in chat.tasks.
+        try:
+            from donna.chat.tasks import resume_turn
+            resume_turn.delay(str(question.id))
+        except Exception:  # noqa: BLE001 — resume is best-effort here
+            pass
+
+        return Response({
+            "question_id": str(question.id),
+            "answer_id": str(answer.id),
+            "answer_payload": payload,
+        }, status=status.HTTP_200_OK)
+
+
+# ── Plan 13 §5.2.2 — channel-resident agent install / uninstall ─────────────
+class ChannelAgentInstallView(APIView):
+    """``POST /chat/channels/<id>/agents/install/`` — install a resident
+    agent under a handle. Body: ``{"handle": "...", "name": "..."}``."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        from donna.chat.models import AgentSession
+
+        channel = get_object_or_404(
+            Channel, id=id, workspace=request.workspace,
+        )
+        handle = (request.data.get("handle") or "").strip()
+        if not handle:
+            raise ValidationError("handle is required")
+        display_name = request.data.get("name") or handle.capitalize()
+        # Partial-unique enforces uniqueness at the DB layer; surface a
+        # clean 400 instead of letting IntegrityError leak.
+        if AgentSession.objects.filter(
+            channel=channel,
+            resident_handle=handle,
+            is_channel_resident=True,
+        ).exists():
+            raise ValidationError(
+                f"an agent with handle '{handle}' is already installed in this channel"
+            )
+        session = AgentSession.objects.create(
+            channel=channel,
+            name=display_name,
+            is_channel_resident=True,
+            resident_handle=handle,
+        )
+        return Response({
+            "session_id": str(session.id),
+            "handle": handle,
+            "name": display_name,
+        }, status=status.HTTP_201_CREATED)
+
+
+class ChannelAgentUninstallView(APIView):
+    """``DELETE /chat/channels/<id>/agents/<handle>/``."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, id, handle):
+        from donna.chat.models import AgentSession
+
+        channel = get_object_or_404(
+            Channel, id=id, workspace=request.workspace,
+        )
+        try:
+            session = AgentSession.objects.get(
+                channel=channel,
+                resident_handle=handle,
+                is_channel_resident=True,
+            )
+        except AgentSession.DoesNotExist as exc:
+            raise NotFound(f"no resident agent '{handle}' in this channel") from exc
+        session.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 # ── Channel membership ──────────────────────────────────────────────────────
 def _get_workspace_channel(request, channel_id) -> Channel:
     """Resolve a channel scoped to the active workspace, 404 otherwise."""
@@ -521,20 +648,20 @@ class ChannelReadStateView(APIView):
         return Response(data)
 
 
-# ── Documents (A2 drafting visibility, 2026-06-21) ─────────────────────────
-class ChannelDocumentsView(generics.ListAPIView):
-    """``/chat/channels/{id}/documents/`` — read-only list.
+# ── Artifacts (A2 drafting visibility, 2026-06-21) ─────────────────────────
+class ChannelArtifactsView(generics.ListAPIView):
+    """``/chat/channels/{id}/artifacts/`` — read-only list.
 
-    Surfaces every Document attached to the channel — drafting,
+    Surfaces every Artifact attached to the channel — drafting,
     finalized, abandoned — newest first. Polled by Bruno / frontend to
     inspect draft state as the agent works (the A2 lifecycle has no
     other HTTP surface; ``UpdateDraftSectionTool`` pushes
-    ``chat.document.updated`` over WS for live UIs).
+    ``chat.artifact.updated`` over WS for live UIs).
 
     Filter via ``?status=drafting`` (or ``finalized``/``abandoned``).
     """
 
-    serializer_class = DocumentSerializer
+    serializer_class = ArtifactSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -542,26 +669,51 @@ class ChannelDocumentsView(generics.ListAPIView):
             Channel, id=self.kwargs["id"], workspace=self.request.workspace
         )
         _require_channel_membership(self.request.user, channel)
-        qs = Document.objects.filter(channel=channel).order_by("-updated_at")
+        qs = Artifact.objects.filter(channel=channel).order_by("-updated_at")
         status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
         return qs
 
 
-class ChannelDocumentDetailView(generics.RetrieveAPIView):
-    """``/chat/channels/{id}/documents/{doc_id}/`` — single Document."""
+class ChannelArtifactDetailView(generics.RetrieveAPIView):
+    """``/chat/channels/{id}/artifacts/{artifact_id}/`` — single Artifact."""
 
-    serializer_class = DocumentSerializer
+    serializer_class = ArtifactSerializer
     permission_classes = [IsAuthenticated]
-    lookup_url_kwarg = "doc_id"
+    lookup_url_kwarg = "artifact_id"
 
     def get_queryset(self):
         channel = get_object_or_404(
             Channel, id=self.kwargs["id"], workspace=self.request.workspace
         )
         _require_channel_membership(self.request.user, channel)
-        return Document.objects.filter(channel=channel)
+        return Artifact.objects.filter(channel=channel)
+
+
+class WorkspaceArtifactDetailView(generics.RetrieveAPIView):
+    """``/chat/artifacts/{artifact_id}/`` — workspace-scoped artifact lookup.
+
+    Used by the right-rail preview pane (Plan 13): a ``doc://<uuid>``
+    chip may point at an artifact in a sibling channel, so the
+    channel-scoped detail endpoint can't find it. We resolve to any
+    artifact in the active workspace where the user is a member of the
+    owning channel.
+    """
+
+    serializer_class = ArtifactSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = "artifact_id"
+
+    def get_queryset(self):
+        return Artifact.objects.filter(
+            channel__workspace=self.request.workspace,
+        )
+
+    def get_object(self):
+        obj = super().get_object()
+        _require_channel_membership(self.request.user, obj.channel)
+        return obj
 
 
 # ── Pins ────────────────────────────────────────────────────────────────────
@@ -654,3 +806,64 @@ class MessageReactionsView(APIView):
             emoji=serializer.validated_data["emoji"],
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MentionCandidatesView(APIView):
+    """
+    ``GET /chat/channels/{cid}/mention-candidates/?q=&limit=``
+
+    Union of mention targets for the composer popover:
+      - workspace agents on this channel (AgentSession.name)
+      - channel members (User)
+      - special tokens: everyone, channel, here
+
+    Query is case-insensitive prefix match against name/email/handle.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        channel = _get_workspace_channel(request, id)
+        _require_channel_membership(request.user, channel)
+
+        q = (request.query_params.get("q") or "").strip().lower()
+        limit = min(int(request.query_params.get("limit") or 20), 50)
+
+        candidates: list[dict] = []
+
+        # Special tokens.
+        for token, label in (("everyone", "Everyone"), ("channel", "Channel"), ("here", "Here")):
+            if not q or token.startswith(q):
+                candidates.append(
+                    {"kind": "special", "id": token, "handle": token, "label": label}
+                )
+
+        # Agents on this channel.
+        agent_qs = AgentSession.objects.filter(channel=channel)
+        if q:
+            agent_qs = agent_qs.filter(name__icontains=q)
+        for a in agent_qs[:limit]:
+            candidates.append(
+                {"kind": "agent", "id": str(a.id), "handle": a.name.lower(), "label": a.name}
+            )
+
+        # Channel members.
+        mem_qs = ChannelMembership.objects.select_related("user").filter(channel=channel)
+        if q:
+            mem_qs = mem_qs.filter(
+                Q(user__full_name__icontains=q) | Q(user__email__icontains=q)
+            )
+        for m in mem_qs[:limit]:
+            u = m.user
+            display = u.full_name or u.email.split("@")[0]
+            candidates.append(
+                {
+                    "kind": "user",
+                    "id": str(u.id),
+                    "handle": (u.full_name or u.email.split("@")[0]).lower().replace(" ", ""),
+                    "label": display,
+                    "email": u.email,
+                }
+            )
+
+        return Response({"data": candidates[:limit]})

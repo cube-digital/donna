@@ -131,6 +131,8 @@ The code compiles but the project doesn't boot because the foundation isn't wire
 
 **Phase 3 deliverable:** mention the agent in a channel, get a streamed response with channel-scoped context.
 
+**Successor plan:** once Phase 3 lands, [13-agent-runtime-maturity.md](13-agent-runtime-maturity.md) takes over for the rest of the agent surface — drafting polish, hooks, memory loop, multi-agent, automation app, Cowork UX. Eight sub-phases there, ~25.5d. Plan 13 Phase 3.4 (Celery worker split into `worker-io` gevent + `worker-cpu` prefork) coordinates with [12-deployment-pipelines.md](12-deployment-pipelines.md) Phase 2 (compose split for self-host) — the self-host docker-compose must define both worker services from the start.
+
 ---
 
 ## Phase 4 — Collaborative documents (1–2 sessions)

@@ -30,7 +30,9 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from pydantic import ValidationError
 
+from donna.chat.agents.hooks import HookContext, fire as fire_hook
 from donna.chat.agents.state.builder import AgentState
+from donna.chat.agents.nodes.tool_summary import summarize_tool_batch
 from donna.chat.agents.tools.base import ToolContext, ToolResult
 from donna.chat.agents.tools.registry import ToolRegistry
 from donna.chat.services import agent_run_group
@@ -144,10 +146,16 @@ class ToolDispatcher:
         ctx: ToolContext,
         registry: ToolRegistry,
     ) -> AgentState:
+        batch_tool_msgs: list[dict] = []
         for call in state.pending_tool_calls:
             tool_msg = self._dispatch_one(call, registry, ctx, state)
             state.messages.append(tool_msg)
+            batch_tool_msgs.append(tool_msg)
         state.pending_tool_calls = []
+        # Plan 13 §1.2 — Haiku one-line summary of the batch, broadcast
+        # to the run group for the frontend chip. Best-effort.
+        if batch_tool_msgs:
+            _broadcast_tool_summary(state.run_id, batch_tool_msgs)
         return state
 
     def _dispatch_one(self, call, registry: ToolRegistry, ctx: ToolContext, state: AgentState) -> dict:
@@ -205,6 +213,26 @@ class ToolDispatcher:
 
         _broadcast_announce(run_id, name, tool.announce(args))
 
+        # Plan 13 §2.3 — pre_tool_use hook fire. Deny short-circuits;
+        # mutated args are reflected on the in-pass dict, NOT round-tripped
+        # back through the Pydantic model (the model already validated).
+        args_payload_for_hook = args.model_dump()
+        hook_ctx = HookContext(
+            event="pre_tool_use",
+            workspace=getattr(ctx, "workspace", None),
+            session_id=str(getattr(getattr(ctx, "agent_session", None), "id", "")),
+            channel_id=str(getattr(getattr(ctx, "channel", None), "id", "")) or None,
+            tool_name=name,
+            tool_args=args_payload_for_hook,
+        )
+        pre_result = fire_hook("pre_tool_use", hook_ctx)
+        if not pre_result.allow:
+            return _tool_message(call_id, {
+                "error": "denied_by_hook",
+                "tool": name,
+                "reason": pre_result.deny_reason or "policy denial",
+            })
+
         with ThreadPoolExecutor(max_workers=1) as pool:
             fut = pool.submit(tool.run, args, ctx)
             try:
@@ -226,13 +254,28 @@ class ToolDispatcher:
                 })
 
         if result.error:
-            return _tool_message(call_id, {"error": result.error, "tool": name})
+            err_payload = {"error": result.error, "tool": name}
+            # Hooks still observe the failure (audit log). Mutations on
+            # the error result are intentionally ignored.
+            hook_ctx.tool_result = err_payload
+            hook_ctx.event = "post_tool_use"
+            fire_hook("post_tool_use", hook_ctx)
+            return _tool_message(call_id, err_payload)
 
         payload = result.payload
         if name in EXTERNAL_CONTENT_TOOLS:
             payload = _walk_and_taint(payload)
             # Persist tainted strings on state for cross-round checks.
             _collect_strings(payload, state.tainted_strings)
+
+        # Plan 13 §2.3 — post_tool_use hook fire. Hooks can rewrite the
+        # payload (PII redaction, normalization). Mutations apply once,
+        # at the boundary.
+        hook_ctx.tool_result = payload if isinstance(payload, dict) else {"_payload": payload}
+        hook_ctx.event = "post_tool_use"
+        post_result = fire_hook("post_tool_use", hook_ctx)
+        if post_result.mutated_result is not None:
+            payload = post_result.mutated_result
         return _tool_message(call_id, payload)
 
 
@@ -258,3 +301,23 @@ def _broadcast_announce(run_id: str, tool_name: str, announce: str) -> None:
         )
     except Exception:  # noqa: BLE001 — announce is best-effort
         logger.warning("agent_announce_broadcast_failed", extra={"tool": tool_name})
+
+
+def _broadcast_tool_summary(run_id: str, tool_messages: list[dict]) -> None:
+    """Plan 13 §1.2 — broadcast a one-line Haiku summary of the batch."""
+    summary = summarize_tool_batch(tool_messages)
+    if not summary:
+        return
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    try:
+        async_to_sync(layer.group_send)(
+            agent_run_group(run_id),
+            {
+                "type": "agent.tool_summary",
+                "payload": {"summary": summary, "tool_count": len(tool_messages)},
+            },
+        )
+    except Exception:  # noqa: BLE001 — summary is best-effort
+        logger.warning("tool_summary_broadcast_failed")

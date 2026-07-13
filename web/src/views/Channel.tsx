@@ -41,20 +41,21 @@
 // rules; the label sits in the middle column. The wrapper supplies the
 // uppercase/tracking text style.
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import ChannelHeader from "../components/Channel/ChannelHeader";
 import Composer from "../components/Channel/Composer";
-import { DocumentsRail } from "../components/Channel/DocumentsRail";
+import { ArtifactsRail } from "../components/Channel/ArtifactsRail";
+import { AgentTypingPill } from "../components/Channel/AgentTypingPill";
 import Message from "../components/Channel/Message";
 import { ThreadPanel } from "../components/Channel/ThreadPanel";
-import {
-  ContextSection,
-  DocsSection,
-} from "../components/RightRail/RightRail";
+import { useAgentStatus } from "../state/agentStatus";
+import { ArtifactPreviewSection } from "../components/RightRail/RightRail";
 import { useRightRail } from "../components/Shell/RightRailSlot";
 import { getChatWs } from "../lib/ws";
+import { useArtifacts } from "../state/artifacts";
+import { useArtifactPreview } from "../state/artifactPreview";
 import { useChannels } from "../state/channels";
 import { useMessages } from "../state/messages";
 import { usePresence, useTypingUserIds } from "../state/presence";
@@ -120,7 +121,9 @@ function groupByDay(list: MessageT[]): RowItem[] {
   const out: RowItem[] = [];
   let lastDay: string | null = null;
   for (const msg of list) {
+    if (!msg || !msg.id || !msg.created_at) continue;
     const k = dayKey(msg.created_at);
+    if (!k) continue;
     if (k !== lastDay) {
       out.push({ type: "divider", key: `d-${k}`, label: dayLabel(k) });
       lastDay = k;
@@ -128,6 +131,25 @@ function groupByDay(list: MessageT[]): RowItem[] {
     out.push({ type: "message", key: `m-${msg.id}`, msg });
   }
   return out;
+}
+
+class RowBoundary extends React.Component<
+  { children: React.ReactNode },
+  { err: boolean }
+> {
+  state = { err: false };
+  static getDerivedStateFromError() { return { err: true }; }
+  componentDidCatch(e: unknown) { console.error("Row render failed", e); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div className="mx-[18px] px-3 py-1 text-text-3 text-[11px]">
+          (message failed to render)
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 // Day divider — 3-col grid with two thin rules flanking the label.
@@ -225,6 +247,17 @@ export default function Channel() {
     const offConnected = ws.on("connected", (p) => {
       setCurrentUserId(p.user_id);
     });
+    // Agent ambient status — push into store so both header chip and
+    // composer-row pill stay in sync. Auto-hides on `idle`.
+    const offAgentStatus = ws.on("chat.agent.status", (e) => {
+      if (e.channel_id !== channelId) return;
+      useAgentStatus.getState().setStatus(channelId, {
+        state: e.state,
+        detail: e.detail,
+        eta: e.eta,
+        sessionId: e.session_id,
+      });
+    });
 
     return () => {
       offCreated();
@@ -232,6 +265,10 @@ export default function Channel() {
       offDeleted();
       offTyping();
       offConnected();
+      offAgentStatus();
+      // Clear status when leaving the channel so a stale "drafting…"
+      // doesn't flicker back when the next mount re-subscribes.
+      useAgentStatus.getState().clear(channelId);
       ws.unsubscribe(channelId);
     };
   }, [
@@ -344,20 +381,46 @@ export default function Channel() {
 
   const rows = useMemo(() => groupByDay(list), [list]);
 
-  // Right-rail content for this view. `channelId` change re-fires the slot.
+  // Cowork-style right rail — only mounts when there's a draft to
+  // preview or the user clicked a `doc://` chip. Otherwise we publish
+  // null so AppShell's `RightRailPanel` collapses and chat takes the
+  // full main width.
+  const manualPreviewId = useArtifactPreview((s) => s.artifactId);
+  const isDismissed = useArtifactPreview((s) =>
+    channelId ? !!s.dismissedChannels[channelId] : false,
+  );
+  const channelArtifacts = useArtifacts((s) =>
+    channelId ? s.byChannel[channelId] : undefined,
+  );
+  const activeDraft = channelArtifacts?.find((a) => a.status === "drafting");
+  // Dismissed channels keep the rail closed even when an active draft
+  // exists. A manual `doc://` click clears the dismiss flag (open()
+  // in the store handles that), so the rail re-opens for that case.
+  const railShouldShow = (!!manualPreviewId || !!activeDraft) && !isDismissed;
   const rrNode = useMemo(
-    () => (
-      <>
-        <DocsSection channelId={channelId} />
-        <ContextSection />
-      </>
-    ),
-    [channelId],
+    () =>
+      railShouldShow ? (
+        <ArtifactPreviewSection
+          channelId={channelId}
+          fallbackArtifactId={activeDraft?.id ?? null}
+        />
+      ) : null,
+    // We don't need a tighter dep list — when railShouldShow flips, the
+    // memo re-fires and useRightRail publishes the new node.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [railShouldShow, activeDraft?.id, channelId],
   );
   useRightRail(rrNode);
+  // Lazy-load artifacts so the rail can auto-open the active draft on
+  // first mount (when WS hasn't replayed an `artifact.updated` yet).
+  useEffect(() => {
+    if (!channelId) return;
+    if (channelArtifacts !== undefined) return;
+    void useArtifacts.getState().load(channelId);
+  }, [channelId, channelArtifacts]);
 
   // Right-rail state — Thread takes priority when set, otherwise the
-  // DocumentsRail shows. Hooks must precede any early-return; React
+  // ArtifactsRail shows. Hooks must precede any early-return; React
   // hook order has to stay stable across channelId transitions.
   const [threadParent, setThreadParent] = useState<MessageT | null>(null);
   // Default closed — the existing global right rail already shows
@@ -396,7 +459,9 @@ export default function Channel() {
               row.type === "divider" ? (
                 <DayDivider key={row.key} label={row.label} />
               ) : (
-                <Message key={row.key} msg={row.msg} onReply={setThreadParent} />
+                <RowBoundary key={row.key}>
+                  <Message msg={row.msg} onReply={setThreadParent} />
+                </RowBoundary>
               ),
             )}
           </div>
@@ -407,6 +472,7 @@ export default function Channel() {
             {typingLabel}
           </div>
         ) : null}
+        <AgentTypingPill channelId={channelId} />
 
         <Composer channelId={channelId} />
       </div>
@@ -415,7 +481,7 @@ export default function Channel() {
       {threadParent ? (
         <ThreadPanel parent={threadParent} onClose={() => setThreadParent(null)} />
       ) : showDocs ? (
-        <DocumentsRail channelId={channelId} />
+        <ArtifactsRail channelId={channelId} />
       ) : null}
     </div>
   );
@@ -430,11 +496,12 @@ export default function Channel() {
  * replace this with real display names.
  */
 function formatTypingLabel(userIds: string[]): string {
-  if (userIds.length === 0) return "";
+  const clean = userIds.filter((id) => typeof id === "string" && id.length > 0);
+  if (clean.length === 0) return "";
   // 8-char prefix is enough to distinguish typists at-a-glance; the
   // UUIDs are stable so it doesn't flicker between renders.
   const stubName = (id: string) => `user-${id.slice(0, 6)}`;
-  const names = userIds.map(stubName);
+  const names = clean.map(stubName);
   if (names.length === 1) return `${names[0]} is typing…`;
   if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
   const head = names.slice(0, 2).join(", ");

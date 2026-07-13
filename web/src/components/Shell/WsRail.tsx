@@ -17,7 +17,7 @@ import { useAuth } from "../../state/auth";
 import { useWorkspace } from "../../state/workspace";
 import { GIconButton, type IconName } from "../Goofy";
 
-type NavKey = "workspace" | "dms" | "personal" | "search" | "files";
+type NavKey = "workspace" | "dms" | "personal" | "search" | "cortex";
 
 interface NavItem {
   key: NavKey;
@@ -51,6 +51,13 @@ const NAV: NavItem[] = [
     icon: "search",
     href: "/search",
     matcher: (p) => p.startsWith("/search"),
+  },
+  {
+    key: "cortex",
+    label: "Cortex memory",
+    icon: "brain",
+    href: "/cortex",
+    matcher: (p) => p.startsWith("/cortex") || p.startsWith("/files"),
   },
 ];
 

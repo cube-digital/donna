@@ -46,13 +46,28 @@ import {
 } from "../Goofy";
 import { comingSoonToast } from "../../state/toasts";
 import type { AgentRunStep, Message as MessageT } from "../../types";
+import { QuestionPicker } from "./QuestionPicker";
 import { ReactionBar } from "./ReactionBar";
+import { useArtifactPreview } from "../../state/artifactPreview";
+import { useParams } from "react-router-dom";
 
 function SourceChip({ href, children }: { href: string; children?: React.ReactNode }) {
+  const open = useArtifactPreview((s) => s.open);
+  const { channelId } = useParams<{ channelId?: string }>();
+  // Plan 13 — `doc://<uuid>` chips open the artifact in the right-rail
+  // preview pane instead of navigating away. Other schemes fall through
+  // to a regular anchor (cortex://, gmail://, drive://, …).
+  const docMatch = /^doc:\/\/([0-9a-f-]{36})/i.exec(href);
+  const handleClick = (ev: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!docMatch || !channelId) return;
+    ev.preventDefault();
+    open(docMatch[1], channelId);
+  };
   return (
     <a
       href={href}
-      className="inline font-mono text-[11px] px-1.5 py-px rounded-[5px] bg-[var(--ai-bg)] text-[color:var(--ai-deep)] no-underline mx-0.5 align-baseline"
+      onClick={handleClick}
+      className="inline font-mono text-[11px] px-1.5 py-px rounded-[5px] bg-[var(--ai-bg)] text-[color:var(--ai-deep)] no-underline mx-0.5 align-baseline hover:underline cursor-pointer"
     >
       {children ?? href}
     </a>
@@ -63,7 +78,7 @@ function renderAgentMarkdown(body: string) {
   // Detect bare URIs outside of code spans. Stop URI capture at trailing
   // punctuation that's likely sentence terminators, not part of the URI.
   const wrapped = body.replace(
-    /(`[^`]*`)|((cortex|gmail|drive|sharepoint|notion|fathom):\/\/[^\s)\]}.,;!?]+)/g,
+    /(`[^`]*`)|((cortex|gmail|drive|sharepoint|notion|fathom|doc):\/\/[^\s)\]}.,;!?]+)/g,
     (_m, code, uri) => (code ? code : `[${uri}](${uri})`),
   );
   return (
@@ -80,7 +95,7 @@ function renderAgentMarkdown(body: string) {
         code: ({ children }) => {
           const text = String(children);
           if (
-            /^(cortex|gmail|drive|sharepoint|notion|fathom):\/\//.test(text)
+            /^(cortex|gmail|drive|sharepoint|notion|fathom|doc):\/\//.test(text)
           ) {
             return <SourceChip href={text}>{text}</SourceChip>;
           }
@@ -100,7 +115,7 @@ function renderAgentMarkdown(body: string) {
           const text = String(
             Array.isArray(children) ? children.join("") : children ?? "",
           );
-          const scheme = /^(cortex|gmail|drive|sharepoint|notion|fathom):\/\//;
+          const scheme = /^(cortex|gmail|drive|sharepoint|notion|fathom|doc):\/\//;
           const target = scheme.test(href ?? "")
             ? href!
             : scheme.test(text)
@@ -130,7 +145,12 @@ interface MessageProps {
 // Render body with @mention chips inline. Special mentions
 // (donna/everyone/channel) get colored chips even when no user resolves.
 function renderBodyWithMentions(body: string) {
-  const re = /(?<![A-Za-z0-9_])@([A-Za-z0-9_\.\-]+)/g;
+  // Plan 13 — handle BOTH @mentions and bare URIs (cortex://, doc://, …)
+  // in user-authored messages. Agent messages run through
+  // ``renderAgentMarkdown`` and get rich formatting; user bodies are
+  // plain text, so we inline-tokenise here.
+  const re =
+    /(?<![A-Za-z0-9_])@([A-Za-z0-9_\.\-]+)|((cortex|gmail|drive|sharepoint|notion|fathom|doc):\/\/[^\s)\]}.,;!?]+)/g;
   const out: React.ReactNode[] = [];
   let lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -139,11 +159,27 @@ function renderBodyWithMentions(body: string) {
     if (m.index > lastIndex) {
       out.push(body.slice(lastIndex, m.index));
     }
-    out.push(
-      <span key={`m-${key++}`} className="opacity-70">
-        @{m[1]}
-      </span>,
-    );
+    if (m[2]) {
+      // URI match
+      const uri = m[2];
+      out.push(<SourceChip key={`u-${key++}`} href={uri}>{uri}</SourceChip>);
+    } else {
+      // @mention match
+      const handle = (m[1] ?? "").toLowerCase();
+      const special = handle === "everyone" || handle === "channel" || handle === "here";
+      out.push(
+        <span
+          key={`m-${key++}`}
+          className={
+            special
+              ? "inline px-1 py-px rounded bg-[var(--ai-bg)] text-[color:var(--ai-deep)] font-semibold"
+              : "opacity-70"
+          }
+        >
+          @{m[1]}
+        </span>,
+      );
+    }
     lastIndex = m.index + m[0].length;
   }
   if (lastIndex < body.length) out.push(body.slice(lastIndex));
@@ -191,6 +227,17 @@ export default function Message({ msg, onReply }: MessageProps) {
     return (
       <div className="px-[18px] pl-[60px] py-1 text-text-3 text-[12px]">
         {msg.body}
+      </div>
+    );
+  }
+
+  // Plan 13 §1.3 / §1.5 — render HIL question messages as an inline
+  // picker rather than a chat bubble. Answer messages render as plain
+  // chat (the answer body is the user's text reply).
+  if (msg.server_kind === "question") {
+    return (
+      <div className="px-[18px] py-2 pl-[60px]">
+        <QuestionPicker message={msg} />
       </div>
     );
   }

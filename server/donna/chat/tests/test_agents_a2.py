@@ -33,7 +33,7 @@ from donna.chat.agents.tools.draft_tools import (
     UpdateDraftSectionArgs,
     UpdateDraftSectionTool,
 )
-from donna.chat.models import AgentSession, Channel, Document
+from donna.chat.models import AgentSession, Channel, Artifact
 from donna.workspaces.models import Workspace
 
 
@@ -113,10 +113,10 @@ class CreateDraftTests(TestCase):
 
         self.assertIsNone(res.error)
         self.assertEqual(res.payload["version"], 0)
-        self.assertEqual(res.payload["status"], Document.Status.DRAFTING)
+        self.assertEqual(res.payload["status"], Artifact.Status.DRAFTING)
         self.assertEqual(res.payload["title"], "Project Brief")
         self.assertEqual(res.payload["target_doc_type"], "brief")
-        self.assertEqual(Document.objects.filter(channel=ch).count(), 1)
+        self.assertEqual(Artifact.objects.filter(channel=ch).count(), 1)
 
     def test_second_draft_blocked_by_partial_unique(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-create-2")
@@ -127,20 +127,20 @@ class CreateDraftTests(TestCase):
 
         self.assertIsNotNone(res2.error)
         self.assertIn("already active", res2.error)
-        self.assertEqual(Document.objects.filter(channel=ch, status=Document.Status.DRAFTING).count(), 1)
+        self.assertEqual(Artifact.objects.filter(channel=ch, status=Artifact.Status.DRAFTING).count(), 1)
 
     def test_finalized_draft_does_not_block_new(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-create-3")
         tool = CreateDraftTool()
         first = tool.run(CreateDraftArgs(title="First", target_doc_type="note"), _ctx(ws, ch, sess))
-        Document.objects.filter(id=first.payload["document_id"]).update(
-            status=Document.Status.FINALIZED, finalized_entity_id=uuid4(),
+        Artifact.objects.filter(id=first.payload["artifact_id"]).update(
+            status=Artifact.Status.FINALIZED, finalized_entity_id=uuid4(),
         )
 
         second = tool.run(CreateDraftArgs(title="Second", target_doc_type="note"), _ctx(ws, ch, sess))
 
         self.assertIsNone(second.error)
-        self.assertEqual(Document.objects.filter(channel=ch).count(), 2)
+        self.assertEqual(Artifact.objects.filter(channel=ch).count(), 2)
 
 
 # ── ReadDraftTool ──────────────────────────────────────────────────────
@@ -149,14 +149,14 @@ class CreateDraftTests(TestCase):
 class ReadDraftTests(TestCase):
     def test_returns_body_and_version(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-read-1")
-        draft = Document.objects.create(
+        draft = Artifact.objects.create(
             channel=ch, title="Spec", body="# Spec\n\nBody.",
-            status=Document.Status.DRAFTING, version=3, target_doc_type="spec",
+            status=Artifact.Status.DRAFTING, version=3, target_doc_type="spec",
         )
         res = ReadDraftTool().run(ReadDraftArgs(), _ctx(ws, ch, sess))
 
         self.assertIsNone(res.error)
-        self.assertEqual(res.payload["document_id"], str(draft.id))
+        self.assertEqual(res.payload["artifact_id"], str(draft.id))
         self.assertEqual(res.payload["version"], 3)
         self.assertEqual(res.payload["body"], "# Spec\n\nBody.")
         self.assertEqual(res.payload["target_doc_type"], "spec")
@@ -174,9 +174,9 @@ class ReadDraftTests(TestCase):
 class UpdateDraftSectionTests(TestCase):
     def test_bumps_version_and_replaces_body(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-upd-1")
-        Document.objects.create(
+        Artifact.objects.create(
             channel=ch, title="Brief", body="initial",
-            status=Document.Status.DRAFTING, version=0, target_doc_type="brief",
+            status=Artifact.Status.DRAFTING, version=0, target_doc_type="brief",
         )
         drafter = _StubDrafter(markdown="# Brief\n\nRevised content here.", summary="added intro")
         tool = UpdateDraftSectionTool(drafter=drafter)
@@ -189,7 +189,7 @@ class UpdateDraftSectionTests(TestCase):
         self.assertIsNone(res.error)
         self.assertEqual(res.payload["version"], 1)
         self.assertEqual(res.payload["summary"], "added intro")
-        d = Document.objects.get(channel=ch, status=Document.Status.DRAFTING)
+        d = Artifact.objects.get(channel=ch, status=Artifact.Status.DRAFTING)
         self.assertEqual(d.version, 1)
         self.assertEqual(d.body, "# Brief\n\nRevised content here.")
         self.assertEqual(len(drafter.calls), 1)
@@ -197,9 +197,9 @@ class UpdateDraftSectionTests(TestCase):
 
     def test_version_conflict_returns_error_no_change(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-upd-2")
-        Document.objects.create(
+        Artifact.objects.create(
             channel=ch, title="Brief", body="initial",
-            status=Document.Status.DRAFTING, version=2, target_doc_type="brief",
+            status=Artifact.Status.DRAFTING, version=2, target_doc_type="brief",
         )
         drafter = _StubDrafter()
         tool = UpdateDraftSectionTool(drafter=drafter)
@@ -211,7 +211,7 @@ class UpdateDraftSectionTests(TestCase):
 
         self.assertIsNotNone(res.error)
         self.assertIn("v2", res.error)
-        d = Document.objects.get(channel=ch)
+        d = Artifact.objects.get(channel=ch)
         self.assertEqual(d.version, 2)
         self.assertEqual(d.body, "initial")
         self.assertEqual(len(drafter.calls), 0, "drafter ran despite version conflict")
@@ -236,9 +236,9 @@ class FinalizeDraftTests(TestCase):
 
     def test_linter_pass_creates_entity_and_finalizes(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-fin-1")
-        draft = Document.objects.create(
+        draft = Artifact.objects.create(
             channel=ch, title="Brief", body="# Brief\n\nBody.",
-            status=Document.Status.DRAFTING, version=3, target_doc_type="brief",
+            status=Artifact.Status.DRAFTING, version=3, target_doc_type="brief",
         )
         entity_id = uuid4()
         stub = _StubCortexService(verdict_ok=True, entity_id=entity_id)
@@ -248,10 +248,10 @@ class FinalizeDraftTests(TestCase):
 
         self.assertIsNone(res.error)
         self.assertEqual(res.payload["entity_id"], str(entity_id))
-        self.assertEqual(res.payload["document_id"], str(draft.id))
+        self.assertEqual(res.payload["artifact_id"], str(draft.id))
 
         draft.refresh_from_db()
-        self.assertEqual(draft.status, Document.Status.FINALIZED)
+        self.assertEqual(draft.status, Artifact.Status.FINALIZED)
         self.assertEqual(draft.finalized_entity_id, entity_id)
 
         self.assertEqual(len(stub.linter_calls), 1)
@@ -265,9 +265,9 @@ class FinalizeDraftTests(TestCase):
 
     def test_linter_reject_does_not_create_entity_or_finalize(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-fin-2")
-        draft = Document.objects.create(
+        draft = Artifact.objects.create(
             channel=ch, title="Brief", body="bad body",
-            status=Document.Status.DRAFTING, version=1, target_doc_type="brief",
+            status=Artifact.Status.DRAFTING, version=1, target_doc_type="brief",
         )
         stub = _StubCortexService(verdict_ok=False, verdict_codes=["MISSING_SOURCE", "SCOPE_BOUNDARY"])
 
@@ -276,18 +276,18 @@ class FinalizeDraftTests(TestCase):
 
         self.assertIsNone(res.error)
         self.assertEqual(res.payload["rejected_codes"], ["MISSING_SOURCE", "SCOPE_BOUNDARY"])
-        self.assertEqual(res.payload["document_id"], str(draft.id))
+        self.assertEqual(res.payload["artifact_id"], str(draft.id))
 
         draft.refresh_from_db()
-        self.assertEqual(draft.status, Document.Status.DRAFTING, "draft finalized despite lint reject")
+        self.assertEqual(draft.status, Artifact.Status.DRAFTING, "draft finalized despite lint reject")
         self.assertIsNone(draft.finalized_entity_id)
         self.assertEqual(len(stub.create_calls), 0, "entity created despite lint reject")
 
     def test_empty_body_returns_friendly_error(self) -> None:
         ws, ch, sess = _make_ws_and_channel("a2-fin-3")
-        Document.objects.create(
+        Artifact.objects.create(
             channel=ch, title="Brief", body="   ",
-            status=Document.Status.DRAFTING, version=0, target_doc_type="brief",
+            status=Artifact.Status.DRAFTING, version=0, target_doc_type="brief",
         )
         stub = _StubCortexService(verdict_ok=True)
         with self._patch_cortex(stub):

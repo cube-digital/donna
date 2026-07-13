@@ -57,7 +57,7 @@ export interface MentionFlags {
 
 export type DocumentStatus = "drafting" | "finalized" | "abandoned";
 
-export interface ChannelDocument {
+export interface ChannelArtifact {
   id: UUID;
   channel: UUID;
   title: string;
@@ -121,6 +121,21 @@ export interface AgentRunMetadata {
 
 export type MessageKind = "msg" | "system" | "agent-run";
 
+// Plan 13 §1.3 + §1.5 — HIL question/answer message variants.
+export type ServerMessageKind = "chat" | "question" | "answer";
+
+export interface QuestionOption {
+  label: string;
+  value: string;
+  description?: string;
+}
+
+export interface AnswerPayload {
+  value: string | null;
+  text: string | null;
+  expired?: boolean;
+}
+
 export interface Message {
   id: UUID;
   channel: UUID;
@@ -138,6 +153,13 @@ export interface Message {
   // UI-derived; computed in state/messages.ts, not from the wire:
   kind?: MessageKind;
   metadata?: AgentRunMetadata;
+  // Plan 13 §1.3 / §1.5 — when present, this message is part of a HIL
+  // question/answer thread, not normal chat.
+  server_kind?: ServerMessageKind;
+  question_options?: QuestionOption[];
+  answer_payload?: AnswerPayload | null;
+  answered_message?: UUID | null;
+  expires_at?: ISODateTime | null;
 }
 
 export interface Notification {

@@ -147,6 +147,12 @@ function fromEvent(payload: MessageWsPayload): Message {
     created_at: payload.created_at ?? new Date().toISOString(),
     updated_at: payload.updated_at ?? new Date().toISOString(),
     client_msg_id: payload.client_msg_id ?? null,
+    // Plan 13 §1.3 / §1.5 — forward HIL fields when the wire includes them.
+    server_kind: payload.server_kind,
+    question_options: payload.question_options,
+    answer_payload: payload.answer_payload ?? null,
+    answered_message: payload.answered_message ?? null,
+    expires_at: payload.expires_at ?? null,
   };
   return normalize(msg);
 }

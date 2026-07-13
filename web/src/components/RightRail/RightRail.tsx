@@ -12,6 +12,8 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { GlyphSlot, GConnectorIcon } from "../Goofy";
 import { apiFetch } from "../../api/client";
@@ -19,7 +21,10 @@ import { getSubscription } from "../../api/integrations";
 import { getNotificationsSse } from "../../lib/sse";
 import { useIntegrations } from "../../state/integrations";
 import { useNotifications } from "../../state/notifications";
+import { useArtifactPreview } from "../../state/artifactPreview";
+import { useArtifacts } from "../../state/artifacts";
 import type {
+  ChannelArtifact,
   Connection,
   IntegrationProvider,
   Notification,
@@ -41,7 +46,7 @@ const CARD_AI_CLS =
 const COMING_SOON_CLS = "mt-1 font-hand font-bold text-[15px] text-text-3 leading-none";
 
 // ── DocsSection ──────────────────────────────────────────────────────────────
-// Attempts `GET /chat/channels/<id>/documents/` and renders any returned
+// Attempts `GET /chat/channels/<id>/artifacts/` and renders any returned
 // rows. The endpoint isn't in the backend yet, so any non-2xx (including
 // 404) silently falls back to the empty state — keeps the UI honest
 // without warning users about a missing surface.
@@ -66,7 +71,7 @@ export function DocsSection({ channelId }: DocsSectionProps) {
     }
     let cancelled = false;
     void apiFetch<DocRow[] | { results: DocRow[] }>(
-      `/api/v1/chat/channels/${channelId}/documents/`,
+      `/api/v1/chat/channels/${channelId}/artifacts/`,
     )
       .then((data) => {
         if (cancelled) return;
@@ -125,6 +130,244 @@ export function DocsSection({ channelId }: DocsSectionProps) {
           ))
         )}
       </div>
+    </section>
+  );
+}
+
+// ── ArtifactPreviewSection ───────────────────────────────────────────────────
+// Plan 13 — when the user clicks a `doc://<uuid>` chip in a message,
+// `useArtifactPreview.open(id, channelId)` populates this store and we
+// render the artifact's full body here. Close clears the store and
+// drops back to the regular rail sections.
+
+interface ArtifactDetail {
+  id: string;
+  title?: string;
+  body?: string;
+  status?: string;
+  version?: number;
+  target_doc_type?: string;
+  updated_at?: string;
+}
+
+interface ArtifactPreviewSectionProps {
+  /** Channel context — used as a fallback when no manual preview is open
+   *  so the rail can auto-render the channel's active draft. */
+  channelId?: string;
+  /** Active-draft id to fall back to when nothing was manually opened. */
+  fallbackArtifactId?: string | null;
+}
+
+export function ArtifactPreviewSection({
+  channelId: channelIdProp,
+  fallbackArtifactId,
+}: ArtifactPreviewSectionProps = {}) {
+  const manualArtifactId = useArtifactPreview((s) => s.artifactId);
+  const manualChannelId = useArtifactPreview((s) => s.channelId);
+  const close = useArtifactPreview((s) => s.close);
+  const dismiss = useArtifactPreview((s) => s.dismiss);
+  const openPreview = useArtifactPreview((s) => s.open);
+  // Prefer the manually-opened doc:// preview; otherwise auto-render the
+  // channel's active draft so the rail behaves like Claude Cowork's
+  // file panel.
+  const artifactId = manualArtifactId ?? fallbackArtifactId ?? null;
+  const channelId = manualChannelId ?? channelIdProp ?? null;
+  const isManual = !!manualArtifactId;
+  const channelArtifacts = useArtifacts((s) =>
+    channelIdProp ? s.byChannel[channelIdProp] : undefined,
+  );
+  const [artifact, setArtifact] = useState<ArtifactDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filesMenuOpen, setFilesMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!artifactId || !channelId) {
+      setArtifact(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    let cancelled = false;
+    // Workspace-scoped lookup — a doc:// chip may point at a sibling
+    // channel's artifact, so the per-channel endpoint can't find it.
+    void apiFetch<ArtifactDetail>(`/api/v1/chat/artifacts/${artifactId}/`)
+      .then((data) => {
+        if (cancelled) return;
+        setArtifact(data);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        // 404 → the chip points at an artifact the agent referenced but
+        // never actually persisted (or that was deleted). Show a polite
+        // dead-link message rather than the raw DRF detail.
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/404/.test(msg) || /No Artifact matches/.test(msg)) {
+          setError("This document link is stale — the artifact no longer exists.");
+        } else {
+          setError(msg || "Could not load preview.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [artifactId, channelId]);
+
+  if (!artifactId) return null;
+
+  // Burger menu — list every artifact for this channel, newest first.
+  const fileList: ChannelArtifact[] = (channelArtifacts ?? [])
+    .slice()
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+
+  const subtitlePath = artifact?.target_doc_type
+    ? `${artifact.target_doc_type}/${artifact?.title?.toLowerCase().replace(/\s+/g, "-") || "draft"}.md`
+    : null;
+
+  const onPickFile = (a: ChannelArtifact) => {
+    if (!channelIdProp) return;
+    openPreview(a.id, channelIdProp);
+    setFilesMenuOpen(false);
+  };
+  const onDismiss = () => {
+    if (isManual) {
+      close();
+    } else if (channelIdProp) {
+      dismiss(channelIdProp);
+    }
+  };
+
+  return (
+    <section className="h-full flex flex-col">
+      {/* Files toolbar — burger (left) + label + path + X (right). */}
+      <div className="flex items-center gap-2 pb-2 border-b border-border-soft relative">
+        <button
+          type="button"
+          onClick={() => setFilesMenuOpen((v) => !v)}
+          aria-label="Open files menu"
+          className="grid place-items-center p-1 bg-transparent border-0 text-text-2 cursor-pointer hover:text-text-0 rounded"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <span className="text-[12.5px] font-semibold text-text-2">File</span>
+        {subtitlePath ? (
+          <span className="ml-1 text-[11px] font-mono text-text-3 truncate flex-1">
+            {subtitlePath}
+          </span>
+        ) : (
+          <span className="flex-1" />
+        )}
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Close file panel"
+          className="grid place-items-center p-1 bg-transparent border-0 text-text-3 cursor-pointer hover:text-text-0 rounded"
+        >
+          <GlyphSlot name="x" size={14} />
+        </button>
+
+        {filesMenuOpen && fileList.length > 0 ? (
+          <div
+            className="absolute top-full left-0 mt-1 w-[280px] max-h-[320px] overflow-y-auto bg-bg-1 border border-border-soft rounded-[10px] shadow-lg z-30 py-1"
+            role="menu"
+          >
+            {fileList.map((a) => {
+              const isOpen = a.id === artifactId;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => onPickFile(a)}
+                  className={
+                    "w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[12.5px] " +
+                    (isOpen ? "bg-ai-bg text-text-0" : "text-text-1 hover:bg-bg-2")
+                  }
+                >
+                  <GlyphSlot name="doc" size={14} />
+                  <span className="flex-1 truncate">
+                    {a.title || "Untitled"}
+                    {a.version ? ` · v${a.version}` : ""}
+                  </span>
+                  <span
+                    className={
+                      "text-[10px] uppercase tracking-wide " +
+                      (a.status === "drafting" ? "text-ai" : "text-text-3")
+                    }
+                  >
+                    {a.status}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Title block — editorial: a grape eyebrow (type · status · version),
+          the title, then a hairline rule. No boxed card. */}
+      <div className="mt-2.5 px-0.5">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-ai-deep">
+          <GlyphSlot name="doc" size={11} />
+          <span>{artifact?.target_doc_type || "doc"}</span>
+          {artifact?.status ? (
+            <>
+              <span className="text-text-4">·</span>
+              <span>{artifact.status}</span>
+            </>
+          ) : null}
+          {artifact?.version ? (
+            <>
+              <span className="text-text-4">·</span>
+              <span>v{artifact.version}</span>
+            </>
+          ) : null}
+        </div>
+        <div className="mt-1 text-[16px] font-semibold text-text-0 leading-[1.25]">
+          {artifact?.title || "Document"}
+        </div>
+        <div className="mt-2 h-px bg-border-soft" />
+      </div>
+
+      {/* Body — borderless reading page, fills remaining height */}
+      <div className="mt-2 flex-1 min-h-0 overflow-y-auto px-0.5 py-1 text-[13px] leading-[1.6] text-text-1">
+        {loading ? (
+          <div className="text-text-3 text-[12.5px]">Loading…</div>
+        ) : error ? (
+          <div className="text-red-500 text-[12.5px]">{error}</div>
+        ) : artifact?.body ? (
+          <div className="prose prose-sm max-w-none [&_h1]:text-[15px] [&_h1]:font-semibold [&_h2]:text-[14px] [&_h2]:font-semibold">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {artifact.body}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <div className="text-text-3 text-[12.5px]">No body yet.</div>
+        )}
+      </div>
+      {artifact?.status ? (
+        <div className="mt-1.5 px-1 pt-2 border-t border-border-soft flex items-center gap-2 text-[11px] text-text-3">
+          <span
+            className={
+              "w-2 h-2 rounded-full " +
+              (artifact.status === "finalized" ? "bg-ok" : "bg-warn")
+            }
+          />
+          <span>
+            {artifact.status === "finalized" ? "Final" : "Drafting"}
+            {artifact.updated_at
+              ? ` · saved ${new Date(artifact.updated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : ""}
+          </span>
+        </div>
+      ) : null}
     </section>
   );
 }

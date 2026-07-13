@@ -9,7 +9,7 @@ from ...models import (
     ChannelMembership,
     ChannelPin,
     ChannelReadState,
-    Document,
+    Artifact,
     Message,
     MessageReaction,
 )
@@ -72,6 +72,15 @@ class MessageSerializer(serializers.ModelSerializer):
     reply_count = serializers.SerializerMethodField()
     mentions = serializers.SerializerMethodField()
     reactions = serializers.SerializerMethodField()
+    # Plan 13 §1.3 / §1.5 — wire-side fields shaped to match the WS payload
+    # in donna.chat.services._serialize_message. ``server_kind`` is sent
+    # under that name (not ``kind``) so the frontend's existing ``kind``
+    # (UI-computed) stays free.
+    server_kind = serializers.CharField(source="kind", read_only=True)
+    question_options = serializers.JSONField(read_only=True)
+    answer_payload = serializers.JSONField(read_only=True)
+    answered_message = serializers.UUIDField(read_only=True, allow_null=True)
+    expires_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta:
         model = Message
@@ -88,11 +97,18 @@ class MessageSerializer(serializers.ModelSerializer):
             "reactions",
             "created_at",
             "updated_at",
+            "server_kind",
+            "question_options",
+            "answer_payload",
+            "answered_message",
+            "expires_at",
         ]
         read_only_fields = [
             "id", "author_agent", "parent_id", "reply_count",
             "mentions", "mention_flags", "reactions",
             "created_at", "updated_at",
+            "server_kind", "question_options", "answer_payload",
+            "answered_message", "expires_at",
         ]
 
     def get_reply_count(self, obj):
@@ -186,9 +202,9 @@ class ReadStateSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class DocumentSerializer(serializers.ModelSerializer):
+class ArtifactSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Document
+        model = Artifact
         fields = (
             "id",
             "channel",

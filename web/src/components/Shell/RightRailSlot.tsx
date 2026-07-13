@@ -79,3 +79,14 @@ export function RightRailOutlet() {
     </aside>
   );
 }
+
+/**
+ * Subscribe to whether the right-rail context currently has any
+ * content registered. Lets `AppShell` collapse the panel + separator
+ * when no view has published into the slot — Cowork-style behaviour
+ * where the chat takes the full width until an artifact is open.
+ */
+export function useRightRailHasContent(): boolean {
+  const ctx = useContext(RightRailContext);
+  return ctx?.node != null && ctx.node !== false;
+}

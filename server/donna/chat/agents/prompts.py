@@ -68,9 +68,52 @@ bookings, infrastructure, or names a specific vendor.\
 """
 
 
+# ── Plan 13 §2.1 — mode guidance ───────────────────────────────────────
+
+DRAFTING_MODE_GUIDANCE = """\
+== DRAFTING MODE ==
+You can call the draft tools (create_draft / read_draft /
+update_draft_section / finalize_draft) to author or revise documents
+in this channel. Reply briefly in chat to keep the user oriented; the
+artifact itself carries the body.\
+"""
+
+PLANNING_MODE_GUIDANCE = """\
+== PLANNING MODE (read-only) ==
+You are PROPOSING what to do, not doing it. All draft and external
+write tools are disabled this turn. Read existing context, then reply
+with a clear plan the user can approve. Do NOT call any mutating tool.
+The user exits planning mode explicitly before any write hits.\
+"""
+
+
+def _mode_guidance(session) -> str:
+    mode = getattr(session, "mode", None)
+    if mode == "drafting":
+        return DRAFTING_MODE_GUIDANCE
+    if mode == "planning":
+        return PLANNING_MODE_GUIDANCE
+    return ""
+
+
+def _output_style_overlay(session) -> str:
+    """Plan 13 §1.1 — append the configured output-style body when set."""
+    from donna.chat.agents.styles import resolve as _resolve_style
+
+    slug = (getattr(session, "config", None) or {}).get("output_style")
+    style = _resolve_style(slug)
+    return style.body if style else ""
+
+
 def build_system_prompt(ctx: ToolContext) -> str:
     """Assemble the system prompt for the current turn."""
     parts = [IDENTITY, CITATION_RULES, TOOL_ROUTING_HINTS, ORG_TAXONOMY]
+    guidance = _mode_guidance(ctx.agent_session)
+    if guidance:
+        parts.append(guidance)
+    style = _output_style_overlay(ctx.agent_session)
+    if style:
+        parts.append(style)
     memory = (ctx.agent_session.memory or {}).get("summary")
     if memory:
         parts.append(f"== ROLLING MEMORY ==\n{memory}")
