@@ -239,6 +239,19 @@ class FathomProvider:
         connection.state = state
         connection.save(update_fields=["state", "updated_at"])
 
+        # Backfill existing meetings — the webhook above is CDC (delivers only
+        # meetings recorded AFTER connect). Fire once the surrounding
+        # handle_callback transaction commits so the worker sees the Connection
+        # row (and so a later rollback doesn't leave a spurious backfill queued).
+        from django.db import transaction
+
+        from .tasks import backfill_fathom_meetings
+
+        workspace_id = str(connection.workspace_id)
+        transaction.on_commit(
+            lambda: backfill_fathom_meetings.delay(workspace_id),
+        )
+
         logger.info(
             "fathom_webhook_registered",
             extra={

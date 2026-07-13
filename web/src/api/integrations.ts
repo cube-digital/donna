@@ -67,12 +67,13 @@ export async function getIntegration(slug: string): Promise<IntegrationProvider>
 
 export async function connectIntegration(
   slug: string,
+  redirectTo?: string,
 ): Promise<{ authorize_url: string }> {
   return apiFetch<{ authorize_url: string }>(
     `/api/v1/integrations/${slug}/connect/`,
     {
       method: "POST",
-      body: {},
+      body: redirectTo ? { redirect_to: redirectTo } : {},
     },
   );
 }

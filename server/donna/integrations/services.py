@@ -83,25 +83,28 @@ class RegistryService:
     # ── Listing ─────────────────────────────────────────────────────────────
     def list_for_workspace(self, workspace: "Workspace") -> list[IntegrationStatus]:
         """All connectors visible to the workspace, with connection status."""
-        from .models import ClientCredentials, OAuthToken
+        from django.db.models import Q
+
+        from .models import ClientCredentials, Connection
 
         enabled_slugs = set(
             ClientCredentials.objects
             .filter(is_enabled=True)
             .values_list("slug", flat=True)
         )
-        connected_oauth_slugs = set(
-            OAuthToken.objects
-            .filter(workspace=workspace)
-            .values_list("provider__slug", flat=True)
-        )
-        # Also include user-scoped tokens for the current user.
+        # A connector is "connected" only when it has its own enabled Connection
+        # row — NOT merely because a token exists for the shared vendor. Gmail
+        # and Drive share oauth_provider_slug="google"; keying on the vendor
+        # token flipped BOTH on when only one was actually connected.
+        owner = Q(workspace=workspace)
         if self.current_user is not None:
-            connected_oauth_slugs |= set(
-                OAuthToken.objects
-                .filter(user=self.current_user)
-                .values_list("provider__slug", flat=True)
-            )
+            owner |= Q(user=self.current_user)
+        connected_slugs = set(
+            Connection.objects
+            .filter(enabled=True)
+            .filter(owner)
+            .values_list("provider_slug", flat=True)
+        )
 
         statuses: list[IntegrationStatus] = []
         for cls in all_loaded():
@@ -111,7 +114,7 @@ class RegistryService:
                     display_name=cls.display_name,
                     category=cls.category,
                     is_configured=cls.oauth_provider_slug in enabled_slugs,
-                    is_connected=cls.oauth_provider_slug in connected_oauth_slugs,
+                    is_connected=cls.slug in connected_slugs,
                 )
             )
         return statuses
@@ -120,7 +123,7 @@ class RegistryService:
         """Status for one connector. Raises ProviderNotRegistered if unknown."""
         from django.db.models import Q
 
-        from .models import ClientCredentials, OAuthToken
+        from .models import ClientCredentials, Connection
 
         cls = get_provider(slug)  # raises ProviderNotRegistered
 
@@ -138,8 +141,11 @@ class RegistryService:
         if self.current_user is not None:
             owner_clause |= Q(user=self.current_user)
 
-        is_connected = OAuthToken.objects.filter(
-            provider__slug=cls.oauth_provider_slug,
+        # Per-connector Connection row, NOT the shared vendor token — Gmail and
+        # Drive share the "google" vendor, so a vendor-token check reported both
+        # connected when only one was.
+        is_connected = Connection.objects.filter(
+            provider_slug=cls.slug,
         ).filter(owner_clause).exists()
 
         return IntegrationStatus(
@@ -230,7 +236,9 @@ class RegistryService:
         )
         if connection is not None:
             try:
-                provider.on_disconnect(token=token, connection=connection)
+                on_disconnect = getattr(provider, "on_disconnect", None)
+                if on_disconnect is not None:
+                    on_disconnect(token=token, connection=connection)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "on_disconnect_failed",
@@ -365,7 +373,14 @@ class RegistryService:
         # binding behind. Hook implementations should be idempotent so a retry
         # after a transient vendor error works.
         try:
-            provider.on_connect(token=token, connection=connection)
+            # `on_connect` is optional per the IntegrationProvider contract
+            # ("default implementations are no-ops"). Plain connector classes
+            # with no vendor-side setup (poll-based Gmail/Drive) simply don't
+            # define it — treat absence as a no-op instead of crashing the
+            # whole callback (which rolls back the token + connection).
+            on_connect = getattr(provider, "on_connect", None)
+            if on_connect is not None:
+                on_connect(token=token, connection=connection)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "on_connect_failed",

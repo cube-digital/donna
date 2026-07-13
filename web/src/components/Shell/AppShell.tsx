@@ -29,10 +29,16 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { listWorkspaces } from "../../api/workspaces";
 import { useChannels } from "../../state/channels";
 import { useWorkspace } from "../../state/workspace";
+import {
+  ensureNotificationPermission,
+  notifyMention,
+  bodyMentionsMe,
+} from "../../lib/notify";
 import { NotificationsBootstrap } from "../RightRail/RightRail";
 import {
   RightRailOutlet,
   RightRailProvider,
+  useRightRailHasContent,
 } from "./RightRailSlot";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
@@ -46,6 +52,7 @@ function WorkspaceBootstrap() {
   const setWorkspaces = useWorkspace((s) => s.setWorkspaces);
   useEffect(() => {
     void loadChannels();
+    void ensureNotificationPermission();
   }, [loadChannels]);
 
   const markPinned = useChannels((s) => s.markPinned);
@@ -58,9 +65,9 @@ function WorkspaceBootstrap() {
     void Promise.all([
       import("../../lib/ws"),
       import("../../state/messages"),
-      import("../../state/documents"),
+      import("../../state/artifacts"),
       import("../../state/auth"),
-    ]).then(([{ getChatWs }, { useMessages }, { useDocuments }, { useAuth }]) => {
+    ]).then(([{ getChatWs }, { useMessages }, { useArtifacts }, { useAuth }]) => {
       const ws = getChatWs();
       const offCreated = ws.on("channel.created", (p) =>
         upsertFromEvent(p as never),
@@ -92,8 +99,28 @@ function WorkspaceBootstrap() {
           .applyReactionRemoved(p.channel_id, p.message_id, p.emoji, me?.id === p.user_id);
       });
       // Live doc updates from the agent's UpdateDraftSectionTool / Finalize.
-      const offDocUpdated = ws.on("document.updated", (p) => {
-        useDocuments.getState().upsertFromEvent(p.channel_id, p.document as never);
+      const offDocUpdated = ws.on("artifact.updated", (p) => {
+        useArtifacts.getState().upsertFromEvent(p.channel_id, p.artifact as never);
+      });
+      // Mention sound + browser notification.
+      const offMention = ws.on("message.created", (p) => {
+        const me = useAuth.getState().user;
+        if (!me) return;
+        // Skip our own messages.
+        if (p.author_user && p.author_user === me.id) return;
+        const handle = me.email?.split("@")[0]?.toLowerCase().replace(/\s+/g, "");
+        if (
+          bodyMentionsMe({
+            body: p.body,
+            myUserId: me.id,
+            myHandle: handle,
+          })
+        ) {
+          notifyMention({
+            title: "You were mentioned",
+            body: p.body.slice(0, 140),
+          });
+        }
       });
       cleanup = () => {
         offCreated();
@@ -104,6 +131,7 @@ function WorkspaceBootstrap() {
         offReactionAdded();
         offReactionRemoved();
         offDocUpdated();
+        offMention();
       };
     });
     return () => cleanup?.();
@@ -117,7 +145,18 @@ function WorkspaceBootstrap() {
     void (async () => {
       try {
         const list = await listWorkspaces();
-        if (!cancelled) setWorkspaces(list);
+        if (!cancelled) {
+          setWorkspaces(list);
+          // Self-heal a stale active workspace: an id persisted from a prior
+          // DB/session that no longer exists makes every X-Workspace-Id
+          // request 404 → the app spins on "Loading…" forever. If the stored
+          // active id isn't one of the user's workspaces, clear it so the app
+          // routes back to the picker instead of sending a dead tenant id.
+          const active = useWorkspace.getState().activeId;
+          if (active && !list.some((w) => w.id === active)) {
+            useWorkspace.getState().setActive(null);
+          }
+        }
       } catch {
         /* leave list empty; sidebar falls back to "Workspace" label */
       }
@@ -127,6 +166,26 @@ function WorkspaceBootstrap() {
     };
   }, [workspaces.length, setWorkspaces]);
   return null;
+}
+
+/**
+ * Cowork-style right-rail mount: render the resizable panel + separator
+ * ONLY when the active view has actually published content into the
+ * right-rail slot. Channel.tsx publishes `<ArtifactPreviewSection/>`
+ * — that component itself returns null when nothing is open — so this
+ * component collapses to nothing when there's no draft to show.
+ */
+function RightRailPanel() {
+  const hasContent = useRightRailHasContent();
+  if (!hasContent) return null;
+  return (
+    <>
+      <Separator className="w-px bg-border-soft hover:bg-ai/40 hover:w-[3px] transition-[width,background-color] duration-100" />
+      <Panel id="rightrail" defaultSize="32%" minSize="20%" maxSize="55%">
+        <RightRailOutlet />
+      </Panel>
+    </>
+  );
 }
 
 export default function AppShell() {
@@ -157,10 +216,7 @@ export default function AppShell() {
               </div>
             </main>
           </Panel>
-          <Separator className="w-px bg-border-soft hover:bg-ai/40 hover:w-[3px] transition-[width,background-color] duration-100" />
-          <Panel id="rightrail" defaultSize="17%" minSize="12%" maxSize="32%">
-            <RightRailOutlet />
-          </Panel>
+          <RightRailPanel />
         </Group>
       </div>
     </RightRailProvider>

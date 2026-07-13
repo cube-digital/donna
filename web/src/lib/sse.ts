@@ -23,6 +23,7 @@
 // we schedule a reconnect rather than permanently closing — the token
 // will arrive when sign-in completes and the next attempt picks it up.
 
+import { tryRefresh } from "../api/client";
 import { getAccess } from "./auth-storage";
 import { getActiveWorkspace } from "./auth-storage";
 
@@ -127,6 +128,16 @@ class NotificationsSseClient implements SseClient {
         signal: this.abort.signal,
         // keepalive false — we manage lifecycle explicitly.
       });
+
+      if (res.status === 401) {
+        // Access token expired. The API client refreshes on its own 401s, but
+        // this reconnect loop has its own fetch — without refreshing here it
+        // spins forever on the stale token. Refresh once, reset backoff, and
+        // let the scheduled reconnect pick up the new token.
+        const refreshed = await tryRefresh();
+        if (refreshed) this.backoff = 500;
+        throw new Error("sse http 401");
+      }
 
       if (!res.ok || !res.body) {
         throw new Error(`sse http ${res.status}`);

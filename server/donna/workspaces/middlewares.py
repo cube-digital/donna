@@ -103,20 +103,31 @@ class WorkspaceMiddleware:
 
         return self.process_response(request, response)
 
-    def process_request(self, request):
-        for path, methods in self.IGNORED_PATHS.items():
-            if request.path.startswith(path) and request.method in methods:
-                request.workspace = None
-                request.company = None
-                request.tenant_id = None
-                return None
+    # Named sub-routes nested under an otherwise context-free ignored prefix
+    # that DO operate inside the active workspace and so require the header.
+    # "/api/v1/workspaces" is ignored (create/list needs no active workspace),
+    # but its `startswith` match also catches "/api/v1/workspaces/invitations/",
+    # which is tenanted — don't let the broad prefix strip its context.
+    TENANTED_UNDER_IGNORED = ("/api/v1/workspaces/invitations",)
 
-        for suffix, methods in self.IGNORED_SUFFIXES.items():
-            if request.path.endswith(suffix) and request.method in methods:
-                request.workspace = None
-                request.company = None
-                request.tenant_id = None
-                return None
+    def process_request(self, request):
+        tenanted_override = any(
+            request.path.startswith(p) for p in self.TENANTED_UNDER_IGNORED
+        )
+        if not tenanted_override:
+            for path, methods in self.IGNORED_PATHS.items():
+                if request.path.startswith(path) and request.method in methods:
+                    request.workspace = None
+                    request.company = None
+                    request.tenant_id = None
+                    return None
+
+            for suffix, methods in self.IGNORED_SUFFIXES.items():
+                if request.path.endswith(suffix) and request.method in methods:
+                    request.workspace = None
+                    request.company = None
+                    request.tenant_id = None
+                    return None
 
         # Tenanted path — X-Workspace-Id header is mandatory. Resolve once,
         # attach to request, propagate to logging contextvars. Views can then

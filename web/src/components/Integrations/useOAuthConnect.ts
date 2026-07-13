@@ -1,77 +1,39 @@
-// Lifts the OAuth popup + postMessage listener from the legacy
-// IntegrationModal so multiple surfaces (detail page, future onboarding flow)
-// can reuse it without duplicating state.
+// Starts an integration OAuth connect via a FULL-PAGE redirect — the same
+// model as Google login in Auth.tsx (window.location.assign).
 //
-// Usage:
-//   const { connect, busy, error } = useOAuthConnect(slug, () => reload());
+// Why not a popup (the previous approach):
+//   - `window.open` called after an `await` loses the browser's user-activation
+//     token, so Chrome/Safari block it ("Couldn't open the OAuth popup").
+//   - The popup's completion signal was a same-origin `postMessage` from an
+//     /oauth/return shim. That breaks whenever the API host differs from the
+//     SPA host (e.g. local dev: SPA on :5173, API on the cluster) — the popup
+//     lands on the API host and can't message back.
+//
+// We pass our own origin as `redirect_to` so the backend callback 302s back to
+// THIS frontend: `${origin}/integrations/<slug>?status=connected|error`. The
+// IntegrationDetail route reloads on mount and reflects the connected state.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { connectIntegration } from "../../api/integrations";
 
-interface OAuthReturnMessage {
-  kind: "donna.oauth.return";
-  status: "ok" | "error";
-  slug?: string;
-  detail?: string;
-  error?: string;
-}
-
 export function useOAuthConnect(
   slug: string,
-  onSuccess?: () => void | Promise<void>,
+  // Kept for call-site compatibility. With a full-page redirect the page
+  // remounts on return and reloads its own state, so no callback is needed.
+  _onSuccess?: () => void | Promise<void>,
 ) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [popup, setPopup] = useState<Window | null>(null);
-
-  // postMessage from the /oauth/return shim window
-  useEffect(() => {
-    function onMsg(e: MessageEvent) {
-      if (e.origin !== window.location.origin) return;
-      const payload = e.data as OAuthReturnMessage | undefined;
-      if (payload?.kind !== "donna.oauth.return") return;
-      setBusy(false);
-      setPopup(null);
-      if (payload.status === "ok") {
-        void onSuccess?.();
-      } else {
-        setError(payload.detail || payload.error || "OAuth failed.");
-      }
-    }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [onSuccess]);
-
-  // Detect popup-closed-without-completion so we re-enable the button.
-  useEffect(() => {
-    if (!popup) return;
-    const t = setInterval(() => {
-      if (popup.closed) {
-        setBusy(false);
-        setPopup(null);
-        clearInterval(t);
-      }
-    }, 500);
-    return () => clearInterval(t);
-  }, [popup]);
 
   const connect = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const { authorize_url } = await connectIntegration(slug);
-      const w = window.open(
-        authorize_url,
-        "_blank",
-        "width=520,height=620,noopener=no",
-      );
-      if (!w) {
-        setError("Couldn't open the OAuth popup — check your browser settings.");
-        setBusy(false);
-        return;
-      }
-      setPopup(w);
+      const returnTo = `${window.location.origin}/integrations`;
+      const { authorize_url } = await connectIntegration(slug, returnTo);
+      // Full-page navigation to the provider's consent screen.
+      window.location.assign(authorize_url);
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);

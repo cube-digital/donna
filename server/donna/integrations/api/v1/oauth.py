@@ -56,6 +56,24 @@ class ProviderOAuthCallbackView(APIView):
         upstream_error = request.query_params.get("error")
 
         upstream_error_description = request.query_params.get("error_description")
+
+        # Best-effort decode of the signed state to recover the frontend return
+        # target (`redirect_to`) and the REAL connector slug — the state carries
+        # gmail/drive, while the URL slug is the shared vendor "google". Every
+        # redirect below then lands back on the SPA that started the flow
+        # (`{redirect_to}/{connector}`), not the API host (relative default →
+        # 404 when the SPA is served from a different origin).
+        base_path, connector_slug = _DEFAULT_SUCCESS_PATH, slug
+        if state:
+            try:
+                from donna.core.integrations.oauth import BaseOAuthHandler
+
+                payload = BaseOAuthHandler.verify_state(state)
+                connector_slug = payload.get("slug") or slug
+                base_path = payload.get("redirect_to") or _DEFAULT_SUCCESS_PATH
+            except Exception:  # noqa: BLE001 — bad/blank state → defaults
+                pass
+
         if upstream_error:
             logger.warning(
                 "oauth_callback_upstream_error slug=%s error=%s description=%s",
@@ -64,8 +82,8 @@ class ProviderOAuthCallbackView(APIView):
                 upstream_error_description,
             )
             return _redirect_with_status(
-                _DEFAULT_SUCCESS_PATH,
-                slug,
+                base_path,
+                connector_slug,
                 status="error",
                 reason=upstream_error,
                 detail=(upstream_error_description or "")[:300],
@@ -97,8 +115,8 @@ class ProviderOAuthCallbackView(APIView):
                 "oauth_callback_exchange_failed slug=%s error=%s", slug, exc,
             )
             return _redirect_with_status(
-                _DEFAULT_SUCCESS_PATH,
-                slug,
+                base_path,
+                connector_slug,
                 status="error",
                 reason="exchange_failed",
                 detail=str(exc)[:300],
@@ -108,8 +126,8 @@ class ProviderOAuthCallbackView(APIView):
                 "oauth_callback_unhandled slug=%s error=%s", slug, exc,
             )
             return _redirect_with_status(
-                _DEFAULT_SUCCESS_PATH,
-                slug,
+                base_path,
+                connector_slug,
                 status="error",
                 reason="server_error",
                 detail=str(exc)[:300],
@@ -119,7 +137,7 @@ class ProviderOAuthCallbackView(APIView):
             "oauth_callback_success",
             extra={"slug": slug, "token_id": str(token.id)},
         )
-        return _redirect_with_status(_DEFAULT_SUCCESS_PATH, slug, status="connected")
+        return _redirect_with_status(base_path, connector_slug, status="connected")
 
 
 def _redirect_with_status(base_path: str, slug: str, **params) -> HttpResponseRedirect:

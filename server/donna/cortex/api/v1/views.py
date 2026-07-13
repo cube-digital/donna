@@ -57,6 +57,108 @@ class CortexEntityViewSet(viewsets.ViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=False, methods=["get"], url_path="files")
+    def files(self, request):
+        """``GET /cortex/entities/files/?q=&type=&relationship=&cursor=&limit=``
+
+        Paginated list of cortex entities surfaced as files for the
+        Slack-files-style browser. Filter by ``type`` (meeting/email/doc/
+        person/org/project/...) and, for ``type=org``, by ``relationship``
+        (client/vendor/peer/self). Returns lightweight cards (no body) +
+        preview/source links.
+        """
+        from django.core.files.storage import default_storage
+        from donna.cortex.models import CortexEntity
+
+        workspace = getattr(request, "workspace", None)
+        if workspace is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        q = (request.query_params.get("q") or "").strip()
+        type_filter = (request.query_params.get("type") or "").strip()
+        relationship = (request.query_params.get("relationship") or "").strip()
+        limit = min(int(request.query_params.get("limit") or 50), 200)
+        cursor = request.query_params.get("cursor")
+
+        qs = CortexEntity.objects.filter(workspace=workspace).order_by("-occurred_at")
+        if type_filter:
+            qs = qs.filter(type=type_filter)
+        if q:
+            qs = qs.filter(title__icontains=q)
+        if cursor:
+            qs = qs.filter(occurred_at__lt=cursor)
+        if relationship:
+            qs = qs.filter(extensions__relationship=relationship)
+
+        rows = list(qs[: limit + 1])
+        next_cursor = rows[limit].occurred_at.isoformat() if len(rows) > limit else None
+        rows = rows[:limit]
+
+        items = []
+        for e in rows:
+            body_key = f"cortex/{e.workspace_id}/{e.type}/{e.id}.md"
+            try:
+                body_url = default_storage.url(body_key)
+            except Exception:  # noqa: BLE001
+                body_url = None
+            bronze_url = None
+            if e.bronze_storage_key:
+                try:
+                    bronze_url = default_storage.url(e.bronze_storage_key)
+                except Exception:  # noqa: BLE001
+                    bronze_url = None
+            ext = e.extensions or {}
+            items.append(
+                {
+                    "id": str(e.id),
+                    "type": e.type,
+                    "title": e.title,
+                    "source": e.source,
+                    "author": e.author,
+                    "occurred_at": e.occurred_at.isoformat() if e.occurred_at else None,
+                    "body_url": body_url,
+                    "bronze_url": bronze_url,
+                    "relationship": ext.get("relationship") if e.type == "org" else None,
+                    "client_id": str(e.client_id) if e.client_id else None,
+                    "project_id": str(e.project_id) if e.project_id else None,
+                }
+            )
+
+        return Response({"data": items, "next_cursor": next_cursor})
+
+    @action(detail=False, methods=["get"], url_path="counts")
+    def counts(self, request):
+        """``GET /cortex/entities/counts/`` — per-type counts (+ an org
+        relationship breakdown) via aggregate queries.
+
+        Powers the browser sidebar without pulling a full 200-item list per
+        type (which also signed an S3 URL per row). One cheap GROUP BY instead
+        of ~14 body-bearing list calls.
+        """
+        from django.db.models import Count
+
+        from donna.cortex.models import CortexEntity
+
+        workspace = getattr(request, "workspace", None)
+        if workspace is None:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        base = CortexEntity.objects.filter(workspace=workspace)
+        by_type = {
+            r["type"]: r["n"]
+            for r in base.values("type").annotate(n=Count("id"))
+        }
+        by_relationship = {
+            r["extensions__relationship"]: r["n"]
+            for r in (
+                base.filter(type="org")
+                .values("extensions__relationship")
+                .annotate(n=Count("id"))
+            )
+            if r["extensions__relationship"]
+        }
+        return Response({"by_type": by_type, "by_relationship": by_relationship})
+
     @action(detail=True, methods=["patch"], url_path="scope")
     def promote_scope(self, request, pk=None):
         """PATCH scope (4c, 2026-06-15) — promote a suggested_scope

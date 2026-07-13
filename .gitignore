@@ -1,3 +1,8 @@
+# Ops / infra tunnel scripts — this repo is PUBLIC. Never commit scripts that
+# expose internal topology (cluster names, SSM paths, DB/Redis endpoints).
+*-tunnel.sh
+db-tunnel.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -233,3 +238,9 @@ __marimo__/
 # Claude Code local worktrees / agent state
 .claude/worktrees/
 server/env/.env.docker
+
+# Local mirrord dev configs — leak cluster namespace/deployment; never commit.
+.mirrord.json
+.mirrord*.json
+**/.mirrord.json
+**/.mirrord*.json

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "donna.notifications",
     "donna.status",
     "donna.cortex",
+    "donna.automation",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -227,6 +228,10 @@ def _default_storage_config():
                 "secret_key":       env("DONNA_S3_SECRET_KEY"),
                 "region_name":      env("DONNA_S3_REGION", default="us-east-1"),
                 "addressing_style": env("DONNA_S3_ADDRESSING_STYLE", default="virtual"),
+                # SigV4 is required for presigned URLs to KMS-encrypted objects
+                # (S3 rejects SigV2 with InvalidArgument). Default on; override
+                # to "s3" only for legacy S3-compatible stores that need it.
+                "signature_version": env("DONNA_S3_SIGNATURE_VERSION", default="s3v4"),
                 "use_ssl":          env.bool("DONNA_S3_USE_SSL", default=True),
                 "verify":           env.bool("DONNA_S3_VERIFY_SSL", default=True),
             },

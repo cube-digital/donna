@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 
+import httpx
 from celery import shared_task
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -20,7 +21,19 @@ from donna.core.integrations import get as get_provider
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name="integrations.fathom.ingest_meeting", bind=True)
+@shared_task(
+    name="integrations.fathom.ingest_meeting",
+    bind=True,
+    # Fathom rate-limits the recordings API. Cap worker throughput and retry
+    # 429s with exponential backoff so a history backfill drains without
+    # tripping (or getting stuck behind) the limit.
+    rate_limit="6/m",
+    autoretry_for=(httpx.HTTPStatusError,),
+    retry_backoff=15,
+    retry_backoff_max=600,
+    max_retries=8,
+    retry_jitter=True,
+)
 def ingest_fathom_meeting(
     self,
     workspace_id: str,
@@ -57,11 +70,26 @@ def ingest_fathom_meeting(
     )
     token = connection.token
 
-    with provider.client(token) as client:
-        transcript = client.get_transcript(recording_id)
-        summary    = client.get_summary(recording_id)
+    # The adapter's external_id() (also called inside to_canonical) needs an
+    # `id`/`meeting_id`. Webhook payloads carry it; /meetings list items carry
+    # `recording_id`. Normalise so backfill items ingest cleanly.
+    meeting = dict(meeting or {})
+    meeting.setdefault("id", recording_id)
 
-    raw = {"meeting": meeting or {}, "transcript": transcript, "summary": summary}
+    # Prefer transcript/summary already present on the meeting payload — the
+    # /meetings list item includes them inline, so re-fetching per recording is
+    # a wasted (rate-limited → 429) round-trip. Only hit the per-recording
+    # endpoints when they're absent (the webhook path passes ids only).
+    transcript = meeting.get("transcript")
+    summary    = meeting.get("default_summary") or meeting.get("summary")
+    if transcript is None or summary is None:
+        with provider.client(token) as client:
+            if transcript is None:
+                transcript = client.get_transcript(recording_id)
+            if summary is None:
+                summary = client.get_summary(recording_id)
+
+    raw = {"meeting": meeting, "transcript": transcript, "summary": summary}
     adapter = provider.adapter_for(raw)
 
     # Versioned bronze key (Phase 1, 2026-06-12): the sha8 in the path
@@ -143,3 +171,56 @@ def ingest_fathom_meeting(
         "cortex_entity_id":    cortex_entity_id,
         "created":             created,
     }
+
+
+@shared_task(name="integrations.fathom.backfill_meetings", bind=True)
+def backfill_fathom_meetings(self, workspace_id: str, limit: int | None = None) -> dict:
+    """
+    Backfill every existing Fathom meeting for a just-connected workspace.
+
+    The webhook is CDC — it only delivers meetings recorded *after* connect.
+    This runs once on connect (enqueued from ``FathomProvider.on_connect`` via
+    ``transaction.on_commit``) and pages through ``GET /meetings``, enqueuing an
+    ``ingest_fathom_meeting`` per recording so history lands too.
+
+    Idempotent: ``ingest_fathom_meeting`` upserts the ``DeliveryPackage`` by
+    ``(workspace, provider, provider_item_id)``, so a re-run (or overlap with a
+    webhook delivery) is safe.
+    """
+    from donna.integrations.models import Connection
+
+    provider = get_provider("fathom")()
+    connection = (
+        Connection.objects
+        .select_related("token")
+        .get(workspace_id=workspace_id, provider_slug="fathom")
+    )
+    token = connection.token
+
+    # Fathom rate-limits the recordings API (429). Each ingest makes 2 calls
+    # (transcript + summary), so bursting the whole history at once trips the
+    # limit. Stagger the enqueues with a per-item countdown to smooth the load.
+    stagger_s = 6
+    enqueued = 0
+    with provider.client(token) as client:
+        for meeting in client.iter_meetings():
+            recording_id = (
+                meeting.get("recording_id")
+                or meeting.get("id")
+                or meeting.get("meeting_id")
+            )
+            if not recording_id:
+                continue
+            ingest_fathom_meeting.apply_async(
+                args=[str(workspace_id), str(recording_id), meeting],
+                countdown=enqueued * stagger_s,
+            )
+            enqueued += 1
+            if limit and enqueued >= limit:
+                break
+
+    logger.info(
+        "fathom_backfill_enqueued",
+        extra={"workspace_id": workspace_id, "count": enqueued, "stagger_s": stagger_s},
+    )
+    return {"enqueued": enqueued}
