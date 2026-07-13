@@ -5,7 +5,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { getCortexCounts, listCortexFiles, type CortexFile } from "../api/cortex";
+import {
+  getCortexCounts,
+  getCortexEntity,
+  listCortexFiles,
+  type CortexFile,
+} from "../api/cortex";
 import { GlyphSlot, type IconName } from "../components/Goofy";
 
 type Scope = {
@@ -54,6 +59,8 @@ interface ExpandableSectionProps {
   icon: IconName;
   type: string;
   relationship?: string;
+  /** Count from the aggregate counts endpoint — no per-section probe call. */
+  count?: number;
   scope: Scope;
   setScope: (s: Scope) => void;
 }
@@ -63,31 +70,14 @@ function ExpandableSection({
   icon,
   type,
   relationship,
+  count,
   scope,
   setScope,
 }: ExpandableSectionProps) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<CortexFile[] | null>(null);
-  const [count, setCount] = useState<number | null>(null);
 
-  // Cheap count probe.
-  useEffect(() => {
-    let cancelled = false;
-    void listCortexFiles({ type, relationship, limit: 200 })
-      .then((p) => {
-        if (cancelled) return;
-        setCount(p.data.length);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setCount(0);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [type, relationship]);
-
-  // Fetch entity list once on expand.
+  // Fetch entity list once on expand (lazy, user-initiated — no mount fetch).
   useEffect(() => {
     if (!open || items !== null) return;
     let cancelled = false;
@@ -123,7 +113,7 @@ function ExpandableSection({
         />
         <GlyphSlot name={icon} size={16} />
         <span className="flex-1 text-left font-semibold">{label}</span>
-        {count !== null ? (
+        {count ? (
           <span className="text-[10.5px] text-text-4 font-mono">{count}</span>
         ) : null}
       </button>
@@ -300,6 +290,7 @@ export default function Files() {
             icon={g.icon}
             type={g.type}
             relationship={g.relationship}
+            count={counts[g.relationship ?? g.type]}
             scope={scope}
             setScope={setScope}
           />
@@ -421,22 +412,21 @@ export default function Files() {
 
 function PreviewDrawer({ file, onClose }: { file: CortexFile; onClose: () => void }) {
   const [body, setBody] = useState<string | null>(null);
+  const [bronzeUrl, setBronzeUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // Body served inline by the authed backend (body_md) — no cross-origin S3
+  // fetch (no CORS / SigV4 / KMS fragility). Bronze URL signed lazily here too.
   useEffect(() => {
-    if (!file.body_url) {
-      setBody(null);
-      setBusy(false);
-      return;
-    }
     setBusy(true);
+    setErr(null);
     let cancelled = false;
-    fetch(file.body_url)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`))))
-      .then((txt) => {
+    getCortexEntity(file.id, true)
+      .then((card) => {
         if (cancelled) return;
-        setBody(txt);
+        setBody(card.body_md ?? null);
+        setBronzeUrl(card.bronze_url ?? null);
         setBusy(false);
       })
       .catch((e) => {
@@ -447,7 +437,7 @@ function PreviewDrawer({ file, onClose }: { file: CortexFile; onClose: () => voi
     return () => {
       cancelled = true;
     };
-  }, [file.body_url]);
+  }, [file.id]);
 
   return (
     <div className="absolute inset-0 z-40 flex" role="dialog" aria-modal="true">
@@ -484,10 +474,10 @@ function PreviewDrawer({ file, onClose }: { file: CortexFile; onClose: () => voi
             <span className="text-text-3">No preview available.</span>
           )}
         </div>
-        {file.bronze_url ? (
+        {file.has_bronze && bronzeUrl ? (
           <footer className="px-4 py-3 border-t border-border-soft text-[12px]">
             <a
-              href={file.bronze_url}
+              href={bronzeUrl}
               target="_blank"
               rel="noreferrer"
               className="text-ai hover:underline font-semibold"

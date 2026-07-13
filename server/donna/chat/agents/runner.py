@@ -69,6 +69,7 @@ def persist_agent_message(channel: Channel, session: AgentSession, body: str) ->
         channel=channel,
         author_agent=session,
         body=body,
+        kind=Message.Kind.CHAT,
     )
     _broadcast_agent_message(channel, message)
     return message

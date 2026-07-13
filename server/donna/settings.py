@@ -289,8 +289,24 @@ DISABLED_INTEGRATIONS = env.list("DONNA_DISABLED_INTEGRATIONS", default=[])
 # Provider tasks register via @shared_task; the integrations app's apps.py
 # auto-imports each connector's tasks.py at startup.
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+def _normalize_redis_ssl(url):
+    """Normalize the ``ssl_cert_reqs`` spelling on ``rediss://`` URLs.
+
+    redis-py ≥ 6 rejects the Python-constant spelling ``CERT_NONE`` on the URL
+    query (``ValueError: Invalid SSL Certificate Requirements Flag``); the
+    lowercase ``none`` is accepted by every version. Deployments that store the
+    broker URL as ``…?ssl_cert_reqs=CERT_NONE`` (e.g. staging SSM) otherwise
+    break under a newer local redis-py than the deployed image. Idempotent.
+    """
+    if url and "ssl_cert_reqs=CERT_NONE" in url:
+        return url.replace("ssl_cert_reqs=CERT_NONE", "ssl_cert_reqs=none")
+    return url
+
+
+CELERY_BROKER_URL = _normalize_redis_ssl(
+    env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+)
+CELERY_RESULT_BACKEND = _normalize_redis_ssl(env("CELERY_RESULT_BACKEND", default=None))
 CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -362,7 +378,11 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [env.str("CHANNELS_REDIS_URL", default=CELERY_BROKER_URL)],
+            "hosts": [
+                _normalize_redis_ssl(
+                    env.str("CHANNELS_REDIS_URL", default=CELERY_BROKER_URL)
+                )
+            ],
         },
     },
 }

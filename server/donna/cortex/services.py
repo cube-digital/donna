@@ -84,6 +84,7 @@ class EntityCard:
     cross_refs: list[str]
     client_id: UUID | None
     project_id: UUID | None
+    bronze_storage_key: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -99,6 +100,7 @@ class EntityCard:
             "cross_refs": self.cross_refs,
             "client_id": str(self.client_id) if self.client_id else None,
             "project_id": str(self.project_id) if self.project_id else None,
+            "bronze_storage_key": self.bronze_storage_key,
         }
 
 
@@ -222,6 +224,7 @@ class CortexService(BaseService[CortexEntity]):
             cross_refs=[str(x) for x in (row.cross_refs or [])],
             client_id=row.client_id,
             project_id=row.project_id,
+            bronze_storage_key=row.bronze_storage_key or "",
         )
 
     # ── get_context ────────────────────────────────────────────────

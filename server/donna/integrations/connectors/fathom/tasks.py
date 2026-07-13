@@ -183,6 +183,10 @@ def backfill_fathom_meetings(self, workspace_id: str, limit: int | None = None) 
     ``transaction.on_commit``) and pages through ``GET /meetings``, enqueuing an
     ``ingest_fathom_meeting`` per recording so history lands too.
 
+    User-facing progress ("importing…" / "N imported") is emitted by the
+    ``post_save`` DeliveryPackage signal (``integrations.notifications``), so
+    this task stays notification-agnostic and webhook ingests notify too.
+
     Idempotent: ``ingest_fathom_meeting`` upserts the ``DeliveryPackage`` by
     ``(workspace, provider, provider_item_id)``, so a re-run (or overlap with a
     webhook delivery) is safe.

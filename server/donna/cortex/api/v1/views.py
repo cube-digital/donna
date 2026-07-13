@@ -19,6 +19,16 @@ from .serializers import (
 )
 
 
+def _sign(key: str) -> str | None:
+    """Best-effort presigned URL for a storage key (None on failure)."""
+    from django.core.files.storage import default_storage
+
+    try:
+        return default_storage.url(key)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 class CortexEntityViewSet(viewsets.ViewSet):
     """Cortex read + write HTTP surface (DRF)."""
 
@@ -40,7 +50,13 @@ class CortexEntityViewSet(viewsets.ViewSet):
         card = self._service(request).read_entity(pk, include_body=include_body)
         if card is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(card.as_dict())
+        payload = card.as_dict()
+        # Sign the bronze (raw source) URL lazily — only on detail open, not
+        # per-row in the list. Body itself is served inline via ``body_md``
+        # (authed, no cross-origin S3 fetch).
+        bronze_key = payload.pop("bronze_storage_key", "") or ""
+        payload["bronze_url"] = _sign(bronze_key) if bronze_key else None
+        return Response(payload)
 
     @action(detail=True, methods=["get"], url_path="context")
     def context(self, request, pk=None):
@@ -64,10 +80,10 @@ class CortexEntityViewSet(viewsets.ViewSet):
         Paginated list of cortex entities surfaced as files for the
         Slack-files-style browser. Filter by ``type`` (meeting/email/doc/
         person/org/project/...) and, for ``type=org``, by ``relationship``
-        (client/vendor/peer/self). Returns lightweight cards (no body) +
-        preview/source links.
+        (client/vendor/peer/self). Returns lightweight header cards only —
+        **no signed URLs**; the body + raw-source link are signed lazily on
+        detail open (``retrieve``) so a 200-row list doesn't sign 200 S3 URLs.
         """
-        from django.core.files.storage import default_storage
         from donna.cortex.models import CortexEntity
 
         workspace = getattr(request, "workspace", None)
@@ -96,17 +112,6 @@ class CortexEntityViewSet(viewsets.ViewSet):
 
         items = []
         for e in rows:
-            body_key = f"cortex/{e.workspace_id}/{e.type}/{e.id}.md"
-            try:
-                body_url = default_storage.url(body_key)
-            except Exception:  # noqa: BLE001
-                body_url = None
-            bronze_url = None
-            if e.bronze_storage_key:
-                try:
-                    bronze_url = default_storage.url(e.bronze_storage_key)
-                except Exception:  # noqa: BLE001
-                    bronze_url = None
             ext = e.extensions or {}
             items.append(
                 {
@@ -116,8 +121,7 @@ class CortexEntityViewSet(viewsets.ViewSet):
                     "source": e.source,
                     "author": e.author,
                     "occurred_at": e.occurred_at.isoformat() if e.occurred_at else None,
-                    "body_url": body_url,
-                    "bronze_url": bronze_url,
+                    "has_bronze": bool(e.bronze_storage_key),
                     "relationship": ext.get("relationship") if e.type == "org" else None,
                     "client_id": str(e.client_id) if e.client_id else None,
                     "project_id": str(e.project_id) if e.project_id else None,

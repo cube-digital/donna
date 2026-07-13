@@ -64,8 +64,57 @@ loop; **commit before they're lost.**
 | 4.11 | 🟡 | **Anthropic key** was invalid (27-char placeholder) → agent LLM `401`. **FIXED:** valid key written to SSM `/staging/donna/anthropic/api_key` (108 chars). Conversational agent **verified working** — real grounded answer citing gmail:// + Fathom sources across 305 cortex items. **Deployed pods still need a rollout restart** to pick up the new key via ExternalSecret. | Rollout-restart the deployed pods. Rotate the key (it passed through a chat transcript). |
 | 4.12 | 🔴 | **redis-py version mismatch (local vs deployed).** Local `.venv` has **7.4.0** which rejects the deployed Redis URL's `?ssl_cert_reqs=CERT_NONE` (`Invalid SSL Certificate Requirements Flag`) → `turn_lock` + channel-layer fail under mirrord. Deployed image's older redis-py accepts it. | Pin redis-py, or template the URL as `ssl_cert_reqs=none` (both versions accept lowercase). Agent turns via the Celery task need this to run locally. |
 
-| 4.13 | 🟡 | **Cortex resource body "Failed to fetch"** — two layers: (a) `body_url` is a direct presigned S3 URL fetched cross-origin → **CORS blocked**; (b) even with CORS, the URL was **SigV2** but the bucket is **KMS-encrypted** → S3 `400 InvalidArgument` (KMS requires SigV4). **FIXED:** (a) added S3 CORS rule (applied to `tf-donna-staging-storage-…`, allows the SPA origins), (b) `signature_version=s3v4` in the S3 storage OPTIONS (`settings.py`, default on). Verified: body fetch → 200, content loads. **Deploy the settings change** so the real pod signs SigV4 too. Proper long-term: proxy the body through an authed backend endpoint. |
-| 4.14 | 🟡 | **Cortex list over-fetch (slow).** The Files sidebar fired ~14 body-bearing list calls (one per type, each signing an S3 URL per row) on mount. **PARTIALLY FIXED:** added `GET /cortex/entities/counts/` (one aggregate GROUP BY) + rewired the content-type counts effect to use it. Verified: counts → 200 in one call. **Still open:** the entity-group effects (person/org×3/project) + main list still fetch full 200-item lists; lazy-load per selected category + only sign `body_url` on detail open. |
+| 4.13 | 🟡 | **Cortex resource body "Failed to fetch"** — two layers: (a) `body_url` is a direct presigned S3 URL fetched cross-origin → **CORS blocked**; (b) even with CORS, the URL was **SigV2** but the bucket is **KMS-encrypted** → S3 `400 InvalidArgument` (KMS requires SigV4). **FIXED:** (a) added S3 CORS rule (applied to `tf-donna-staging-storage-…`, allows the SPA origins), (b) `signature_version=s3v4` in the S3 storage OPTIONS (`settings.py`, default on). **Superseded by 4.14:** the Files drawer no longer fetches S3 cross-origin — it reads `body_md` inline from the authed `retrieve` endpoint (the "proxy the body through an authed backend" long-term fix). The S3 CORS/SigV4 fix still matters for the deployed pod's `bronze_url` (raw-source link) which stays a presigned S3 URL. **Deploy the settings change** so the pod signs SigV4. |
+| 4.15 | 🔵 | **Bronze is the replay log — cortex changes don't force a re-fetch.** Modifying the context/silver build (extraction, templates, extensions, clustering, embeddings, scoping, org-classify) rebuilds from stored `DeliveryPackage` rows; Fathom/Gmail are hit only once at ingest. **Confirms the current dev flow is safe: iterating on the cortex process does NOT touch the bronze layer.** Missing piece: a turnkey reprocess-bronze→silver command (building blocks exist). See §4.15-detail. |
+| 4.14 | 🟡 | **Cortex list over-fetch (slow) — DONE (uncommitted).** The Files sidebar fired ~14 body-bearing list calls (one per type, each signing an S3 URL per row) on mount. **Now:** (1) content-type counts + entity-group counts (person/org×3/project) all come from the single `GET /cortex/entities/counts/` aggregate — the 5 `ExpandableSection` mount probes are gone (`web/src/views/Files.tsx`, count passed as a prop keyed on `relationship ?? type`); (2) the `files` list endpoint no longer signs **any** S3 URL per row — returns lean header cards + a `has_bronze` bool; `body_md` + a lazily-signed `bronze_url` are returned only by `retrieve` on detail open (`cortex/api/v1/views.py`, `cortex/services.py::EntityCard.bronze_storage_key`); (3) the preview drawer fetches the body via `getCortexEntity(id)` (authed, inline) instead of a cross-origin presigned S3 fetch. Static-verified: `tsc` clean, `django check` clean. **Live-verify pending** a staging-loop relaunch. |
+
+### §4.15-detail — bronze ⇒ silver rebuild (no re-fetch)
+
+**Question raised (2026-07-13):** if the cortex/context build is modified, does
+it force a re-fetch of all Fathom meetings / Gmail messages? **No.** Bronze is
+the durable replay log; the source APIs are hit only once at ingest.
+
+**Code confirmation:**
+- Bronze = `DeliveryPackage` (`integrations/models.py:277`), keyed
+  `(workspace, provider, provider_item_id)`, idempotent upsert. Raw payload +
+  `canonical_payload` in `default_storage` at `dp.storage_key` (+ `.extracted.md`
+  sidecar).
+- Silver build `CortexPipeline.write(dp)` (`cortex/pipeline.py:148`) reads body
+  from `dp.storage_key`/sidecar (`_body_for`) + extensions from
+  `dp.canonical_payload` (`_extensions_from_canonical`). **Zero remote calls.**
+  Ingest wiring: `write bronze → CortexPipeline().write(package)`
+  (`fathom/tasks.py:157`).
+
+**Boundary — free vs not:**
+- ✅ Downstream-of-bronze changes (extraction, templates, extensions mapping,
+  clustering, embeddings, scoping, org classification) → reprocess bronze, no
+  re-fetch.
+- ⚠️ A **new source field never captured into bronze** (e.g. Gmail attachments
+  not fetched) → needs a re-fetch (bronze doesn't have it). Rule: *in bronze →
+  rebuild free; not in bronze → re-fetch.* When extending a connector, capture
+  generously into bronze even if silver ignores it, to keep future rebuilds
+  fetch-free.
+
+**Current dev-flow impact: none.** Iterating on the cortex process is safe — it
+does not touch or invalidate the bronze layer.
+
+**Open / missing tooling:**
+1. **No turnkey reprocess-bronze→silver command.** Building blocks exist
+   (`CortexPipeline().write(dp)`; the iterate-DPs pattern in `reclassify_orgs`,
+   `cortex/tasks.py:426`). A `--workspace` / `--provider` / clean-slate task is
+   ~20 lines.
+2. **Idempotency gap for changed output.** Dedup keys on `content_hash`
+   (`pipeline.py:315`): same body → no-op replay (safe); a build change that
+   alters the body → **new `content_hash`**, but auto-superseding the old head is
+   *"not in this slice"* (`pipeline.py:318`) → risk of **duplicate heads**. So a
+   build-change rebuild should be **clean-slate** (truncate the workspace's
+   `CortexEntity` + silver bodies, then re-run `write()` over all DPs), not an
+   in-place re-run — until the supersede-on-rehash path is wired.
+3. **Pre-Phase-2 DPs** without `canonical_payload` must be re-ingested
+   (`pipeline.py:161`) — legacy rows only.
+4. **Not** `cortex_sync --rebuild` — that's silver-files → Postgres-index
+   (Postgres-dispensability) and is currently a `NotImplementedError` stub.
+   Different layer; don't conflate.
 
 ### §4.11-detail — conversational agent (use case #1) status
 

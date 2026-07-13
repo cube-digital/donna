@@ -64,3 +64,17 @@ class IntegrationsConfig(AppConfig):
                     "connector_tasks_import_failed",
                     extra={"module": tasks_module},
                 )
+
+        # Connect-time ingest notifications — importing the module registers the
+        # debounce task; connect the post_save signal that drives it. One
+        # receiver covers every connector (and webhook CDC) — see notifications.py.
+        from django.db.models.signals import post_save
+
+        from . import notifications
+        from .models import DeliveryPackage
+
+        post_save.connect(
+            notifications.on_delivery_package_ingested,
+            sender=DeliveryPackage,
+            dispatch_uid="integrations.ingest_notify",
+        )
