@@ -273,6 +273,7 @@ class WorkspaceInvitationService(BaseService[WorkspaceInvitation]):
         invite.accepted_at = timezone.now()
         invite.accepted_by = accepting_user
         invite.save(update_fields=["status", "accepted_at", "accepted_by", "updated_at"])
+        self._send_accept_email(invite, accepting_user)
         return membership
 
     # ── Email send ──────────────────────────────────────────────────────────
@@ -305,4 +306,37 @@ class WorkspaceInvitationService(BaseService[WorkspaceInvitation]):
             logger.exception(
                 "invitation_email_send_failed",
                 extra={"invitation_id": str(invite.id), "email": invite.email},
+            )
+
+    def _send_accept_email(self, invite: WorkspaceInvitation, accepting_user) -> None:
+        """Welcome the member who just accepted. Best-effort — a send failure
+        must never roll back the join (mirrors ``_send_email``)."""
+        base = getattr(settings, "FRONTEND_BASE_URL", "").rstrip("/")
+        workspace_url = f"{base}/channels"
+        inviter = invite.invited_by
+        invited_by = (
+            (inviter.full_name or inviter.email) if inviter else "A teammate"
+        )
+        ctx = {
+            "workspace_name": invite.workspace.name,
+            "invited_by":     invited_by,
+            "workspace_url":  workspace_url,
+        }
+        subject = f"You've joined {invite.workspace.name} on Donna"
+        recipient = accepting_user.email or invite.email
+        try:
+            html_body = render_to_string("workspaces/emails/invitation_accepted.html", ctx)
+            text_body = render_to_string("workspaces/emails/invitation_accepted.txt", ctx)
+            send_mail(
+                subject=subject,
+                message=text_body,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[recipient],
+                html_message=html_body,
+                fail_silently=False,
+            )
+        except Exception:  # noqa: BLE001 — never let SMTP failure block the join
+            logger.exception(
+                "invitation_accept_email_send_failed",
+                extra={"invitation_id": str(invite.id), "email": recipient},
             )

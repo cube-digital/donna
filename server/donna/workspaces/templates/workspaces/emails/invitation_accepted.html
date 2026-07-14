@@ -1,10 +1,10 @@
-{% load tz %}<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light only" />
-    <title>You're invited to {{ workspace_name }}</title>
+    <title>Welcome to {{ workspace_name }}</title>
     <!-- Brand fonts (Fredoka wordmark, Caveat tagline). Clients that strip
          web fonts fall back to the stacks below. -->
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet" />
@@ -27,25 +27,22 @@
       </tr>
       <tr>
         <td>
-          <h1 style="font-size: 22px; margin: 0 0 12px; color: #1d1d2f;">You're invited to {{ workspace_name }}</h1>
+          <h1 style="font-size: 22px; margin: 0 0 12px; color: #1d1d2f;">Welcome to {{ workspace_name }}</h1>
           <p style="font-size: 15px; line-height: 1.6; margin: 0 0 24px; color: #565667;">
-            {{ invited_by }} invited you to join the <strong style="color: #1d1d2f;">{{ workspace_name }}</strong> workspace on Donna.
+            You've joined the <strong style="color: #1d1d2f;">{{ workspace_name }}</strong> workspace on Donna.
+            {{ invited_by }} invited you, and you're all set.
           </p>
           <p style="margin: 0 0 28px;">
-            <a href="{{ accept_url }}"
+            <a href="{{ workspace_url }}"
                style="display: inline-block; padding: 12px 24px; background: #6a46d8; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px;">
-              Accept invitation
+              Open your workspace
             </a>
           </p>
           <p style="font-size: 13px; line-height: 1.55; color: #727384; margin: 0 0 8px;">
             Or open this URL in your browser:
           </p>
-          <p style="font-size: 13px; line-height: 1.55; color: #4928a0; word-break: break-all; margin: 0 0 24px;">
-            <a href="{{ accept_url }}" style="color: #4928a0;">{{ accept_url }}</a>
-          </p>
-          <p style="font-size: 12px; line-height: 1.5; color: #9090a1; margin: 0; border-top: 1px solid #eadfbe; padding-top: 16px;">
-            This invitation expires on {{ expires_at|date:"F j, Y, g:i a" }} ({{ expires_at|timezone:"UTC" }} UTC).
-            If you weren't expecting this, you can safely ignore the email.
+          <p style="font-size: 13px; line-height: 1.55; color: #4928a0; word-break: break-all; margin: 0; border-top: 1px solid #eadfbe; padding-top: 16px;">
+            <a href="{{ workspace_url }}" style="color: #4928a0;">{{ workspace_url }}</a>
           </p>
         </td>
       </tr>

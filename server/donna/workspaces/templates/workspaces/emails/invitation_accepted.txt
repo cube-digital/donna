@@ -1,0 +1,8 @@
+Welcome to {{ workspace_name }}
+
+You've joined the {{ workspace_name }} workspace on Donna. {{ invited_by }} invited you, and you're all set.
+
+Open your workspace:
+{{ workspace_url }}
+
+— Donna
