@@ -1,0 +1,59 @@
+# Build context is the repo ROOT (server image bakes in the web/ SPA).
+# Keep the context small: the server Dockerfile only needs server/ + web/.
+
+# Other top-level projects — not part of the server image.
+desktop
+docs
+
+# Git / IDE / OS
+.git
+.gitignore
+.github
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Python (server)
+**/__pycache__
+**/*.py[cod]
+**/*$py.class
+**/*.so
+server/.venv
+server/venv
+server/.eggs
+server/*.egg-info
+server/.pytest_cache
+server/.ruff_cache
+server/.mypy_cache
+server/.coverage
+server/htmlcov
+
+# Local data / SQLite / storage
+**/*.sqlite3
+**/*.sqlite3-journal
+server/var
+server/staticfiles
+server/media
+
+# Node / Vite (web) — deps + prior builds are rebuilt inside the image
+web/node_modules
+web/dist
+web/.vite
+
+# Env files (never bake secrets into the image)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Docker bootstrap
+**/Dockerfile*
+**/docker-compose*
+.dockerignore
+
+# Local infra/ops tooling (must never enter an image or public artifact)
+**/.mirrord*.json
+**/db-tunnel.sh
+
+# Local dev staging copy — the web-builder stage regenerates this in-image.
+server/web_dist

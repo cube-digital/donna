@@ -13,6 +13,7 @@ on:
     paths:
       - "server/**"
       - "!server/deploy/**"   # chart/compose changes don't need an image rebuild
+      - "web/**"              # SPA is baked into the server image
       - ".github/workflows/cloud-deploy.yml"
 
 concurrency:
@@ -47,7 +48,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
-          context: server
+          context: .
           file: server/Dockerfile
           platforms: linux/amd64
           push: true

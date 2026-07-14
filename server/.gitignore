@@ -1,0 +1,3 @@
+
+# Built SPA bundle — baked into the image at build time, never committed.
+web_dist/

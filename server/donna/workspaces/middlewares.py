@@ -111,6 +111,18 @@ class WorkspaceMiddleware:
     TENANTED_UNDER_IGNORED = ("/api/v1/workspaces/invitations",)
 
     def process_request(self, request):
+        # Non-API requests carry no tenant context: the SPA shell (index.html),
+        # its hashed static assets, and deep-link refreshes (e.g. GET /cortex)
+        # are plain document/asset loads. Only the /api/ surface is tenanted —
+        # the SPA supplies X-Workspace-Id on its API calls. Gating document
+        # loads here would 403 every SPA deep link. (admin/swagger/ws are also
+        # non-API and were already exempt via IGNORED_PATHS.)
+        if not request.path.startswith("/api/"):
+            request.workspace = None
+            request.company = None
+            request.tenant_id = None
+            return None
+
         tenanted_override = any(
             request.path.startswith(p) for p in self.TENANTED_UNDER_IGNORED
         )

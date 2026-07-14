@@ -38,10 +38,29 @@ WORKDIR /opt/donna
 # Install dependencies in their own layer using a cached uv wheel store.
 # pyproject.toml + uv.lock are bind-mounted (no COPY) so this layer's
 # cache key tracks them; project source is added later.
+# NOTE: build context is the repo ROOT (see .github/workflows/cloud-deploy.yml
+# + docker-compose.yml) so the SPA under web/ is reachable — hence server/ path
+# prefixes below.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=server/pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=server/uv.lock,target=uv.lock \
     uv sync --frozen --no-install-project --no-dev
+
+
+# ─── Stage 1b: web builder (Vite SPA) ─────────────────────────────────────────
+# Builds the React/Vite bundle from web/ → /web/dist, baked into the runtime
+# image and served same-origin by WhiteNoise (settings.WEB_DIST_ROOT).
+FROM node:22-bookworm-slim AS web-builder
+
+WORKDIR /web
+
+# Deps layer keyed on the lockfile — rebuilds only when deps change.
+COPY web/package.json web/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+COPY web/ ./
+RUN npm run build
 
 
 # ─── Stage 2: runtime ─────────────────────────────────────────────────────────
@@ -71,8 +90,12 @@ WORKDIR /opt/donna
 # Bring the venv across from the builder.
 COPY --from=builder --chown=donna:donna /opt/venv /opt/venv
 
-# Project source last so dep-layer cache holds across most edits.
-COPY --chown=donna:donna . /opt/donna
+# Server source last so dep-layer cache holds across most edits. Context is the
+# repo root, so copy only server/ into the workdir (not the whole monorepo).
+COPY --chown=donna:donna server/ /opt/donna
+
+# Built SPA bundle — served at "/" by WhiteNoise (settings.WEB_DIST_ROOT).
+COPY --from=web-builder --chown=donna:donna /web/dist /opt/donna/web_dist
 
 # Storage + static directories used by the filesystem storage backend
 # and Django's collectstatic.

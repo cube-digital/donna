@@ -77,8 +77,10 @@ services:
     image: donna
     container_name: donna-server
     build:
-      context: .
-      dockerfile: Dockerfile
+      # Repo root — the Dockerfile bakes in the SPA from web/ (served by
+      # WhiteNoise), so it needs both server/ and web/ in the build context.
+      context: ..
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     env_file:
       - env/.env.docker

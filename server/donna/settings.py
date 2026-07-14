@@ -409,6 +409,17 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# ── SPA (Vite bundle) served same-origin by WhiteNoise ──────────────
+# The built web/ bundle is baked into the image at WEB_DIST_ROOT (see
+# server/Dockerfile web-builder stage). WhiteNoise serves its hashed
+# assets + index.html at "/"; a catch-all view (donna/urls.py) returns
+# index.html for client-side routes so deep links / refreshes work.
+# Guarded on existence so local dev (no build) and tests are unaffected.
+WEB_DIST_ROOT = BASE_DIR / "web_dist"
+if WEB_DIST_ROOT.is_dir():
+    WHITENOISE_ROOT = str(WEB_DIST_ROOT)
+    WHITENOISE_INDEX_FILE = True
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # DRF Spectacular — Donna API schema settings live earlier in this file
