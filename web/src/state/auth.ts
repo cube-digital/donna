@@ -8,6 +8,7 @@
 import { create } from "zustand";
 import { clearTokens, getAccess, setTokens } from "../lib/auth-storage";
 import { useIntegrations } from "./integrations";
+import { useMe } from "./me";
 import { useWorkspace } from "./workspace";
 
 interface DecodedUser {
@@ -58,5 +59,6 @@ export const useAuth = create<AuthState>((set) => ({
     // workspace are both per-user.
     useWorkspace.getState().reset();
     useIntegrations.getState().reset();
+    useMe.getState().reset();
   },
 }));

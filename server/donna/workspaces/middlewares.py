@@ -65,6 +65,8 @@ class WorkspaceMiddleware:
         "/swagger": ["GET", "POST", "PATCH", "PUT", "DELETE"],
         "/api/auth": ["POST", "GET"],
         "/api/health": ["GET"],
+        # Current-user profile — identity-scoped, not workspace-scoped.
+        "/api/v1/users/me": ["GET", "PATCH", "POST", "DELETE"],
         "/api/v1/workspaces": ["POST", "GET"],
         # Public token-based invitation endpoints — no tenant context.
         "/api/v1/invitations": ["GET", "POST"],

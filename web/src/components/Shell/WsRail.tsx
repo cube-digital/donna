@@ -10,12 +10,15 @@
 // is real). The `+` pill is a non-functional stub so the visual rhythm
 // matches the design.
 
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { cn } from "../../lib/cn";
-import { useAuth } from "../../state/auth";
+import { useMe } from "../../state/me";
+import { useProfilePanel } from "../../state/profilePanel";
 import { useWorkspace } from "../../state/workspace";
 import { GIconButton, type IconName } from "../Goofy";
+import { UserAvatar } from "./ProfilePanel";
 
 type NavKey = "workspace" | "dms" | "personal" | "search" | "cortex";
 
@@ -65,13 +68,6 @@ function workspaceGlyph(name: string): string {
   return (name?.trim()?.[0] ?? "C").toUpperCase();
 }
 
-function userInitials(activeWorkspaceName?: string): string {
-  // Until a /me endpoint is wired here we don't have an email/name to
-  // initialise from. Fall back to the active workspace's first letter so
-  // the pill renders with something rather than blank.
-  return workspaceGlyph(activeWorkspaceName ?? "");
-}
-
 // Workspace + user sticker — sun-yellow fill, chunky ink border, hard
 // offset shadow, Fredoka heavy weight. The active workspace also wears
 // a 3 px ink "rail" pseudo-element 10 px outside its left edge.
@@ -84,7 +80,13 @@ export default function WsRail() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { workspaces, activeId } = useWorkspace();
-  const signOut = useAuth((s) => s.signOut);
+  const me = useMe((s) => s.me);
+  const loadMe = useMe((s) => s.load);
+  const openPanel = useProfilePanel((s) => s.openPanel);
+
+  useEffect(() => {
+    void loadMe();
+  }, [loadMe]);
 
   const active = workspaces.find((w) => w.id === activeId);
 
@@ -150,12 +152,16 @@ export default function WsRail() {
       />
       <button
         type="button"
-        className={cn(STICKER_PILL, "text-[12px]")}
-        title="Sign out"
-        aria-label="Sign out"
-        onClick={() => signOut()}
+        className="rounded-[12px] transition-transform duration-[120ms] active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-ai"
+        title="Your profile"
+        aria-label="Open your profile"
+        onClick={() => openPanel()}
       >
-        {userInitials(active?.name)}
+        <UserAvatar
+          pictureUrl={me?.picture_url}
+          name={me?.full_name || me?.email || active?.name || "You"}
+          sizePx={38}
+        />
       </button>
     </nav>
   );

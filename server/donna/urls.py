@@ -20,6 +20,7 @@ urlpatterns = [
     # bypasses WorkspaceMiddleware via IGNORED_PATHS.
     path("api/v1/", include((workspaces_public_urls, "workspaces"), namespace="workspaces_public")),
     path("api/v1/", include("donna.integrations.urls")),
+    path("api/v1/", include("donna.users.urls")),
     path("api/v1/notifications/", include("donna.notifications.urls")),
     path("api/v1/chat/", include("donna.chat.urls")),
     path("api/v1/cortex/", include("donna.cortex.urls")),

@@ -3,7 +3,9 @@ from __future__ import annotations
 import uuid
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.files.storage import default_storage
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -52,6 +54,20 @@ class User(AbstractUser):
         blank=True,
         help_text="Lowercase mention handle, e.g. 'alice' resolves @alice.",
     )
+
+    # Profile picture — stored in STORAGES["default"] (S3 in cloud). Plain
+    # FileField (no Pillow dep); content-type is validated at the upload view.
+    # Empty → the UI renders coloured initials.
+    picture = models.FileField(
+        _("profile picture"),
+        upload_to="users/pictures/",
+        storage=default_storage,
+        max_length=500,
+        blank=True,
+        null=True,
+    )
+    # Free-text status message (Slack-style), e.g. "On a call".
+    status = models.CharField(_("status"), max_length=140, blank=True, default="")
 
     # Email verification — soft gate. v1: signup allowed without verifying,
     # frontend nags the user. Google login flips this to True (Google has
