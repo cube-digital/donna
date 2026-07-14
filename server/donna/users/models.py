@@ -68,6 +68,9 @@ class User(AbstractUser):
     )
     # Free-text status message (Slack-style), e.g. "On a call".
     status = models.CharField(_("status"), max_length=140, blank=True, default="")
+    # Self-set availability. False = active (green), True = away. v1 is
+    # user-controlled only — no auto-away/idle detection or WS broadcast yet.
+    is_away = models.BooleanField(_("away"), default=False)
 
     # Email verification — soft gate. v1: signup allowed without verifying,
     # frontend nags the user. Google login flips this to True (Google has

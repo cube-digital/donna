@@ -161,6 +161,8 @@ export default function WsRail() {
           pictureUrl={me?.picture_url}
           name={me?.full_name || me?.email || active?.name || "You"}
           sizePx={38}
+          isAway={!!me?.is_away}
+          showDot
         />
       </button>
     </nav>

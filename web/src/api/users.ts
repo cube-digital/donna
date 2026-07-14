@@ -4,8 +4,8 @@ export interface Me {
   id: string;
   email: string;
   full_name: string;
-  handle: string | null;
   status: string;
+  is_away: boolean;
   picture_url: string | null;
 }
 
@@ -15,7 +15,7 @@ export async function getMe(): Promise<Me> {
 }
 
 export async function updateMe(
-  patch: Partial<Pick<Me, "full_name" | "handle" | "status">>,
+  patch: Partial<Pick<Me, "full_name" | "status" | "is_away">>,
 ): Promise<Me> {
   return apiFetch<Me>("/api/v1/users/me", {
     method: "PATCH",
