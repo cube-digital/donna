@@ -96,7 +96,13 @@ class CortexEntityViewSet(viewsets.ViewSet):
         limit = min(int(request.query_params.get("limit") or 50), 200)
         cursor = request.query_params.get("cursor")
 
-        qs = CortexEntity.objects.filter(workspace=workspace).order_by("-occurred_at")
+        # Heads-only — superseded rows are hidden from the browser, same as
+        # retrieval (a re-ingest with a changed body supersedes the old head).
+        qs = (
+            CortexEntity.objects
+            .filter(workspace=workspace, superseded_by__isnull=True)
+            .order_by("-occurred_at")
+        )
         if type_filter:
             qs = qs.filter(type=type_filter)
         if q:
@@ -147,7 +153,9 @@ class CortexEntityViewSet(viewsets.ViewSet):
         if workspace is None:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        base = CortexEntity.objects.filter(workspace=workspace)
+        base = CortexEntity.objects.filter(
+            workspace=workspace, superseded_by__isnull=True
+        )
         by_type = {
             r["type"]: r["n"]
             for r in base.values("type").annotate(n=Count("id"))

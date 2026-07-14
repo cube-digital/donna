@@ -68,6 +68,46 @@ loop; **commit before they're lost.**
 | 4.15 | 🔵 | **Bronze is the replay log — cortex changes don't force a re-fetch.** Modifying the context/silver build (extraction, templates, extensions, clustering, embeddings, scoping, org-classify) rebuilds from stored `DeliveryPackage` rows; Fathom/Gmail are hit only once at ingest. **Confirms the current dev flow is safe: iterating on the cortex process does NOT touch the bronze layer.** Missing piece: a turnkey reprocess-bronze→silver command (building blocks exist). See §4.15-detail. |
 | 4.14 | 🟡 | **Cortex list over-fetch (slow) — DONE (uncommitted).** The Files sidebar fired ~14 body-bearing list calls (one per type, each signing an S3 URL per row) on mount. **Now:** (1) content-type counts + entity-group counts (person/org×3/project) all come from the single `GET /cortex/entities/counts/` aggregate — the 5 `ExpandableSection` mount probes are gone (`web/src/views/Files.tsx`, count passed as a prop keyed on `relationship ?? type`); (2) the `files` list endpoint no longer signs **any** S3 URL per row — returns lean header cards + a `has_bronze` bool; `body_md` + a lazily-signed `bronze_url` are returned only by `retrieve` on detail open (`cortex/api/v1/views.py`, `cortex/services.py::EntityCard.bronze_storage_key`); (3) the preview drawer fetches the body via `getCortexEntity(id)` (authed, inline) instead of a cross-origin presigned S3 fetch. Static-verified: `tsc` clean, `django check` clean. **Live-verify pending** a staging-loop relaunch. |
 
+| 4.17 | 🟡 | **Embeddings never ran (0/N `doc_embedding`) — FIXED (uncommitted).** Root cause: `enrich_entity` had **zero callers** + `CortexPipeline(enable_embeddings=False)` default → nothing embedded; the dense retrieval channel was empty (keyword + tsvector carried the agent alone). And loading BGE-small (torch) **OOMKilled the 1Gi worker**. Fixes: (a) worker mem 1Gi→3Gi (infra, deployed); (b) module-level `_MODEL_CACHE` in `cortex/embeddings.py` so the model loads once/process (was ~14s/call → reload-per-entity); (c) `pipeline.write` now enqueues `enrich_entity.delay(id)` on commit. Then a one-time backfill of existing entities. **Still shared-worker** — a dedicated embed worker is cleaner for steady-state (competes with ingest/agent on 1 CPU). |
+| 4.16 | 🔴 | **LLM token streaming (agent replies build live).** Today the agent reply is one blocking `chat()` per round → the final text lands as a single `message.created` after a long "typing…". Token streaming (ChatGPT-style live fill) is **scaffolded but unwired**. See §4.16-detail. |
+
+### §4.16-detail — stream the agent's answer token-by-token
+
+**Goal:** the final answer fills in live instead of popping in after `typing…`.
+
+**Current state (scaffolded, not connected):**
+- `conversation_agent.__call__` (`chat/agents/nodes/conversation_agent.py`) makes a
+  **blocking** `self._llm.chat(...)` per round; the terminal round's text →
+  `state.final_text` → `persist_agent_message` → one `message.created`.
+- `AgentStreamConsumer` (`chat/consumers.py`) + `agent_run_group(run_id)` =
+  `"agent-run-{run_id}-tokens"` (`chat/services.py:139`) **exist but nothing
+  feeds them.** The turn mints **no `run_id`** (grep empty in `chat/tasks.py` /
+  `runner.py`). Frontend has **no** streaming code.
+- Provider (`core/llm/provider.py`) calls `litellm.completion(...)` one-shot (no
+  `stream=True`).
+
+**Build (3 layers):**
+1. **Provider** — add a streaming call: `litellm.completion(stream=True)` →
+   iterate `delta` chunks (litellm supports it natively). Yield text deltas +
+   detect tool_calls vs text.
+2. **Runner/agent** — mint a `run_id` in `run_agent_turn`; on the answer
+   generation, `group_send` each delta to `agent_run_group(run_id)` via the
+   channel layer; still persist the final `Message` at the end (source of truth).
+   Only the **final** text streams — tool rounds (cortex_query, read_entity)
+   stream nothing user-facing. Edge: a round can emit text *then* tool_calls
+   (text is discarded today) → stream to a pending bubble, clear it if the round
+   turns out to be a tool round.
+3. **Frontend** — carry the `run_id` on the typing/pending event; subscribe to
+   `/ws/agent/{run_id}/`; render a live-filling bubble; reconcile with the
+   persisted `message.created` when the turn ends.
+
+**Design choice:** ride tokens on the **dedicated `/ws/agent/{run_id}/`
+consumer** (already built for exactly this) rather than piggybacking the channel
+group — cleaner isolation.
+
+**Ops:** runs in the worker (turn) → channel layer → consumer → browser; needs a
+deploy to land on staging. Verify locally first via the mirrord uvicorn loop.
+
 ### §4.15-detail — bronze ⇒ silver rebuild (no re-fetch)
 
 **Question raised (2026-07-13):** if the cortex/context build is modified, does

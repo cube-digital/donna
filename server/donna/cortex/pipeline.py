@@ -315,8 +315,9 @@ class CortexPipeline:
         # 8½. Two-tier dedup (Phase 1, 2026-06-15) — content_hash
         # short-circuit. Same (source, content_hash) → this is a replay,
         # return the existing head row without re-running steps 9-11.
-        # Distinct content_hash for same source → new version (caller
-        # promotes via supersedes; not in this slice).
+        # Distinct content_hash for same source → a new version; the new
+        # head supersedes the old one after persist (step 11½) so a
+        # re-ingest with a changed body replaces rather than duplicates.
         existing_head = (
             CortexEntity.objects
             .filter(
@@ -394,9 +395,32 @@ class CortexPipeline:
         # ``applied_in[]`` is derived at read time (see §7 R9 + spec
         # §4 "Derived: touchpoints"). Only ``sources / supersedes /
         # contradicts`` carry strict reverse-edge writes.
-        return CortexEntity.objects.save_with_reverse_edges(
+        saved = CortexEntity.objects.save_with_reverse_edges(
             new_entity, body_bytes=body_bytes
         )
+
+        # 11½. Supersede-on-rehash — a prior head for this same source with a
+        # different content_hash (e.g. a re-ingest after the build logic
+        # changed) is replaced, not duplicated. Retrieval + the Files browser
+        # are heads-only, so the old row drops out of both. Bounded to this
+        # source; at most one prior head is expected.
+        CortexEntity.objects.filter(
+            workspace_id=dp.workspace_id,
+            source=source_uri,
+            superseded_by__isnull=True,
+        ).exclude(id=saved.id).update(superseded_by=saved.id)
+
+        # 12. Async enrich — embed (doc_embedding) + cluster-assign off the hot
+        # path (keeps ingest fast). Fired on commit so the worker sees the row.
+        # Skipped when the pipeline already embedded inline (enable_embeddings).
+        if saved.doc_embedding is None:
+            from django.db import transaction
+
+            from donna.cortex.tasks import enrich_entity
+
+            entity_id = str(saved.id)
+            transaction.on_commit(lambda: enrich_entity.delay(entity_id))
+        return saved
 
     # ── helpers ─────────────────────────────────────────────────────
 

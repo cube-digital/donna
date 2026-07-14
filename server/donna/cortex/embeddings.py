@@ -170,6 +170,13 @@ class EmbeddingStrategy(Protocol):
 # ── BGE-small ───────────────────────────────────────────────────────
 
 
+# Process-wide model cache. Loading the SentenceTransformer (torch) costs
+# seconds + hundreds of MB; ``enrich_entity`` news up a fresh embedder per
+# call, so without this a backfill would reload the model every entity. Keyed
+# by model_name; shared across all BGESmallEmbedder instances in the process.
+_MODEL_CACHE: dict = {}
+
+
 class BGESmallEmbedder:
     """384-dim embeddings via ``BAAI/bge-small-en-v1.5``."""
 
@@ -184,14 +191,18 @@ class BGESmallEmbedder:
 
     def _load(self):
         if self._model is None:
-            try:
-                from sentence_transformers import SentenceTransformer
-            except ImportError as exc:
-                raise ImportError(
-                    "BGESmallEmbedder requires sentence-transformers. "
-                    "Install with `uv add sentence-transformers`."
-                ) from exc
-            self._model = SentenceTransformer(self._model_name)
+            cached = _MODEL_CACHE.get(self._model_name)
+            if cached is None:
+                try:
+                    from sentence_transformers import SentenceTransformer
+                except ImportError as exc:
+                    raise ImportError(
+                        "BGESmallEmbedder requires sentence-transformers. "
+                        "Install with `uv add sentence-transformers`."
+                    ) from exc
+                cached = SentenceTransformer(self._model_name)
+                _MODEL_CACHE[self._model_name] = cached
+            self._model = cached
         return self._model
 
     def embed(self, text: str) -> list[float]:
