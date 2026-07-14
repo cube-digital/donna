@@ -30,7 +30,7 @@ export function UserAvatar({
     <img
       src={pictureUrl}
       alt={name || "Profile picture"}
-      className="rounded-[12px] border-2 border-ink object-cover"
+      className="rounded-[12px] border border-border-soft object-cover"
       style={{ width: sizePx, height: sizePx }}
     />
   ) : (
@@ -148,9 +148,13 @@ export default function ProfilePanel() {
     }
   }
 
-  const stickerCard = "border-2 border-ink rounded-[14px] shadow-ink-1 bg-bg-1";
+  // Soft, warm cards — thin border + gentle tint instead of the heavy ink
+  // sticker chrome (too strong + too white in a dense panel).
+  const softCard = "bg-bg-1/70 border border-border-soft rounded-[12px]";
   const linkBtn =
     "text-[12px] font-semibold underline-offset-2 hover:underline disabled:opacity-50";
+  // Small height, a touch wider than hug-content.
+  const wideSm = "min-w-[132px] justify-center";
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true">
@@ -159,8 +163,8 @@ export default function ProfilePanel() {
         onClick={close}
         aria-hidden
       />
-      <aside className="w-[360px] max-w-[88vw] h-full bg-bg-2 paper-dots border-l-2 border-ink shadow-ink-3 flex flex-col">
-        <header className="px-4 py-3 flex items-center gap-2 border-b-2 border-ink/15">
+      <aside className="w-[360px] max-w-[88vw] h-full bg-bg-2 paper-dots border-l border-border-soft shadow-2 flex flex-col">
+        <header className="px-4 py-3 flex items-center gap-2 border-b border-border-soft">
           <span className="font-display font-semibold text-[17px] text-text-0 flex-1 tracking-[-0.01em]">
             Profile
           </span>
@@ -176,7 +180,7 @@ export default function ProfilePanel() {
 
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3.5">
           {/* Identity sticker */}
-          <div className={`${stickerCard} p-3 flex items-center gap-3`}>
+          <div className={`${softCard} p-3 flex items-center gap-3`}>
             <UserAvatar
               pictureUrl={me?.picture_url}
               name={displayName}
@@ -220,7 +224,7 @@ export default function ProfilePanel() {
           </div>
 
           {/* Availability toggle */}
-          <div className={`${stickerCard} p-3 flex items-center gap-2.5`}>
+          <div className={`${softCard} p-3 flex items-center gap-2.5`}>
             <span
               className={
                 "w-2.5 h-2.5 rounded-full shrink-0 " + (isAway ? "bg-text-4" : "bg-ok")
@@ -267,13 +271,13 @@ export default function ProfilePanel() {
             size="sm"
             onClick={save}
             disabled={saving}
-            className="self-start"
+            className={`self-start ${wideSm}`}
           >
             {saving ? "Saving…" : "Save profile"}
           </GButton>
         </div>
 
-        <footer className="px-4 py-3 border-t-2 border-ink/15">
+        <footer className="px-4 py-3 border-t border-border-soft">
           <GButton
             variant="default"
             size="sm"
@@ -281,6 +285,7 @@ export default function ProfilePanel() {
               close();
               signOut();
             }}
+            className={wideSm}
           >
             Sign out
           </GButton>
