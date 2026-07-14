@@ -23,6 +23,8 @@ export async function listCortexFiles(opts: {
   q?: string;
   type?: string;
   relationship?: string;
+  /** Entity id — return all entities referencing it (touchpoints). */
+  relatedTo?: string;
   cursor?: string;
   limit?: number;
 } = {}): Promise<CortexFilesPage> {
@@ -30,6 +32,7 @@ export async function listCortexFiles(opts: {
   if (opts.q) params.set("q", opts.q);
   if (opts.type) params.set("type", opts.type);
   if (opts.relationship) params.set("relationship", opts.relationship);
+  if (opts.relatedTo) params.set("related_to", opts.relatedTo);
   if (opts.cursor) params.set("cursor", opts.cursor);
   if (opts.limit) params.set("limit", String(opts.limit));
   return apiFetch<CortexFilesPage>(

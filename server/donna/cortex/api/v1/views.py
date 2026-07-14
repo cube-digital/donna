@@ -93,6 +93,7 @@ class CortexEntityViewSet(viewsets.ViewSet):
         q = (request.query_params.get("q") or "").strip()
         type_filter = (request.query_params.get("type") or "").strip()
         relationship = (request.query_params.get("relationship") or "").strip()
+        related_to = (request.query_params.get("related_to") or "").strip()
         limit = min(int(request.query_params.get("limit") or 50), 200)
         cursor = request.query_params.get("cursor")
 
@@ -111,6 +112,12 @@ class CortexEntityViewSet(viewsets.ViewSet):
             qs = qs.filter(occurred_at__lt=cursor)
         if relationship:
             qs = qs.filter(extensions__relationship=relationship)
+        if related_to:
+            # Touchpoints: every entity that references this one via
+            # ``entity_refs[]`` (the derived reverse edge — spec §4). Powers
+            # "click a person/org → all its emails, meetings, docs". JSONB
+            # ``@>`` containment; the value is a UUID string.
+            qs = qs.filter(entity_refs__contains=[related_to])
 
         rows = list(qs[: limit + 1])
         next_cursor = rows[limit].occurred_at.isoformat() if len(rows) > limit else None

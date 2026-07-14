@@ -14,9 +14,11 @@ import {
 import { GlyphSlot, type IconName } from "../components/Goofy";
 
 type Scope = {
-  kind: "all" | "type" | "org" | "project";
+  kind: "all" | "type" | "org" | "project" | "entity";
   /** Type filter for "type" scope, sub-kind for "org" (client/vendor/peer). */
   value?: string;
+  /** Display label for "entity" scope (the clicked person/org title). */
+  label?: string;
 };
 
 interface TypeNode {
@@ -144,7 +146,8 @@ function ExpandableSection({
           ) : (
             items.slice(0, 30).map((it) => {
               const active =
-                (type === "project" && scope.kind === "project" && scope.value === it.id);
+                (type === "project" && scope.kind === "project" && scope.value === it.id) ||
+                (type !== "project" && scope.kind === "entity" && scope.value === it.id);
               return (
                 <button
                   key={it.id}
@@ -152,6 +155,9 @@ function ExpandableSection({
                   onClick={() => {
                     if (type === "project") {
                       setScope({ kind: "project", value: it.id });
+                    } else {
+                      // Person / client / vendor / peer → all touchpoints.
+                      setScope({ kind: "entity", value: it.id, label: it.title });
                     }
                   }}
                   title={it.title}
@@ -188,9 +194,10 @@ export default function Files() {
   const [selected, setSelected] = useState<CortexFile | null>(null);
 
   // Resolve scope → API filter args.
-  const apiArgs = useMemo<{ type?: string; relationship?: string }>(() => {
+  const apiArgs = useMemo<{ type?: string; relationship?: string; relatedTo?: string }>(() => {
     if (scope.kind === "type") return { type: scope.value };
     if (scope.kind === "org") return { type: "org", relationship: scope.value };
+    if (scope.kind === "entity") return { relatedTo: scope.value };
     if (scope.kind === "project") return {};
     return {};
   }, [scope]);
@@ -248,6 +255,7 @@ export default function Files() {
     if (scope.kind === "org") {
       return ENTITY_GROUPS.find((g) => g.relationship === scope.value)?.label ?? "Organizations";
     }
+    if (scope.kind === "entity") return scope.label || "Related";
     if (scope.kind === "project") return "Project";
     return "All memory";
   }, [scope]);
