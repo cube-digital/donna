@@ -18,6 +18,7 @@
 // for both the primary submit and the Google fallback.
 
 import { useState, type FormEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "../api/client";
 import { googleStartUrl, signin, signup } from "../api/auth";
@@ -36,6 +37,16 @@ type Mode = "signin" | "signup";
 
 export default function Auth() {
   const setSignedIn = useAuth((s) => s.setSignedIn);
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Post-auth destination (e.g. an invitation accept page). Only honour a
+  // same-origin path — never an absolute/protocol-relative URL — so ?return=
+  // can't be used as an open redirect.
+  const returnTo = params.get("return");
+  const safeReturn =
+    returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
+      ? returnTo
+      : null;
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -54,6 +65,10 @@ export default function Auth() {
       }
       const tokens = await signin({ email, password });
       setSignedIn(tokens.access, tokens.refresh);
+      // Return to where the user came from (invitation accept, etc.). Without
+      // this, App routing sends a workspace-less new user straight to
+      // /workspaces and the pending invite is never accepted.
+      if (safeReturn) navigate(safeReturn, { replace: true });
     } catch (err) {
       const msg =
         err instanceof ApiError
