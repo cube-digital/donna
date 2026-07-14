@@ -29,6 +29,7 @@ import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
 import IntegrationDetail from "./views/IntegrationDetail";
 import AcceptInvitation from "./views/AcceptInvitation";
+import ResetPassword from "./views/ResetPassword";
 
 // The Showcase route pulls in the entire Goofy library — split it out
 // of the main chunk via React.lazy so users who never visit /showcase
@@ -89,6 +90,7 @@ export default function App() {
           <Route path="/showcase" element={<LazyShowcase />} />
           <Route path="/auth/*" element={<Auth />} />
           <Route path="/oauth/return" element={<OAuthReturn />} />
+          <Route path="/password/reset" element={<ResetPassword />} />
           <Route path="/invitations/:token/accept" element={<AcceptInvitation />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
@@ -101,6 +103,7 @@ export default function App() {
           <Route path="/showcase" element={<LazyShowcase />} />
           <Route path="/workspaces" element={<WorkspacePicker />} />
           <Route path="/oauth/return" element={<OAuthReturn />} />
+          <Route path="/password/reset" element={<ResetPassword />} />
           <Route path="/invitations/:token/accept" element={<AcceptInvitation />} />
           <Route path="*" element={<Navigate to="/workspaces" replace />} />
         </Routes>
@@ -111,6 +114,7 @@ export default function App() {
       <Routes>
         <Route path="/showcase" element={<LazyShowcase />} />
         <Route path="/oauth/return" element={<OAuthReturn />} />
+        <Route path="/password/reset" element={<ResetPassword />} />
         <Route path="/invitations/:token/accept" element={<AcceptInvitation />} />
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/channels" replace />} />

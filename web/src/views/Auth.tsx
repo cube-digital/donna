@@ -21,7 +21,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "../api/client";
-import { googleStartUrl, signin, signup } from "../api/auth";
+import { googleStartUrl, requestPasswordReset, signin, signup } from "../api/auth";
 import { useAuth } from "../state/auth";
 import {
   GButton,
@@ -54,6 +54,35 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Password-recover sub-flow (toggled by "Forgot password?").
+  const [recovering, setRecovering] = useState(false);
+  const [recoverSent, setRecoverSent] = useState(false);
+
+  async function handleRecover(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await requestPasswordReset(email);
+      // Always report success (don't leak whether the email exists).
+      setRecoverSent(true);
+    } catch (err) {
+      setError(
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : "Couldn't send the reset email",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function backToSignIn() {
+    setRecovering(false);
+    setRecoverSent(false);
+    setError(null);
+    setMode("signin");
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -116,6 +145,62 @@ export default function Auth() {
           </div>
         </div>
 
+        {recovering ? (
+          <GCard className="flex flex-col gap-4">
+            <div>
+              <div className="font-display font-semibold text-[20px] text-text-0 mb-1">
+                Reset password
+              </div>
+              <div className="text-[13px] text-text-2">
+                {recoverSent
+                  ? "If an account exists for that email, a reset link is on its way. Check your inbox."
+                  : "Enter your email and we'll send a link to set a new password."}
+              </div>
+            </div>
+
+            {!recoverSent && (
+              <form onSubmit={handleRecover} className="flex flex-col gap-3" noValidate>
+                <GFormField label="Email">
+                  <GInput
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    icon={null}
+                  />
+                </GFormField>
+                {error && (
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="text-danger text-[12.5px] leading-[1.45]"
+                  >
+                    {error}
+                  </div>
+                )}
+                <GButton
+                  type="submit"
+                  variant="ai"
+                  size="lg"
+                  disabled={submitting}
+                  className="w-full justify-center mt-1"
+                >
+                  {submitting ? "Sending…" : "Send reset link"}
+                </GButton>
+              </form>
+            )}
+
+            <button
+              type="button"
+              onClick={backToSignIn}
+              className="self-start text-[12.5px] text-ai font-semibold underline-offset-2 hover:underline cursor-pointer"
+            >
+              Back to sign in
+            </button>
+          </GCard>
+        ) : (
         <GCard className="flex flex-col gap-4">
           <GTabs<Mode>
             tabs={[
@@ -195,6 +280,19 @@ export default function Auth() {
                   ? "Create account"
                   : "Sign in"}
             </GButton>
+
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setRecovering(true);
+                  setError(null);
+                }}
+                className="self-start text-[12.5px] text-ai font-semibold underline-offset-2 hover:underline cursor-pointer"
+              >
+                Forgot password?
+              </button>
+            )}
           </form>
 
           {/* OR divider — dashed ink rule + hand-lettered "or" so the
@@ -222,7 +320,9 @@ export default function Auth() {
             <span>Continue with Google</span>
           </GButton>
         </GCard>
+        )}
 
+        {!recovering && (
         <div className="text-center text-[12.5px] text-text-2">
           {mode === "signin" ? (
             <>
@@ -248,6 +348,7 @@ export default function Auth() {
             </>
           )}
         </div>
+        )}
       </div>
     </GoofyTheme>
   );

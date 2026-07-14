@@ -54,6 +54,29 @@ export async function signin(input: SigninInput): Promise<TokenPair> {
   });
 }
 
+export async function requestPasswordReset(
+  email: string,
+): Promise<{ message: string }> {
+  return apiFetch("/api/auth/password/recover", {
+    method: "POST",
+    body: { email },
+    skipAuth: true,
+    skipWorkspace: true,
+  });
+}
+
+export async function confirmPasswordReset(
+  token: string,
+  password: string,
+): Promise<{ message: string }> {
+  return apiFetch("/api/auth/password/confirm", {
+    method: "POST",
+    body: { token, password },
+    skipAuth: true,
+    skipWorkspace: true,
+  });
+}
+
 export async function logout(): Promise<void> {
   const refresh = getRefresh();
   try {

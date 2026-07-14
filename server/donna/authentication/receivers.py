@@ -1,9 +1,10 @@
 """
 Signal receivers — send transactional auth emails via Django's email backend.
 
-Plain-text emails only in v1 (no HTML templates, no Sendgrid template IDs).
-The frontend URL is built from ``settings.WEB_REDIRECT_HOST`` plus a
-well-known path; rotate paths in one place when the frontend routes change.
+HTML + plaintext, rendered from ``authentication/emails/*`` and styled to
+Donna's brand (see the workspace invitation emails). The frontend URL is built
+from ``settings.WEB_REDIRECT_HOST`` plus a well-known path; rotate paths in one
+place when the frontend routes change.
 
 Wired in ``apps.AuthenticationConfig.ready``.
 """
@@ -14,6 +15,7 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 from django.dispatch import receiver
+from django.template.loader import render_to_string
 
 from .signals import (
     email_verify_request,
@@ -34,19 +36,16 @@ def _frontend_url(path: str) -> str:
 @receiver(reset_password_recover)
 def send_password_recover_email(sender, instance, reset_password_token, **kwargs):
     user = reset_password_token.user
-    link = _frontend_url(f"/password/reset?token={reset_password_token.key}")
-    subject = "Reset your Donna password"
-    body = (
-        f"Hi {user.full_name or user.email},\n\n"
-        f"Someone (hopefully you) asked to reset your Donna password.\n\n"
-        f"Open this link to set a new password:\n  {link}\n\n"
-        f"The link expires in 24 hours. If you didn't request this, ignore this email.\n"
-    )
+    ctx = {
+        "user_name": user.full_name or user.email,
+        "reset_url": _frontend_url(f"/password/reset?token={reset_password_token.key}"),
+    }
     send_mail(
-        subject=subject,
-        message=body,
+        subject="Reset your Donna password",
+        message=render_to_string("authentication/emails/password_recover.txt", ctx),
         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
         recipient_list=[user.email],
+        html_message=render_to_string("authentication/emails/password_recover.html", ctx),
         fail_silently=False,
     )
     logger.info("password_recover_email_sent", extra={"user_id": str(user.id)})
@@ -55,17 +54,16 @@ def send_password_recover_email(sender, instance, reset_password_token, **kwargs
 # ── Password reset confirmation ─────────────────────────────────────────────
 @receiver(reset_password_confirm)
 def send_password_confirm_email(sender, user, **kwargs):
-    subject = "Your Donna password was changed"
-    body = (
-        f"Hi {user.full_name or user.email},\n\n"
-        f"This is a confirmation that your Donna password was just changed.\n\n"
-        f"If you didn't do this, please contact support immediately.\n"
-    )
+    ctx = {
+        "user_name": user.full_name or user.email,
+        "sign_in_url": _frontend_url("/auth"),
+    }
     send_mail(
-        subject=subject,
-        message=body,
+        subject="Your Donna password was changed",
+        message=render_to_string("authentication/emails/password_changed.txt", ctx),
         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
         recipient_list=[user.email],
+        html_message=render_to_string("authentication/emails/password_changed.html", ctx),
         fail_silently=False,
     )
     logger.info("password_confirm_email_sent", extra={"user_id": str(user.id)})
