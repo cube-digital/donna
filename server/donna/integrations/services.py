@@ -83,8 +83,6 @@ class RegistryService:
     # ── Listing ─────────────────────────────────────────────────────────────
     def list_for_workspace(self, workspace: "Workspace") -> list[IntegrationStatus]:
         """All connectors visible to the workspace, with connection status."""
-        from django.db.models import Q
-
         from .models import ClientCredentials, Connection
 
         enabled_slugs = set(
@@ -96,33 +94,47 @@ class RegistryService:
         # row — NOT merely because a token exists for the shared vendor. Gmail
         # and Drive share oauth_provider_slug="google"; keying on the vendor
         # token flipped BOTH on when only one was actually connected.
-        owner = Q(workspace=workspace)
+        #
+        # Scope matters: user-scoped connectors (Fathom, Gmail — token_scope
+        # "user") are connected per-user, so "connected" means *this* user has
+        # their own binding — a teammate's connection must not show as yours.
+        # Workspace-scoped connectors (user IS NULL) are shared, so any member
+        # sees them connected.
+        ws = workspace
+        user_connected: set[str] = set()
         if self.current_user is not None:
-            owner |= Q(user=self.current_user)
-        connected_slugs = set(
+            user_connected = set(
+                Connection.objects
+                .filter(workspace=ws, user=self.current_user, enabled=True)
+                .values_list("provider_slug", flat=True)
+            )
+        shared_connected = set(
             Connection.objects
-            .filter(enabled=True)
-            .filter(owner)
+            .filter(workspace=ws, user__isnull=True, enabled=True)
             .values_list("provider_slug", flat=True)
         )
 
         statuses: list[IntegrationStatus] = []
         for cls in all_loaded():
+            scope = getattr(cls, "token_scope", "workspace")
+            connected = (
+                cls.slug in user_connected
+                if scope == "user"
+                else cls.slug in shared_connected
+            )
             statuses.append(
                 IntegrationStatus(
                     slug=cls.slug,
                     display_name=cls.display_name,
                     category=cls.category,
                     is_configured=cls.oauth_provider_slug in enabled_slugs,
-                    is_connected=cls.slug in connected_slugs,
+                    is_connected=connected,
                 )
             )
         return statuses
 
     def get_status(self, workspace: "Workspace", slug: str) -> IntegrationStatus:
         """Status for one connector. Raises ProviderNotRegistered if unknown."""
-        from django.db.models import Q
-
         from .models import ClientCredentials, Connection
 
         cls = get_provider(slug)  # raises ProviderNotRegistered
@@ -135,18 +147,21 @@ class RegistryService:
             is not None
         )
 
-        # Caller sees a connection if either the workspace has one, or the
-        # current user has a personal one.
-        owner_clause = Q(workspace=workspace)
-        if self.current_user is not None:
-            owner_clause |= Q(user=self.current_user)
-
         # Per-connector Connection row, NOT the shared vendor token — Gmail and
         # Drive share the "google" vendor, so a vendor-token check reported both
-        # connected when only one was.
-        is_connected = Connection.objects.filter(
-            provider_slug=cls.slug,
-        ).filter(owner_clause).exists()
+        # connected when only one was. Scope by token_scope: user-scoped
+        # connectors are connected only when *this* user has their own binding
+        # (a teammate's doesn't count); workspace-scoped ones are shared.
+        base = Connection.objects.filter(
+            provider_slug=cls.slug, workspace=workspace, enabled=True,
+        )
+        if getattr(cls, "token_scope", "workspace") == "user":
+            is_connected = (
+                self.current_user is not None
+                and base.filter(user=self.current_user).exists()
+            )
+        else:
+            is_connected = base.filter(user__isnull=True).exists()
 
         return IntegrationStatus(
             slug=cls.slug,
