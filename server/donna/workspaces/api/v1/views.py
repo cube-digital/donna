@@ -214,7 +214,11 @@ class PublicInvitationViewSet(GenericViewSet):
         methods=["post"],
         url_path="accept",
         permission_classes=[permissions.IsAuthenticated],
-        authentication_classes=None,  # inherits project default for this action
+        # Must be an explicit list: the ViewSet disables auth (authentication_
+        # classes = []) for the public token routes, and DRF iterates this
+        # attribute — ``None`` raises "'NoneType' object is not iterable" in
+        # initialize_request (500 on every accept).
+        authentication_classes=[JWTAuthentication],
     )
     def accept(self, request, token=None):
         service = WorkspaceInvitationService(current_user=request.user, company=None)
