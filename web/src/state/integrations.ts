@@ -15,6 +15,8 @@ interface IntegrationsState {
   load(): Promise<void>;
   /** Bypass the loaded-once guard. Used after connect/disconnect. */
   reload(): Promise<void>;
+  /** Clear on sign-out so the next user re-fetches (status is per-user). */
+  reset(): void;
   /** Selector helper — undefined if slug unknown. */
   bySlug(slug: string): IntegrationProvider | undefined;
 }
@@ -43,5 +45,6 @@ export const useIntegrations = create<IntegrationsState>((set, get) => ({
     if (get().loading) return;
     await fetchAndSet(set);
   },
+  reset: () => set({ providers: [], loading: false, loaded: false }),
   bySlug: (slug: string) => get().providers.find((p) => p.slug === slug),
 }));

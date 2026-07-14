@@ -17,6 +17,8 @@ interface WorkspaceState {
   setWorkspaces: (ws: Workspace[]) => void;
   setActive: (id: string | null) => void;
   setLoading: (v: boolean) => void;
+  /** Clear on sign-out so a different user doesn't inherit the workspace. */
+  reset: () => void;
 }
 
 export const useWorkspace = create<WorkspaceState>((set) => ({
@@ -29,4 +31,8 @@ export const useWorkspace = create<WorkspaceState>((set) => ({
     set({ activeId: id });
   },
   setLoading: (loading) => set({ loading }),
+  reset: () => {
+    persistActive(null);
+    set({ workspaces: [], activeId: null, loading: false });
+  },
 }));

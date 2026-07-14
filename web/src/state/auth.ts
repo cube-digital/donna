@@ -7,6 +7,8 @@
 
 import { create } from "zustand";
 import { clearTokens, getAccess, setTokens } from "../lib/auth-storage";
+import { useIntegrations } from "./integrations";
+import { useWorkspace } from "./workspace";
 
 interface DecodedUser {
   id: string;
@@ -51,5 +53,10 @@ export const useAuth = create<AuthState>((set) => ({
   signOut: () => {
     clearTokens();
     set({ isAuthenticated: false, user: null });
+    // Per-user state must not leak to the next account signing in on the same
+    // SPA session (no full reload happens). Integration status + the active
+    // workspace are both per-user.
+    useWorkspace.getState().reset();
+    useIntegrations.getState().reset();
   },
 }));
