@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from donna.core.viewsets import ModelViewSet
 from donna.workspaces.api.v1.serializers import (
@@ -227,6 +229,42 @@ class PublicInvitationViewSet(GenericViewSet):
             {"workspace_id": str(membership.workspace_id), "role": membership.role},
             status=status.HTTP_200_OK,
         )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="mine",
+        permission_classes=[permissions.IsAuthenticated],
+        authentication_classes=[JWTAuthentication],
+    )
+    def mine(self, request):
+        """``GET /api/v1/invitations/mine/`` — pending invitations addressed to
+        the authenticated user's email, across workspaces (no tenant context).
+
+        Lets the workspace picker surface "you've been invited" for a user who
+        signed in normally instead of via the invite link. Each item carries a
+        freshly-signed accept token (tokens are signed, not stored). Expired
+        rows are filtered out so we never show an un-acceptable invite.
+        """
+        email = (getattr(request.user, "email", "") or "").strip().lower()
+        if not email:
+            return Response([])
+        invites = (
+            WorkspaceInvitation.objects
+            .filter(
+                email__iexact=email,
+                status=WorkspaceInvitation.Status.PENDING,
+                expires_at__gt=timezone.now(),
+            )
+            .select_related("workspace", "invited_by")
+            .order_by("-created_at")
+        )
+        items = []
+        for inv in invites:
+            data = InvitationInspectSerializer(inv).data
+            data["token"] = WorkspaceInvitationService._sign_token(inv)
+            items.append(data)
+        return Response(items)
 
 
 def _flatten_error(exc: ValidationError) -> str:

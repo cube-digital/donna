@@ -17,7 +17,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { ApiError } from "../api/client";
-import { createWorkspace, listWorkspaces } from "../api/workspaces";
+import {
+  acceptInvitation,
+  createWorkspace,
+  listMyInvitations,
+  listWorkspaces,
+  type MyInvitation,
+} from "../api/workspaces";
 import { useAuth } from "../state/auth";
 import { useWorkspace } from "../state/workspace";
 import type { Workspace } from "../types";
@@ -65,14 +71,43 @@ export default function WorkspacePicker() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Pending invitations addressed to this user — surfaced so a normally
+  // signed-in invitee can join without re-opening the invite email.
+  const [invites, setInvites] = useState<MyInvitation[]>([]);
+  const [acceptingToken, setAcceptingToken] = useState<string | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+
+  async function handleAcceptInvite(token: string) {
+    setAcceptingToken(token);
+    setAcceptError(null);
+    try {
+      const { workspace_id } = await acceptInvitation(token);
+      // Refresh memberships, then drop into the joined workspace.
+      const list = await listWorkspaces();
+      setWorkspaces(list);
+      setActive(workspace_id);
+    } catch (err) {
+      setAcceptError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not accept the invitation.",
+      );
+      setAcceptingToken(null);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     void (async () => {
       try {
-        const list = await listWorkspaces();
+        const [list, mine] = await Promise.all([
+          listWorkspaces(),
+          listMyInvitations().catch(() => [] as MyInvitation[]),
+        ]);
         if (cancelled) return;
         setWorkspaces(list);
+        setInvites(mine);
         setLoadError(null);
       } catch (err) {
         if (cancelled) return;
@@ -137,6 +172,53 @@ export default function WorkspacePicker() {
             your workspaces live as stickers on this page
           </p>
         </header>
+
+        {invites.length > 0 ? (
+          <GCard className="flex flex-col gap-3">
+            <div>
+              <div className="font-display font-semibold text-[16px] text-text-0">
+                {invites.length === 1
+                  ? "You've been invited"
+                  : "You have invitations"}
+              </div>
+              <div className="text-[12.5px] text-text-2">
+                Accept to join the workspace.
+              </div>
+            </div>
+            {acceptError ? (
+              <div className="text-danger text-[12.5px]">{acceptError}</div>
+            ) : null}
+            <div className="flex flex-col gap-1.5">
+              {invites.map((inv) => (
+                <div
+                  key={inv.token}
+                  className="flex items-center gap-3 w-full p-2.5 rounded-[11px] border-2 border-ink shadow-ink-1 bg-bg-1"
+                >
+                  <GAvatar
+                    name={inv.workspace_name}
+                    color={`oklch(0.78 0.15 ${workspaceHue(inv.token)})`}
+                    size="md"
+                  />
+                  <span className="flex-1 min-w-0 flex flex-col leading-tight gap-0.5">
+                    <span className="font-display font-semibold text-[14px] text-text-0 truncate">
+                      {inv.workspace_name}
+                    </span>
+                    <span className="text-[11.5px] text-text-3 truncate">
+                      invited by {inv.invited_by}
+                    </span>
+                  </span>
+                  <GButton
+                    variant="ai"
+                    disabled={acceptingToken !== null}
+                    onClick={() => handleAcceptInvite(inv.token)}
+                  >
+                    {acceptingToken === inv.token ? "Joining…" : "Accept"}
+                  </GButton>
+                </div>
+              ))}
+            </div>
+          </GCard>
+        ) : null}
 
         <GCard className="flex flex-col gap-4">
           {loading && !bootstrapped ? (

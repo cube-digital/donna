@@ -87,6 +87,23 @@ export async function inspectInvitation(
   );
 }
 
+export interface MyInvitation {
+  workspace_name: string;
+  email: string;
+  invited_by: string;
+  expires_at: string;
+  token: string;
+}
+
+/** Pending invitations addressed to the signed-in user (across workspaces). */
+export async function listMyInvitations(): Promise<MyInvitation[]> {
+  const data = await apiFetch<MyInvitation[] | Paginated<MyInvitation>>(
+    "/api/v1/invitations/mine/",
+    { skipWorkspace: true },
+  );
+  return Array.isArray(data) ? data : (data.results ?? []);
+}
+
 /** Accept invitation — requires logged-in user whose email matches. */
 export async function acceptInvitation(
   token: string,
