@@ -94,13 +94,22 @@ class WorkspaceMembershipService(BaseService[WorkspaceMembership]):
             )
 
         try:
-            return WorkspaceMembership.objects.create(
+            membership = WorkspaceMembership.objects.create(
                 workspace=self.company,
                 user=user,
                 role=role,
             )
         except IntegrityError:
             raise ValidationError("User is already a member of this workspace.")
+
+        from donna.chat.services import ChannelService
+
+        ChannelService.join_public_channels(
+            workspace=self.company,
+            user=user,
+            added_by=self.current_user or user,
+        )
+        return membership
 
     @transaction.atomic
     def update(
@@ -278,6 +287,15 @@ class WorkspaceInvitationService(BaseService[WorkspaceInvitation]):
             workspace=invite.workspace,
             user=accepting_user,
             defaults={"role": invite.role},
+        )
+        # Slack-style: a new workspace member joins every public channel so
+        # the public chats show up immediately (no manual self-join).
+        from donna.chat.services import ChannelService
+
+        ChannelService.join_public_channels(
+            workspace=invite.workspace,
+            user=accepting_user,
+            added_by=invite.invited_by or accepting_user,
         )
         invite.status = WorkspaceInvitation.Status.ACCEPTED
         invite.accepted_at = timezone.now()

@@ -129,6 +129,12 @@ class ChannelListCreateView(generics.ListCreateAPIView):
         ChannelMembership.objects.create(
             channel=channel, user=request.user, role=ChannelMembership.Role.ADMIN
         )
+        # Public channels are visible to everyone: auto-add every workspace
+        # member (idempotent; leaves the creator's ADMIN role intact).
+        if channel.visibility == Channel.Visibility.PUBLIC:
+            ChannelService.add_all_workspace_members(
+                channel=channel, added_by=request.user
+            )
         ChannelService.emit_channel_created(channel)
         return Response(
             ChannelSerializer(channel).data, status=status.HTTP_201_CREATED
@@ -176,10 +182,17 @@ class ChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         serializer = ChannelUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        was_public = channel.visibility == Channel.Visibility.PUBLIC
         for field, value in serializer.validated_data.items():
             setattr(channel, field, value)
         channel.modified_by = request.user
         channel.save()
+        # Flipping private → public exposes the channel to everyone: backfill
+        # the roster with all workspace members.
+        if not was_public and channel.visibility == Channel.Visibility.PUBLIC:
+            ChannelService.add_all_workspace_members(
+                channel=channel, added_by=request.user
+            )
         ChannelService.emit_channel_updated(channel)
         return Response(ChannelSerializer(channel).data)
 

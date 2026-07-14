@@ -719,6 +719,56 @@ class ChannelService:
         return membership
 
     @staticmethod
+    def join_public_channels(*, workspace, user, added_by=None) -> list[ChannelMembership]:
+        """Add ``user`` to every PUBLIC named channel in ``workspace``.
+
+        Called when someone joins the workspace (invite-accept or admin-add)
+        so the Slack-style rule "everyone sees every public channel" holds
+        without a manual self-join. Idempotent via ``add_member``.
+        """
+        channels = Channel.objects.filter(
+            workspace=workspace,
+            kind=Channel.Kind.CHANNEL,
+            visibility=Channel.Visibility.PUBLIC,
+        )
+        memberships = []
+        for channel in channels:
+            memberships.append(
+                ChannelService.add_member(
+                    channel=channel,
+                    user=user,
+                    added_by=added_by or user,
+                    role=ChannelMembership.Role.MEMBER,
+                )
+            )
+        return memberships
+
+    @staticmethod
+    def add_all_workspace_members(*, channel: Channel, added_by) -> list[ChannelMembership]:
+        """Add every workspace member to ``channel``.
+
+        Called when a PUBLIC channel is created (or flipped private→public)
+        so it appears for everyone. ``add_member`` is idempotent, so the
+        creator/existing members (incl. their ADMIN role) are left unchanged.
+        """
+        from donna.users.models import User
+
+        user_ids = WorkspaceMembership.objects.filter(
+            workspace_id=channel.workspace_id
+        ).values_list("user_id", flat=True)
+        memberships = []
+        for user in User.objects.filter(id__in=list(user_ids)):
+            memberships.append(
+                ChannelService.add_member(
+                    channel=channel,
+                    user=user,
+                    added_by=added_by,
+                    role=ChannelMembership.Role.MEMBER,
+                )
+            )
+        return memberships
+
+    @staticmethod
     @transaction.atomic
     def remove_member(*, channel: Channel, user, removed_by) -> bool:
         """
