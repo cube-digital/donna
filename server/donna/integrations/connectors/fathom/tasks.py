@@ -39,6 +39,7 @@ def ingest_fathom_meeting(
     workspace_id: str,
     recording_id: str,
     meeting: dict | None = None,
+    connection_id: str | None = None,
 ) -> dict:
     """
     Fetch a Fathom recording's transcript + summary and land in storage.
@@ -63,11 +64,26 @@ def ingest_fathom_meeting(
     provider_cls = get_provider("fathom")
     provider = provider_cls()
 
-    connection = (
+    # Route the fetch to the connection that owns this recording. ``.get()``
+    # by workspace alone raises MultipleObjectsReturned once a second user
+    # pairs Fathom; ``connection_id`` (passed by backfill + webhook dispatch)
+    # picks the right token. It selects the OAuth token for the API call only
+    # — never stored on the DeliveryPackage. Falls back to any enabled
+    # connection when omitted (legacy / shared-recording ingests).
+    conn_qs = (
         Connection.objects
         .select_related("token")
-        .get(workspace_id=workspace_id, provider_slug="fathom")
+        .filter(workspace_id=workspace_id, provider_slug="fathom", enabled=True)
     )
+    connection = (
+        conn_qs.filter(id=connection_id).first() if connection_id else conn_qs.first()
+    )
+    if connection is None:
+        logger.warning(
+            "fathom_ingest_no_connection",
+            extra={"workspace_id": workspace_id, "recording_id": recording_id},
+        )
+        return {"skipped": "no_connection"}
     token = connection.token
 
     # The adapter's external_id() (also called inside to_canonical) needs an
@@ -174,7 +190,9 @@ def ingest_fathom_meeting(
 
 
 @shared_task(name="integrations.fathom.backfill_meetings", bind=True)
-def backfill_fathom_meetings(self, workspace_id: str, limit: int | None = None) -> dict:
+def backfill_fathom_meetings(
+    self, workspace_id: str, limit: int | None = None, connection_id: str | None = None
+) -> dict:
     """
     Backfill every existing Fathom meeting for a just-connected workspace.
 
@@ -194,11 +212,23 @@ def backfill_fathom_meetings(self, workspace_id: str, limit: int | None = None) 
     from donna.integrations.models import Connection
 
     provider = get_provider("fathom")()
-    connection = (
+    # Backfill is enqueued per-connection from ``on_connect``; route by that
+    # connection so a second user's history imports through their own token.
+    # Fall back to any enabled connection when omitted.
+    conn_qs = (
         Connection.objects
         .select_related("token")
-        .get(workspace_id=workspace_id, provider_slug="fathom")
+        .filter(workspace_id=workspace_id, provider_slug="fathom", enabled=True)
     )
+    connection = (
+        conn_qs.filter(id=connection_id).first() if connection_id else conn_qs.first()
+    )
+    if connection is None:
+        logger.warning(
+            "fathom_backfill_no_connection",
+            extra={"workspace_id": workspace_id},
+        )
+        return {"enqueued": 0, "skipped": "no_connection"}
     token = connection.token
 
     # Fathom rate-limits the recordings API (429). Each ingest makes 2 calls
@@ -216,7 +246,7 @@ def backfill_fathom_meetings(self, workspace_id: str, limit: int | None = None) 
             if not recording_id:
                 continue
             ingest_fathom_meeting.apply_async(
-                args=[str(workspace_id), str(recording_id), meeting],
+                args=[str(workspace_id), str(recording_id), meeting, str(connection.id)],
                 countdown=enqueued * stagger_s,
             )
             enqueued += 1

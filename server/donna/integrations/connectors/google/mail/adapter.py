@@ -13,6 +13,7 @@ text), and exposes the structured payload as ``to_json``.
 from __future__ import annotations
 
 import base64
+import hashlib
 import html
 import re
 from datetime import datetime, timezone
@@ -81,6 +82,19 @@ class GmailMessageAdapter(BaseEntityAdapter):
 
     # ── BaseAdapter — required ──────────────────────────────────────────────
     def external_id(self) -> str:
+        # Dedup key. The RFC822 ``Message-ID`` header is globally unique per
+        # email and identical in every recipient's mailbox, so two users in
+        # the same workspace who both received the message collapse onto one
+        # bronze row via the (workspace, provider, provider_item_id) unique
+        # constraint — no per-user attribution needed. Fall back to Gmail's
+        # per-mailbox id when the header is absent (rare/malformed); hash it
+        # down when it would overflow the 255-char column so a pathological
+        # header can't truncate into a false collision.
+        mid = (self._headers.get("message-id") or "").strip()
+        if mid:
+            if len(mid) > 255:
+                return "mid-sha256:" + hashlib.sha256(mid.encode()).hexdigest()
+            return mid
         message_id = self._message.get("id")
         if not message_id:
             raise ValueError("Gmail message payload missing 'id'")

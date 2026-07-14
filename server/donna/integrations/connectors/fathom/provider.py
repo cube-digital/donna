@@ -170,7 +170,9 @@ class FathomProvider:
         return token_list[0].workspace
 
     # ── Webhook dispatch ────────────────────────────────────────────────────
-    def dispatch_webhook(self, *, parsed: dict, workspace: "Workspace") -> None:
+    def dispatch_webhook(
+        self, *, parsed: dict, workspace: "Workspace", connection: "Connection | None" = None
+    ) -> None:
         """
         Enqueue the Fathom ingestion task for an incoming meeting-ended event.
 
@@ -195,7 +197,12 @@ class FathomProvider:
                 f"(keys={list(parsed.keys())})"
             )
 
-        ingest_fathom_meeting.delay(str(workspace.id), str(recording_id), meeting)
+        ingest_fathom_meeting.delay(
+            str(workspace.id),
+            str(recording_id),
+            meeting,
+            str(connection.id) if connection is not None else None,
+        )
 
     # ── Connection lifecycle ────────────────────────────────────────────────
     def on_connect(self, *, token: "OAuthToken", connection: "Connection") -> None:
@@ -248,8 +255,9 @@ class FathomProvider:
         from .tasks import backfill_fathom_meetings
 
         workspace_id = str(connection.workspace_id)
+        connection_id = str(connection.id)
         transaction.on_commit(
-            lambda: backfill_fathom_meetings.delay(workspace_id),
+            lambda: backfill_fathom_meetings.delay(workspace_id, None, connection_id),
         )
 
         logger.info(

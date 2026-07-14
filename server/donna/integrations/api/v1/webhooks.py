@@ -132,7 +132,9 @@ class ProviderWebhookView(APIView):
             )
 
         try:
-            dispatcher(parsed=parsed, workspace=workspace)
+            # Pass the connection resolved above so the connector can route
+            # the ingest fetch to the right token (transient — never stored).
+            dispatcher(parsed=parsed, workspace=workspace, connection=connection)
         except Exception as exc:  # noqa: BLE001
             logger.exception(
                 "webhook_dispatch_failed",

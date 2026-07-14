@@ -55,23 +55,31 @@ _INLINE_SKIP_MIN_BYTES = 5 * 1024
 
 # ─── Per-message ingest ──────────────────────────────────────────────────────
 @shared_task(name="integrations.google.mail.ingest_message", bind=True)
-def ingest_gmail_message(self, workspace_id: str, message_id: str) -> dict:
-    """Fetch + adapt + store one Gmail message. Idempotent on retry."""
+def ingest_gmail_message(
+    self, workspace_id: str, message_id: str, connection_id: str | None = None
+) -> dict:
+    """Fetch + adapt + store one Gmail message. Idempotent on retry.
+
+    ``connection_id`` routes the fetch to the mailbox that owns ``message_id``
+    (a message id is per-mailbox, so a sibling user's token would 404). It is
+    used only to pick the OAuth token for the API call — never stored on the
+    DeliveryPackage. When omitted (legacy callers) any enabled connection's
+    token is borrowed.
+    """
     from donna.integrations.models import Connection, DeliveryPackage
 
     provider_cls = get_provider("gmail")
     provider = provider_cls()
 
-    # Find any enabled Gmail Connection in this workspace to borrow its
-    # token. (Multiple users may have paired Gmail; ingest fans out per
-    # connection upstream, so this path is reached with a known message
-    # ID + the workspace it belongs to.)
-    conn = (
+    # Resolve the connection whose mailbox this message belongs to. The
+    # per-connection poller (``sync_gmail_connection``) passes its own id; only
+    # that user's token can fetch their private messages.
+    conn_qs = (
         Connection.objects
         .select_related("token")
         .filter(workspace_id=workspace_id, provider_slug="gmail", enabled=True)
-        .first()
     )
+    conn = conn_qs.filter(id=connection_id).first() if connection_id else conn_qs.first()
     if conn is None:
         logger.warning(
             "gmail_ingest_no_connection",
@@ -215,7 +223,7 @@ def sync_gmail_connection(self, connection_id: str) -> dict:
                 mid = entry.get("id")
                 if not mid:
                     continue
-                ingest_gmail_message.delay(str(conn.workspace_id), str(mid))
+                ingest_gmail_message.delay(str(conn.workspace_id), str(mid), str(conn.id))
                 enqueued += 1
 
         _update_state_after_sync(state)
