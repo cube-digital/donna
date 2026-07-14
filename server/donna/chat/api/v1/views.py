@@ -494,13 +494,24 @@ class ChannelMembersView(APIView):
 
 class ChannelMemberRemoveView(APIView):
     """
-    ``DELETE /chat/channels/{cid}/members/{user_id}/``
+    ``PATCH  /chat/channels/{cid}/members/{user_id}/`` — change role (admin only)
+    ``DELETE /chat/channels/{cid}/members/{user_id}/`` — remove / self-leave
 
     Self-leave when ``user_id`` matches the caller; admin-kick otherwise.
-    Idempotent: returns 204 even if the user wasn't a member.
+    Idempotent: DELETE returns 204 even if the user wasn't a member.
     """
 
     permission_classes = [IsAuthenticated]
+
+    def patch(self, request, id, user_id):
+        channel = _get_workspace_channel(request, id)
+        caller = _require_channel_membership(request.user, channel)
+        if caller.role != ChannelMembership.Role.ADMIN:
+            raise PermissionDenied("channel admin role required to change roles")
+        membership = ChannelService.set_member_role(
+            channel=channel, user_id=user_id, role=request.data.get("role"),
+        )
+        return Response(ChannelMembershipSerializer(membership).data)
 
     def delete(self, request, id, user_id):
         channel = _get_workspace_channel(request, id)

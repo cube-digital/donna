@@ -4,6 +4,8 @@ from __future__ import annotations
 from django.db.models import Count, Exists, OuterRef
 from rest_framework import serializers
 
+from donna.users.api.v1.serializers import UserShortSerializer
+
 from ...models import (
     Channel,
     ChannelMembership,
@@ -163,10 +165,14 @@ class GroupDMOpenSerializer(serializers.Serializer):
 
 
 class ChannelMembershipSerializer(serializers.ModelSerializer):
+    # Nested profile so the channel-panel roster/picker can render avatars +
+    # presence (was a bare user-id FK).
+    user = UserShortSerializer(read_only=True)
+
     class Meta:
         model = ChannelMembership
         fields = ["id", "channel", "user", "role", "created_at"]
-        read_only_fields = ["id", "channel", "created_at"]
+        read_only_fields = ["id", "channel", "user", "created_at"]
 
 
 class AddMemberSerializer(serializers.Serializer):

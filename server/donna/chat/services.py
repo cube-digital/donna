@@ -759,6 +759,47 @@ class ChannelService:
         )
         return True
 
+    @staticmethod
+    @transaction.atomic
+    def set_member_role(*, channel: Channel, user_id, role) -> ChannelMembership:
+        """Change a channel member's role (admin/member). Caller authorizes.
+
+        Guards the last admin so a channel can't be left without one.
+        """
+        if role not in dict(ChannelMembership.Role.choices):
+            raise ValidationError({"role": "Invalid role."})
+        try:
+            membership = (
+                ChannelMembership.objects
+                .select_for_update()
+                .get(channel=channel, user_id=user_id)
+            )
+        except ChannelMembership.DoesNotExist as exc:
+            raise ValidationError("User is not a member of this channel.") from exc
+        demoting_admin = (
+            membership.role == ChannelMembership.Role.ADMIN
+            and role != ChannelMembership.Role.ADMIN
+        )
+        if demoting_admin and channel.memberships.filter(
+            role=ChannelMembership.Role.ADMIN
+        ).count() <= 1:
+            raise ValidationError("Cannot demote the last channel admin.")
+        if membership.role != role:
+            membership.role = role
+            membership.save(update_fields=["role"])
+            ChannelService._broadcast(
+                channel_group(channel.id),
+                {
+                    "type":    "chat.channel.member.role_changed",
+                    "payload": {
+                        "channel_id": str(channel.id),
+                        "user_id":    str(user_id),
+                        "role":       role,
+                    },
+                },
+            )
+        return membership
+
     # ── Pins ────────────────────────────────────────────────────────────────
     @staticmethod
     @transaction.atomic

@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from donna.users.api.v1.serializers import UserShortSerializer
 from donna.workspaces.models import (
     Workspace,
     WorkspaceInvitation,
@@ -12,28 +13,22 @@ from donna.workspaces.models import (
 User = get_user_model()
 
 
-class _UserShortSerializer(serializers.ModelSerializer):
-    """Lightweight User shape embedded in membership reads.
-
-    Lives here temporarily; move to ``donna.users.api.v1.serializers`` when
-    the users app is built out and import from there.
-    """
-
-    class Meta:
-        model = User
-        fields = ["id", "email", "full_name"]
-        read_only_fields = fields
-
-
 class WorkspaceReadSerializer(serializers.ModelSerializer):
     """Read shape exposes my_role so clients can branch on access without a second call."""
 
     my_role = serializers.SerializerMethodField()
+    member_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Workspace
-        fields = ["id", "name", "slug", "my_role", "created_at", "updated_at"]
+        fields = [
+            "id", "name", "slug", "primary_domain", "member_count",
+            "my_role", "created_at", "updated_at",
+        ]
         read_only_fields = fields
+
+    def get_member_count(self, obj: Workspace) -> int:
+        return WorkspaceMembership.objects.filter(workspace=obj).count()
 
     def get_my_role(self, obj: Workspace) -> str | None:
         request = self.context.get("request")
@@ -50,16 +45,19 @@ class WorkspaceReadSerializer(serializers.ModelSerializer):
 class WorkspaceWriteSerializer(serializers.ModelSerializer):
     """Write shape accepts only the fields a caller may set; slug auto-generates if omitted."""
 
-    name = serializers.CharField(max_length=255)
+    name = serializers.CharField(max_length=255, required=False)
     slug = serializers.SlugField(max_length=80, required=False, allow_blank=True)
+    primary_domain = serializers.CharField(
+        max_length=255, required=False, allow_blank=True
+    )
 
     class Meta:
         model = Workspace
-        fields = ["name", "slug"]
+        fields = ["name", "slug", "primary_domain"]
 
 
 class WorkspaceMembershipReadSerializer(serializers.ModelSerializer):
-    user = _UserShortSerializer(read_only=True)
+    user = UserShortSerializer(read_only=True)
 
     class Meta:
         model = WorkspaceMembership
@@ -94,9 +92,10 @@ class WorkspaceMembershipWriteSerializer(serializers.ModelSerializer):
 
 # ── Invitations ─────────────────────────────────────────────────────────────
 class WorkspaceInvitationReadSerializer(serializers.ModelSerializer):
-    """Admin-facing — full invite metadata for pending list."""
+    """Admin-facing — full invite metadata for the invitations list."""
 
-    invited_by = _UserShortSerializer(read_only=True)
+    invited_by = UserShortSerializer(read_only=True)
+    accept_url = serializers.SerializerMethodField()
 
     class Meta:
         model = WorkspaceInvitation
@@ -106,12 +105,24 @@ class WorkspaceInvitationReadSerializer(serializers.ModelSerializer):
             "role",
             "status",
             "invited_by",
+            "accept_url",
             "expires_at",
             "accepted_at",
             "created_at",
             "updated_at",
         ]
         read_only_fields = fields
+
+    def get_accept_url(self, obj: WorkspaceInvitation) -> str | None:
+        # Copy-link — signed accept URL, only meaningful while pending.
+        if obj.status != WorkspaceInvitation.Status.PENDING:
+            return None
+        from django.conf import settings
+
+        from donna.workspaces.services import WorkspaceInvitationService
+
+        base = (getattr(settings, "FRONTEND_BASE_URL", "") or "").rstrip("/")
+        return f"{base}/invitations/{WorkspaceInvitationService._sign_token(obj)}/accept"
 
 
 class WorkspaceInvitationWriteSerializer(serializers.ModelSerializer):

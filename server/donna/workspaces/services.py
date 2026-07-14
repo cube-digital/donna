@@ -227,6 +227,16 @@ class WorkspaceInvitationService(BaseService[WorkspaceInvitation]):
             instance.save(update_fields=["status", "updated_at"])
         return True
 
+    @transaction.atomic
+    def resend(self, instance: WorkspaceInvitation) -> WorkspaceInvitation:
+        """Re-send a pending invite: extend the TTL + re-deliver the email."""
+        if instance.status != WorkspaceInvitation.Status.PENDING:
+            raise ValidationError("Only pending invitations can be resent.")
+        instance.expires_at = timezone.now() + timedelta(seconds=_INVITE_MAX_AGE)
+        instance.save(update_fields=["expires_at", "updated_at"])
+        self._send_email(instance, self._sign_token(instance))
+        return instance
+
     # ── Token + email helpers ───────────────────────────────────────────────
     @staticmethod
     def _sign_token(invite: WorkspaceInvitation) -> str:

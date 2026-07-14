@@ -153,12 +153,13 @@ class WorkspaceInvitationViewSet(ModelViewSet):
     """Workspace-scoped invitation CRUD.
 
     Routes (registered under ``/api/v1/workspaces/invitations/``):
-      GET    /                   — list pending invitations
+      GET    /                   — list ALL invitations (any status)
       POST   /                   — create + send email
       GET    /<id>/              — retrieve one
+      POST   /<id>/resend/       — re-send a pending invite (extends TTL)
       DELETE /<id>/              — revoke (soft; status → REVOKED)
 
-    PATCH/PUT not exposed — invitations are immutable.
+    PATCH/PUT not exposed — invitations are immutable except via resend/revoke.
     """
 
     service_class = WorkspaceInvitationService
@@ -175,14 +176,26 @@ class WorkspaceInvitationViewSet(ModelViewSet):
     }
 
     def get_queryset(self):
+        # Full history — the settings Invitations tab filters by status
+        # (pending / accepted / revoked / expired) client-side.
         workspace = getattr(self.request, "workspace", None)
         if workspace is None:
             return WorkspaceInvitation.objects.none()
         return (
             workspace.invitations
-            .filter(status=WorkspaceInvitation.Status.PENDING)
             .select_related("invited_by")
+            .order_by("-created_at")
         )
+
+    @action(detail=True, methods=["post"], url_path="resend")
+    def resend(self, request, pk=None):
+        """Re-send a pending invitation (re-deliver email + extend TTL)."""
+        invite = self.get_object()
+        service = WorkspaceInvitationService(
+            current_user=request.user, company=request.workspace
+        )
+        invite = service.resend(invite)
+        return Response(WorkspaceInvitationReadSerializer(invite).data)
 
 
 class PublicInvitationViewSet(GenericViewSet):
