@@ -26,7 +26,10 @@ donna-ui-kit/
     ├── ChannelMembersTab.jsx    add-from-workspace picker + invite-by-email + roles
     ├── ChannelAgentsTab.jsx     channel-resident agents (@handle) + cortex scope
     ├── ChannelSettingsTab.jsx   name, topic, public/private, archive, delete
-    └── ChannelPanelExample.jsx  example wiring (endpoints noted inline)
+    ├── ChannelPanelExample.jsx  example wiring (endpoints noted inline)
+    │
+    ├── NewMessageView.jsx       Slack-style "new message" — inline page, not a modal
+    └── NewMessageExample.jsx    example wiring
 ```
 
 ## Use it in React
@@ -55,6 +58,8 @@ Components are presentational — every action is a prop (`onInvite`, `onRoleCha
 | People to add (not yet in channel) | `/chat/channels/<id>/mention-candidates/` |
 | Install / uninstall channel agent | `/chat/channels/<id>/agents/install/` · `/agents/<handle>/` |
 | Channel name / topic / visibility | `/chat/channels/<id>/` |
+| Start 1:1 DM / group DM | `/chat/dms/` · `/chat/dms/group/` |
+| People + channels to pick from | `/chat/channels/<id>/mention-candidates/` |
 
 ## Channel panel
 
@@ -78,6 +83,26 @@ layer to the cortex layer.
 
 **Archive ≠ Delete.** Archive hides the channel but keeps history + cortex memory — it's
 the one people actually want.
+
+## New message (inline)
+
+`NewMessageView` is a **page, not a modal** — the whole pane becomes the picker (Slack
+style). A `To:` token field accepts **#channels, @people and emails**; suggestions flow
+inline on the page (no dropdown box). Pick one recipient for a 1:1, several for a group;
+type an email to invite someone new.
+
+```jsx
+import NewMessageView from "donna-ui-kit/react/NewMessageView";
+<NewMessageView
+  people={people} channels={channels}
+  onStart={({ userIds, channelId }) => /* dms/ | dms/group/ | open channel */}
+  onInvite={(email) => /* workspaces/invitations/ */}
+/>
+```
+
+Keyboard: ↑↓ to move, ↵ to add, Backspace to pop the last token. The red "Failed to
+fetch" from the old modal is gone — pass whatever cached people you have and it still
+works.
 
 ## Design rules baked in
 

@@ -35,7 +35,6 @@ import {
   type GListDot,
 } from "../Goofy";
 import { CreateChannelDialog } from "../Channel/CreateChannelDialog";
-import { StartDMDialog } from "../Channel/StartDMDialog";
 import { InviteToWorkspaceDialog } from "./InviteToWorkspaceDialog";
 
 // Section header — small Fredoka label on the left, optional sticker
@@ -109,7 +108,6 @@ export default function Sidebar() {
   const channelMatch = useMatch("/channels/:channelId");
   const activeChannelId = channelMatch?.params.channelId ?? null;
   const [createOpen, setCreateOpen] = useState(false);
-  const [startDmOpen, setStartDmOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const pinChannel = useChannels((s) => s.pinChannel);
   const unpinChannel = useChannels((s) => s.unpinChannel);
@@ -292,7 +290,7 @@ export default function Sidebar() {
       {/* Direct messages — below Channels; each row shows the peer's avatar
           + name (the person this DM is with). */}
       <div>
-        <GroupHeader label="direct messages" onAdd={() => setStartDmOpen(true)} />
+        <GroupHeader label="direct messages" onAdd={() => navigate("/new-message")} />
         {directs.length === 0 ? (
           <GListItem className="text-text-3 italic">
             No direct messages yet
@@ -300,21 +298,42 @@ export default function Sidebar() {
         ) : (
           directs.map((c) => {
             const label = c.peer?.full_name || c.peer?.email || c.name || "Direct message";
+            const away = c.peer?.is_away;
             return (
               <GListItem
                 key={c.id}
                 active={activeChannelId === c.id}
-                aria-label={label}
+                aria-label={
+                  c.peer ? `${label} · ${away ? "away" : "active"}` : label
+                }
                 onClick={() => navigate(`/channels/${c.id}`)}
                 icon={
-                  <GAvatar
-                    size="sm"
-                    name={label}
-                    src={c.peer?.picture_url ?? undefined}
-                  />
+                  <span className="relative inline-flex">
+                    <GAvatar
+                      size="sm"
+                      name={label}
+                      src={c.peer?.picture_url ?? undefined}
+                    />
+                    {c.peer ? (
+                      <span
+                        className="absolute -bottom-0.5 -right-0.5 w-[9px] h-[9px] rounded-full border-2 border-bg-1"
+                        style={{
+                          background: away
+                            ? "oklch(0.70 0.15 70)"
+                            : "var(--ok, #22c55e)",
+                        }}
+                        title={away ? "Away" : "Active"}
+                      />
+                    ) : null}
+                  </span>
                 }
               >
                 {label}
+                {c.peer?.status ? (
+                  <span className="ml-1.5 text-[11px] text-text-4 font-normal">
+                    {c.peer.status}
+                  </span>
+                ) : null}
               </GListItem>
             );
           })
@@ -337,11 +356,6 @@ export default function Sidebar() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={(ch) => navigate(`/channels/${ch.id}`)}
-      />
-      <StartDMDialog
-        open={startDmOpen}
-        onClose={() => setStartDmOpen(false)}
-        onOpened={(ch) => navigate(`/channels/${ch.id}`)}
       />
       <InviteToWorkspaceDialog
         open={inviteOpen}

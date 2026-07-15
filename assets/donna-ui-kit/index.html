@@ -56,6 +56,9 @@
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
 <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></symbol>
+<symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></symbol>
+<symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
 </defs></svg>
 <div class="shell">
   <h1 class="kit-h1">Donna UI Kit — workspace settings &amp; profile</h1>
@@ -402,6 +405,38 @@
           <button class="dn-btn dn-btn--danger dn-spacer">Delete</button></div>
       </section>
 
+    </div>
+  </div>
+
+  <h1 class="kit-h1" style="margin-top:30px;">New message (inline)</h1>
+  <p class="kit-p">The whole pane is the picker — no modal, no dropdown box. To: token field, suggestions flowing on the page, composer pinned below. Pick more than one for a group.</p>
+
+  <div class="dn-panel dn-paper" style="background:var(--dn-bg);height:460px;">
+    <div class="dn-nm">
+      <div class="dn-nm-head"><svg class="dn-icon"><use href="#i-at"/></svg> New message</div>
+      <div class="dn-to">
+        <span class="dn-to-label">To:</span>
+        <div class="dn-token-field">
+          <span class="dn-token"><span class="dn-token-av" style="background:var(--dn-coral);">AM</span>Andreea<button class="dn-token-x"><svg class="dn-icon" style="font-size:8px"><use href="#i-x"/></svg></button></span>
+          <input placeholder="#channel, @person, or name@email.com">
+        </div>
+      </div>
+      <div class="dn-nm-hint"><span class="dn-key">↑↓</span> navigate · <span class="dn-key">↵</span> add · pick more than one for a group</div>
+      <div class="dn-suggest">
+        <div class="dn-suggest-group">People</div>
+        <div class="dn-suggest-row is-active"><span class="dn-avatar" style="background:var(--dn-blue);position:relative;">VA<span class="dn-presence" style="background:var(--dn-ok);"></span></span><div class="dn-suggest-name">Vlad Adumitracesei <span class="dn-suggest-sub">@vlad · active now</span></div><span class="dn-suggest-role">member</span></div>
+        <div class="dn-suggest-row"><span class="dn-avatar" style="background:oklch(0.58 0.20 5);position:relative;">MP<span class="dn-presence" style="background:oklch(0.70 0.15 70);"></span></span><div class="dn-suggest-name">Marko Pejic <span class="dn-suggest-sub">@marko · away</span></div><span class="dn-suggest-role">member</span></div>
+        <div class="dn-suggest-row"><span class="dn-avatar dn-avatar--round" style="background:var(--dn-grape);">D</span><div class="dn-suggest-name">Donna <span class="dn-suggest-sub">AI teammate · always on</span></div></div>
+        <div class="dn-suggest-group">Channels</div>
+        <div class="dn-suggest-row"><span class="dn-hashbox"><svg class="dn-icon" style="font-size:15px"><use href="#i-lock"/></svg></span><div class="dn-suggest-name">sales <span class="dn-suggest-sub">private</span></div></div>
+        <div class="dn-suggest-row"><span class="dn-hashbox"><svg class="dn-icon" style="font-size:15px"><use href="#i-hash"/></svg></span><div class="dn-suggest-name">social</div></div>
+        <div class="dn-suggest-rule"></div>
+        <div class="dn-suggest-row"><span class="dn-hashbox"><svg class="dn-icon" style="font-size:15px"><use href="#i-mail"/></svg></span><div class="dn-suggest-name dn-suggest-invite">Invite <span class="dn-mono" style="color:var(--dn-grape-deep);">adi@acme.com</span> to Cube Digital</div></div>
+      </div>
+      <div class="dn-nm-composer">
+        <div class="txt">Start a new message…</div>
+        <div class="tools"><b>B</b><i style="font-style:italic;">I</i><svg class="dn-icon"><use href="#i-link"/></svg><svg class="dn-icon"><use href="#i-at"/></svg><svg class="dn-icon"><use href="#i-smile"/></svg><svg class="dn-icon"><use href="#i-plus"/></svg><button class="dn-send"><svg class="dn-icon"><use href="#i-send"/></svg></button></div>
+      </div>
     </div>
   </div>
 </div>

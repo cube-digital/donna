@@ -247,3 +247,60 @@
 .dn-handle { font-family: var(--dn-mono); background: var(--dn-grape-bg);
   color: var(--dn-grape-deep); padding: 1px 6px; border-radius: 5px;
   font-size: 11px; font-weight: 600; }
+
+/* ============================================================
+   NEW MESSAGE (inline page — not a modal)
+   ============================================================ */
+.dn-nm { display: flex; flex-direction: column; height: 100%; min-height: 480px; }
+.dn-nm-head { display: flex; align-items: center; gap: 8px; padding: 14px 20px 0;
+  font-size: 17px; font-weight: 700; color: var(--dn-t0); }
+.dn-nm-head .dn-icon { color: var(--dn-t4); }
+
+.dn-to { display: flex; align-items: flex-start; gap: 10px; padding: 12px 20px 0; }
+.dn-to-label { font-weight: 600; color: var(--dn-t3); padding-top: 9px; }
+/* the ONLY bold-bordered element — the token field */
+.dn-token-field { flex: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 12px; border: 2px solid var(--dn-ink); border-radius: 10px;
+  background: var(--dn-surface); min-height: 42px; }
+.dn-token-field input { flex: 1; min-width: 140px; border: none; background: transparent;
+  outline: none; font: inherit; color: var(--dn-t0); }
+.dn-token-field input::placeholder { color: var(--dn-t4); }
+
+.dn-token { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px;
+  font-weight: 600; background: var(--dn-grape-bg); color: var(--dn-grape-deep);
+  border: 1px solid var(--dn-grape); border-radius: 999px; padding: 3px 8px 3px 4px; }
+.dn-token .dn-token-av { width: 19px; height: 19px; border-radius: 50%; display: grid;
+  place-items: center; color: #fff; font-size: 8px; font-weight: 700; }
+.dn-token .dn-token-x { width: 16px; height: 16px; border-radius: 50%; background: var(--dn-grape);
+  color: #fff; display: grid; place-items: center; font-size: 9px; cursor: pointer; border: none; }
+
+.dn-nm-hint { padding: 6px 20px 0; color: var(--dn-t4); font-size: 11px; }
+.dn-key { font-family: var(--dn-mono); font-size: 10px; padding: 1px 6px; border-radius: 4px;
+  background: var(--dn-panel); border: 1px solid var(--dn-line-2); color: var(--dn-t3); }
+
+/* INLINE suggestions — plain rows on the page, no dropdown box */
+.dn-suggest { flex: 1; overflow-y: auto; padding: 10px 12px 4px; }
+.dn-suggest-group { font-size: 10px; color: var(--dn-t4); text-transform: uppercase;
+  letter-spacing: .05em; font-weight: 700; padding: 10px 10px 5px; }
+.dn-suggest-row { display: flex; align-items: center; gap: 12px; padding: 9px 10px;
+  border-radius: 9px; cursor: pointer; }
+.dn-suggest-row:hover, .dn-suggest-row.is-active { background: var(--dn-grape-bg); }
+.dn-suggest-name { font-weight: 600; color: var(--dn-t0); font-size: 13px; }
+.dn-suggest-sub { color: var(--dn-t4); font-weight: 400; font-size: 12px; margin-left: 2px; }
+.dn-suggest-role { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  color: var(--dn-t4); text-transform: uppercase; }
+.dn-suggest-rule { height: 1px; background: var(--dn-line); margin: 8px 10px; }
+.dn-suggest-invite { color: var(--dn-grape-deep); font-weight: 600; }
+.dn-hashbox { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  color: var(--dn-t3); background: var(--dn-panel); flex: none; }
+.dn-presence { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px;
+  border-radius: 50%; border: 2px solid var(--dn-bg); }
+
+/* composer pinned bottom (reuses card styling) */
+.dn-nm-composer { margin: 10px 20px 16px; border: 1px solid var(--dn-line-2);
+  border-radius: 14px; background: var(--dn-surface); overflow: hidden; }
+.dn-nm-composer .txt { padding: 13px 15px; color: var(--dn-t4); }
+.dn-nm-composer .tools { display: flex; align-items: center; gap: 14px; padding: 8px 12px;
+  border-top: 1px solid var(--dn-line); color: var(--dn-t4); }
+.dn-send { margin-left: auto; width: 32px; height: 32px; border-radius: 9px; display: grid;
+  place-items: center; background: var(--dn-grape); color: #fff; border: none; cursor: pointer; }

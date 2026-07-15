@@ -23,6 +23,7 @@ import WorkspacePicker from "./views/WorkspacePicker";
 import AppShell from "./components/Shell/AppShell";
 import { ToastStack } from "./components/Shell/ToastStack";
 import Channel from "./views/Channel";
+import NewMessage from "./views/NewMessage";
 import Files from "./views/Files";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
@@ -120,6 +121,7 @@ export default function App() {
           <Route index element={<Navigate to="/channels" replace />} />
           <Route path="/channels" element={<ComingSoon title="Pick a channel" />} />
           <Route path="/channels/:channelId" element={<Channel />} />
+          <Route path="/new-message" element={<NewMessage />} />
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/integrations/:slug" element={<IntegrationDetail />} />
           <Route path="/settings" element={<Settings />} />

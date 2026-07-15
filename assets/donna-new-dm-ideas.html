@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donna — start a direct message · ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:oklch(0.965 0.02 92);--surf:oklch(0.978 0.013 92);--panel:oklch(0.955 0.02 92);
+    --line:oklch(0.30 0.02 285/.10);--line2:oklch(0.30 0.02 285/.16);--ink:oklch(0.26 0.03 285);
+    --t0:oklch(0.24 0.03 285);--t2:oklch(0.44 0.025 285);--t3:oklch(0.55 0.02 285);--t4:oklch(0.64 0.018 285);
+    --grape:oklch(0.52 0.21 288);--gdeep:oklch(0.40 0.18 288);--gbg:oklch(0.52 0.21 288/.10);
+    --ok:oklch(0.62 0.13 150);--coral:oklch(0.62 0.20 30);--blue:oklch(0.50 0.18 262);--amber:oklch(0.70 0.15 70);
+    --dot:oklch(0.26 0.03 285/.05);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#cfcabb;font-family:'Inter',system-ui,sans-serif;color:var(--t2);padding:30px;font-size:12px;}
+  h1{font-size:19px;color:#2a2438;margin-bottom:4px;}
+  .note{font-size:13px;color:#6b6478;margin-bottom:22px;max-width:820px;line-height:1.5;}
+  .wrap{max-width:1000px;margin:0 auto;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .i{width:1em;height:1em;font-size:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-0.15em;}
+  .lab{font-size:13px;font-weight:600;color:#2a2438;margin:0 0 8px 2px;}
+  .lab small{display:block;font-weight:400;color:#6b6478;font-size:11.5px;margin-top:2px;}
+  .stage{background:var(--bg);background-image:radial-gradient(var(--dot) 1.3px,transparent 1.3px);background-size:16px 16px;
+    border:1px solid var(--line2);border-radius:12px;padding:18px;min-height:300px;display:grid;place-items:start center;}
+  .modal{background:var(--surf);border:2px solid var(--ink);border-radius:12px;width:100%;max-width:360px;overflow:hidden;}
+  .mhead{display:flex;align-items:center;padding:12px 15px;border-bottom:1px solid var(--line);font-weight:700;color:var(--t0);font-size:14px;}
+  .search{display:flex;align-items:center;gap:8px;margin:12px 13px;padding:9px 12px;border:2px solid var(--ink);border-radius:9px;color:var(--t4);background:var(--bg);}
+  .sect{font-size:9px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:5px 15px 6px;}
+  .r{display:flex;align-items:center;gap:11px;padding:8px 13px;cursor:pointer;}
+  .r.sel{background:var(--gbg);}
+  .r:hover{background:var(--panel);}
+  .av{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:10px;flex:none;position:relative;}
+  .pres{position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surf);}
+  .nm{font-weight:600;color:var(--t0);font-size:12.5px;}
+  .mt{font-size:10px;color:var(--t4);margin-top:1px;}
+  .role{font-size:9px;font-weight:700;letter-spacing:.04em;color:var(--t4);text-transform:uppercase;}
+  .kbd{font-family:ui-monospace,monospace;font-size:9px;padding:1px 6px;border-radius:4px;background:var(--panel);border:1px solid var(--line2);color:var(--t3);}
+  .foot{display:flex;align-items:center;gap:8px;padding:10px 13px;border-top:1px solid var(--line);color:var(--t4);font-size:10px;}
+  .btn{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:11.5px;padding:8px 13px;border-radius:8px;background:var(--grape);color:#fff;border:2px solid var(--ink);cursor:pointer;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;background:var(--gbg);color:var(--gdeep);border:1px solid var(--grape);border-radius:999px;padding:3px 6px 3px 3px;}
+  .chip .x{width:15px;height:15px;border-radius:50%;background:var(--grape);color:#fff;display:grid;place-items:center;font-size:9px;}
+  .tokin{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:12px 13px;padding:8px 10px;border:2px solid var(--ink);border-radius:9px;background:var(--bg);}
+  .box{width:17px;height:17px;border:1.5px solid var(--line2);border-radius:5px;flex:none;}
+  .box.on{background:var(--grape);border-color:var(--grape);display:grid;place-items:center;color:#fff;}
+  /* retry state (replaces the scary red "Failed to fetch") */
+  .retry{margin:0 13px 8px;padding:8px 11px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);
+    display:flex;align-items:center;gap:8px;color:var(--t3);font-size:11px;}
+  .mono{font-family:ui-monospace,monospace;}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <h1>Donna · start a direct message — ideas</h1>
+  <p class="note">Fixes baked into all four: avatars + presence dots, a <b>Recent</b> section, and the scary red <span class="mono">Failed to fetch</span> replaced by a quiet retry chip that still shows cached people.</p>
+
+  <div class="grid">
+
+    <!-- A -->
+    <div>
+      <p class="lab">A · Command-palette<small>recents + presence, keyboard-first (⌘K feel)</small></p>
+      <div class="stage">
+        <div class="modal">
+          <div class="search"><svg class="i" style="font-size:13px"><use href="#i-search"/></svg>To: name or email…</div>
+          <div class="sect">Recent</div>
+          <div class="r"><span class="av" style="background:var(--coral);">AM<span class="pres" style="background:var(--ok);"></span></span>
+            <div style="flex:1;"><div class="nm">Andreea Miclaus</div><div class="mt">Active now</div></div><span class="role">admin</span></div>
+          <div class="r sel"><span class="av" style="background:var(--blue);">SI<span class="pres" style="background:var(--amber);"></span></span>
+            <div style="flex:1;"><div class="nm">Sergiu Istoc</div><div class="mt">Away · last seen 2h</div></div><span class="kbd">↵</span></div>
+          <div class="sect">Everyone</div>
+          <div class="r"><span class="av" style="background:var(--grape);">MM<span class="pres" style="background:var(--t4);"></span></span>
+            <div style="flex:1;"><div class="nm">Marius Milu</div><div class="mt">marius@cube.digital</div></div><span class="role">member</span></div>
+          <div class="r"><span class="av" style="background:var(--grape);border-radius:50%;">D</span>
+            <div style="flex:1;"><div class="nm">Donna</div><div class="mt">AI teammate · always on</div></div></div>
+          <div class="foot"><span class="kbd">↑↓</span> navigate <span class="kbd">↵</span> open <span class="kbd">esc</span> close</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div>
+      <p class="lab">B · Group DM<small>multi-select with chips → 1:1 or group</small></p>
+      <div class="stage">
+        <div class="modal">
+          <div class="mhead">New message <svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-x"/></svg></div>
+          <div class="tokin">
+            <span class="chip"><span class="x"><svg class="i" style="font-size:8px"><use href="#i-x"/></svg></span>Andreea</span>
+            <span class="chip"><span class="x"><svg class="i" style="font-size:8px"><use href="#i-x"/></svg></span>Marius</span>
+            <span style="color:var(--t4);flex:1;min-width:70px;">Add more…</span>
+          </div>
+          <div class="sect">Suggestions</div>
+          <div class="r"><span class="av" style="background:var(--blue);">SI</span>
+            <div style="flex:1;"><div class="nm">Sergiu Istoc</div><div class="mt">member</div></div><span class="box"></span></div>
+          <div class="r"><span class="av" style="background:var(--grape);border-radius:50%;">D</span>
+            <div style="flex:1;"><div class="nm">Donna</div><div class="mt">add Donna to the group</div></div><span class="box"></span></div>
+          <div class="foot"><span style="color:var(--t3);">2 people · group DM</span>
+            <span class="btn" style="margin-left:auto;padding:7px 13px;">Start chat</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div>
+      <p class="lab">C · Inline (no modal)<small>the empty DM view IS the picker</small></p>
+      <div class="stage" style="place-items:stretch;">
+        <div style="width:100%;">
+          <div style="display:flex;align-items:center;gap:9px;padding:9px 4px;border-bottom:1px solid var(--line);">
+            <svg class="i" style="color:var(--t4)"><use href="#i-at"/></svg><b style="color:var(--t0);font-size:14px;">New message</b>
+          </div>
+          <div class="tokin" style="margin:14px 0;"><svg class="i" style="color:var(--t4)"><use href="#i-search"/></svg><span style="color:var(--t4);">To: type a name…</span></div>
+          <div class="r" style="border-radius:8px;"><span class="av" style="background:var(--coral);">AM<span class="pres" style="background:var(--ok);"></span></span>
+            <div style="flex:1;"><div class="nm">Andreea Miclaus</div><div class="mt">Active now · admin</div></div></div>
+          <div class="r" style="border-radius:8px;"><span class="av" style="background:var(--blue);">SI</span>
+            <div style="flex:1;"><div class="nm">Sergiu Istoc</div><div class="mt">member</div></div></div>
+          <div style="margin-top:16px;border:1.5px solid var(--line2);border-radius:11px;background:var(--surf);padding:12px 14px;color:var(--t4);">Message… <span style="float:right;color:var(--grape);"><svg class="i"><use href="#i-send"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D -->
+    <div>
+      <p class="lab">D · Popover from “+”<small>anchored to the DM plus button</small></p>
+      <div class="stage" style="place-items:start start;">
+        <div style="display:flex;align-items:center;gap:8px;color:var(--t3);font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Direct messages
+          <span style="width:19px;height:19px;border-radius:6px;border:1.5px solid var(--grape);color:var(--grape);display:grid;place-items:center;"><svg class="i" style="font-size:11px"><use href="#i-plus"/></svg></span></div>
+        <div class="modal" style="max-width:250px;margin-top:2px;">
+          <div class="search" style="margin:10px;padding:8px 10px;"><svg class="i" style="font-size:12px"><use href="#i-search"/></svg>Search…</div>
+          <div class="r"><span class="av" style="background:var(--coral);">AM<span class="pres" style="background:var(--ok);"></span></span><div class="nm">Andreea Miclaus</div></div>
+          <div class="r"><span class="av" style="background:var(--blue);">SI</span><div class="nm">Sergiu Istoc</div></div>
+          <div class="r"><span class="av" style="background:var(--grape);">MM</span><div class="nm">Marius Milu</div></div>
+          <div class="r" style="color:var(--gdeep);font-weight:600;border-top:1px solid var(--line);"><span class="av" style="background:var(--gbg);color:var(--gdeep);"><svg class="i" style="font-size:13px"><use href="#i-users"/></svg></span>New group…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- retry state note -->
+    <div style="grid-column:1 / -1;">
+      <p class="lab">Error state — replaces the red “Failed to fetch”</p>
+      <div class="stage" style="min-height:auto;padding:14px;">
+        <div class="modal" style="max-width:360px;">
+          <div class="search"><svg class="i" style="font-size:13px"><use href="#i-search"/></svg>To: name or email…</div>
+          <div class="retry"><svg class="i" style="font-size:13px"><use href="#i-refresh"/></svg>Couldn't load everyone — showing recent people. <span style="color:var(--gdeep);font-weight:600;cursor:pointer;">Retry</span></div>
+          <div class="r"><span class="av" style="background:var(--coral);">AM<span class="pres" style="background:var(--ok);"></span></span>
+            <div style="flex:1;"><div class="nm">Andreea Miclaus</div><div class="mt">from recent</div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
