@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donna UI Kit — workspace settings + profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/donna.css">
+<style>
+  body{margin:0;background:#cfcabb;padding:26px;}
+  .shell{max-width:1180px;margin:0 auto;}
+  .kit-h1{font-family:'Inter',sans-serif;font-size:19px;color:#2a2438;margin:0 0 3px;}
+  .kit-p{font-family:'Inter',sans-serif;font-size:13px;color:#6b6478;margin:0 0 20px;}
+  .stage{display:flex;gap:18px;align-items:flex-start;}
+  .stage > .dn-settings{flex:1;background:var(--dn-bg);}
+  .pane{display:none;}
+  .pane.is-active{display:block;}
+  .chpane{display:none;}
+  .chpane.is-active{display:block;}
+  .drawer-wrap{border:1px solid var(--dn-line-2);border-radius:var(--dn-r-lg);overflow:hidden;min-height:520px;display:flex;}
+</style>
+</head>
+<body class="dn-root">
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.5.55.87 1.06 1H21a2 2 0 1 1 0 4h-.09c-.51.13-.92.5-1.06 1z"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></symbol>
+<symbol id="i-mail-off" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="2" x2="22" y2="22"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/><path d="M12 13v3"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+<symbol id="i-broadcast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></symbol>
+<symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+<symbol id="i-hash" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></symbol>
+<symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 3A2.5 2.5 0 0 0 7 5.5v.5a2.5 2.5 0 0 0-1 4.77V13a3 3 0 0 0 3 3h2V3z"/><path d="M14.5 3A2.5 2.5 0 0 1 17 5.5v.5a2.5 2.5 0 0 1 1 4.77V13a3 3 0 0 1-3 3h-2V3z"/><path d="M12 16v5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/></symbol>
+<symbol id="i-laptop" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></symbol>
+</defs></svg>
+<div class="shell">
+  <h1 class="kit-h1">Donna UI Kit — workspace settings &amp; profile</h1>
+  <p class="kit-p">Click the left nav. Warm surfaces (no white boxes) · grape accent · flat bold chrome · inline SVG icons (no CDN).</p>
+
+  <div class="stage">
+    <!-- ============ SETTINGS ============ -->
+    <div class="dn-settings dn-paper">
+      <nav class="dn-nav">
+        <div class="dn-nav-back"><svg class="dn-icon" style="font-size:15px"><use href="#i-arrow-left"/></svg>Back to chat</div>
+        <div class="dn-nav-group">workspace</div>
+        <div class="dn-nav-row" data-pane="general"><svg class="dn-icon"><use href="#i-settings"/></svg>General</div>
+        <div class="dn-nav-row is-active" data-pane="members"><svg class="dn-icon"><use href="#i-users"/></svg>Members</div>
+        <div class="dn-nav-row" data-pane="invitations"><svg class="dn-icon"><use href="#i-mail"/></svg>Invitations</div>
+        <div class="dn-nav-group">integrations</div>
+        <div class="dn-nav-row" data-pane="connections"><svg class="dn-icon"><use href="#i-plug"/></svg>Connections</div>
+        <div class="dn-nav-row" data-pane="agents"><svg class="dn-icon"><use href="#i-sparkles"/></svg>Agents</div>
+        <div class="dn-nav-group">advanced</div>
+        <div class="dn-nav-row" data-pane="security"><svg class="dn-icon"><use href="#i-shield"/></svg>Security</div>
+        <div class="dn-nav-row is-danger" data-pane="danger"><svg class="dn-icon"><use href="#i-alert"/></svg>Danger zone</div>
+      </nav>
+
+      <div class="dn-main">
+        <header class="dn-header">
+          <div class="dn-square">C</div>
+          <div>
+            <div class="dn-title">Cube Digital</div>
+            <div class="dn-meta">cube-digital · cube.digital · 3 members</div>
+          </div>
+          <span class="dn-chip dn-chip--grape">owner</span>
+          <div class="dn-actions">
+            <button class="dn-btn dn-btn--ghost"><svg class="dn-icon" style="font-size:14px"><use href="#i-pencil"/></svg>Edit</button>
+            <button class="dn-btn dn-btn--primary"><svg class="dn-icon" style="font-size:14px"><use href="#i-user-plus"/></svg>Invite people</button>
+          </div>
+        </header>
+
+        <div class="dn-body">
+
+          <!-- MEMBERS -->
+          <section class="pane is-active" id="pane-members">
+            <div class="dn-section">Invite by email</div>
+            <div style="display:flex;gap:9px;margin-bottom:18px;">
+              <input class="dn-input" placeholder="name@company.com" style="flex:1;">
+              <select class="dn-select"><option>Member</option><option>Admin</option><option>Guest</option><option>Owner</option></select>
+              <button class="dn-btn dn-btn--primary">Send invite</button>
+            </div>
+            <div class="dn-section">Members · 3</div>
+            <div class="dn-row">
+              <span class="dn-avatar" style="background:var(--dn-grape);">RI</span>
+              <div><div class="dn-name">Rares Istoc <span style="color:var(--dn-t4);font-weight:500;">(you)</span></div><div class="dn-meta">istoc.rares@gmail.com</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--grape">owner</span><svg class="dn-icon" style="color:var(--dn-t4)"><use href="#i-dots"/></svg></div>
+            </div>
+            <div class="dn-row">
+              <span class="dn-avatar" style="background:var(--dn-blue);">NK</span>
+              <div><div class="dn-name">Nick</div><div class="dn-meta">nick@cube.digital · joined Jun 12</div></div>
+              <div class="dn-actions"><button class="dn-mini">Admin <svg class="dn-icon" style="font-size:13px"><use href="#i-chevron-down"/></svg></button><svg class="dn-icon" style="color:var(--dn-t4)"><use href="#i-dots"/></svg></div>
+            </div>
+            <div class="dn-row">
+              <span class="dn-avatar" style="background:var(--dn-coral);">MA</span>
+              <div><div class="dn-name">Marius</div><div class="dn-meta">marius@cube.digital · joined Jun 14</div></div>
+              <div class="dn-actions"><button class="dn-mini">Member <svg class="dn-icon" style="font-size:13px"><use href="#i-chevron-down"/></svg></button><svg class="dn-icon" style="color:var(--dn-t4)"><use href="#i-dots"/></svg></div>
+            </div>
+            <div class="dn-section">Pending invitations · 1</div>
+            <div class="dn-row dn-row--dashed">
+              <span class="dn-avatar dn-avatar--empty"><svg class="dn-icon"><use href="#i-mail"/></svg></span>
+              <div><div class="dn-name">adi@acme.com</div><div class="dn-meta">invited by you · expires in 6 days</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--pending">pending</span><button class="dn-mini">Guest</button><button class="dn-mini dn-mini--grape">Resend</button><button class="dn-mini dn-mini--danger">Revoke</button></div>
+            </div>
+          </section>
+
+          <!-- GENERAL -->
+          <section class="pane" id="pane-general">
+            <div class="dn-grid-2">
+              <div>
+                <div class="dn-field"><div class="dn-label">Workspace name</div><input class="dn-input" value="Cube Digital"></div>
+                <div class="dn-field"><div class="dn-label">Workspace URL</div><input class="dn-input" value="donna.app/cube-digital">
+                  <div class="dn-hint">Changing this breaks existing links.</div></div>
+                <div class="dn-field"><div class="dn-label">Primary domain</div><input class="dn-input" value="cube.digital">
+                  <div class="dn-hint">People with this email domain are treated as internal — Donna files their meetings and emails under your workspace, not under a client org.</div></div>
+              </div>
+              <div style="width:200px;">
+                <div class="dn-section">Icon</div>
+                <div style="display:flex;align-items:center;gap:11px;"><div class="dn-square">C</div><button class="dn-mini">Change</button></div>
+                <div class="dn-section">Your role</div>
+                <span class="dn-chip dn-chip--grape">owner</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:9px;margin:6px 0 20px;">
+              <button class="dn-btn dn-btn--primary">Save changes</button>
+              <button class="dn-btn dn-btn--ghost">Cancel</button>
+            </div>
+            <div class="dn-section" style="color:var(--dn-danger);">Danger zone</div>
+            <div class="dn-danger-zone">
+              <svg class="dn-icon" style="color:var(--dn-danger);font-size:19px"><use href="#i-alert"/></svg>
+              <div><div class="dn-name" style="color:var(--dn-danger);">Delete this workspace</div>
+                <div class="dn-meta">Permanently removes all channels, documents and cortex memory. Owner only.</div></div>
+              <button class="dn-btn dn-btn--danger dn-spacer">Delete</button>
+            </div>
+          </section>
+
+          <!-- INVITATIONS -->
+          <section class="pane" id="pane-invitations">
+            <div style="display:flex;gap:9px;margin-bottom:16px;">
+              <input class="dn-input" placeholder="name@company.com" style="flex:1;">
+              <select class="dn-select"><option>Member</option><option>Admin</option><option>Guest</option></select>
+              <button class="dn-btn dn-btn--primary">Send invite</button>
+            </div>
+            <div class="dn-pill-row" style="margin-bottom:13px;">
+              <span class="dn-pill is-on">All · 4</span><span class="dn-pill">Pending 2</span>
+              <span class="dn-pill">Accepted 1</span><span class="dn-pill">Expired 1</span>
+            </div>
+            <div class="dn-row">
+              <span class="dn-avatar dn-avatar--empty"><svg class="dn-icon"><use href="#i-mail"/></svg></span>
+              <div><div class="dn-name">adi@acme.com</div><div class="dn-meta">Guest · invited by you · expires in 6 days</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--pending">pending</span>
+                <button class="dn-mini"><svg class="dn-icon" style="font-size:13px"><use href="#i-link"/></svg>Copy link</button>
+                <button class="dn-mini dn-mini--grape">Resend</button><button class="dn-mini dn-mini--danger">Revoke</button></div>
+            </div>
+            <div class="dn-row">
+              <span class="dn-avatar" style="background:var(--dn-blue);">SO</span>
+              <div><div class="dn-name">sofia@cube.digital</div><div class="dn-meta">Member · accepted Jun 20</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--ok">accepted</span></div>
+            </div>
+            <div class="dn-row dn-row--muted">
+              <span class="dn-avatar dn-avatar--empty"><svg class="dn-icon"><use href="#i-mail-off"/></svg></span>
+              <div><div class="dn-name">old@vendor.com</div><div class="dn-meta">Guest · invited by Nick · expired Jun 10</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--neutral">expired</span><button class="dn-mini dn-mini--grape">Re-invite</button></div>
+            </div>
+          </section>
+
+          <!-- CONNECTIONS -->
+          <section class="pane" id="pane-connections">
+            <div class="dn-section">Connected · 2</div>
+            <div class="dn-row">
+              <span class="dn-avatar" style="background:oklch(0.55 0.18 262/.15);color:var(--dn-blue);"><svg class="dn-icon" style="font-size:18px"><use href="#i-broadcast"/></svg></span>
+              <div><div class="dn-name">Fathom</div><div class="dn-meta">Meeting recordings → <span class="dn-mono">meetings/</span> · synced 12m ago</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--ok">live</span><button class="dn-mini">Configure</button><button class="dn-mini dn-mini--danger">Disconnect</button></div>
+            </div>
+            <div class="dn-row">
+              <span class="dn-avatar" style="background:oklch(0.66 0.20 33/.15);color:var(--dn-coral);"><svg class="dn-icon" style="font-size:18px"><use href="#i-mail"/></svg></span>
+              <div><div class="dn-name">Gmail</div><div class="dn-meta">Email → <span class="dn-mono">emails/YYYY/MM</span> · synced 6d ago</div></div>
+              <div class="dn-actions"><span class="dn-chip dn-chip--ok">live</span><button class="dn-mini">Configure</button><button class="dn-mini dn-mini--danger">Disconnect</button></div>
+            </div>
+            <div class="dn-section">Available</div>
+            <div class="dn-row dn-row--dashed">
+              <span class="dn-avatar dn-avatar--empty"><svg class="dn-icon" style="font-size:18px"><use href="#i-cloud"/></svg></span>
+              <div><div class="dn-name">Google Drive</div><div class="dn-meta">Docs &amp; folders → <span class="dn-mono">docs/</span></div></div>
+              <button class="dn-btn dn-btn--primary dn-spacer">Connect</button>
+            </div>
+          </section>
+
+          <!-- AGENTS -->
+          <section class="pane" id="pane-agents">
+            <div class="dn-row" style="align-items:flex-start;">
+              <span class="dn-avatar dn-avatar--lg dn-avatar--round" style="background:var(--dn-grape);">D</span>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span class="dn-name" style="font-size:15px;">Donna</span>
+                  <span class="dn-chip dn-chip--grape">agent</span><span class="dn-chip dn-chip--ok">active</span>
+                </div>
+                <div class="dn-meta">Your AI teammate. Reads cortex, drafts docs, answers in channels.</div>
+                <div class="dn-pill-row" style="margin-top:11px;">
+                  <span class="dn-mini"><svg class="dn-icon" style="font-size:13px"><use href="#i-cpu"/></svg>claude-sonnet-4-6</span>
+                  <span class="dn-mini"><svg class="dn-icon" style="font-size:13px"><use href="#i-tool"/></svg>6 tools</span>
+                  <span class="dn-mini"><svg class="dn-icon" style="font-size:13px"><use href="#i-hash"/></svg>All channels</span>
+                  <span class="dn-mini"><svg class="dn-icon" style="font-size:13px"><use href="#i-brain"/></svg>Cortex read + write</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="dn-btn dn-btn--ghost">Configure</button>
+                <button class="dn-mini" style="justify-content:center;">Disable</button>
+              </div>
+            </div>
+            <div class="dn-row dn-row--dashed">
+              <span class="dn-avatar dn-avatar--empty"><svg class="dn-icon" style="font-size:18px"><use href="#i-plus"/></svg></span>
+              <div><div class="dn-name">Add an agent</div><div class="dn-meta">Give a teammate a narrower scope — e.g. a sales agent limited to one client.</div></div>
+              <button class="dn-btn dn-btn--ghost dn-spacer">New agent</button>
+            </div>
+          </section>
+
+          <!-- SECURITY -->
+          <section class="pane" id="pane-security">
+            <div class="dn-section">Access</div>
+            <div class="dn-row"><svg class="dn-icon"><use href="#i-shield"/></svg>
+              <div><div class="dn-name">Require 2FA for all members</div><div class="dn-meta">Members must enable two-factor auth to access this workspace.</div></div>
+              <div class="dn-toggle dn-spacer"></div></div>
+            <div class="dn-row"><svg class="dn-icon"><use href="#i-mail"/></svg>
+              <div><div class="dn-name">Allow domain join</div><div class="dn-meta">Anyone with an <span class="dn-mono">@cube.digital</span> email can join without an invite.</div></div>
+              <div class="dn-toggle is-on dn-spacer"></div></div>
+            <div class="dn-section">Sessions</div>
+            <div class="dn-row"><svg class="dn-icon"><use href="#i-laptop"/></svg>
+              <div><div class="dn-name">MacBook Pro · Chrome</div><div class="dn-meta">Bucharest · current session</div></div>
+              <span class="dn-chip dn-chip--ok dn-spacer">active</span></div>
+          </section>
+
+          <!-- DANGER -->
+          <section class="pane" id="pane-danger">
+            <div class="dn-section" style="color:var(--dn-danger);">Danger zone</div>
+            <div class="dn-danger-zone" style="margin-bottom:9px;">
+              <svg class="dn-icon" style="color:var(--dn-danger);font-size:19px"><use href="#i-alert"/></svg>
+              <div><div class="dn-name" style="color:var(--dn-danger);">Transfer ownership</div><div class="dn-meta">Hand this workspace to another admin. You keep your membership.</div></div>
+              <button class="dn-btn dn-btn--danger dn-spacer">Transfer</button>
+            </div>
+            <div class="dn-danger-zone">
+              <svg class="dn-icon" style="color:var(--dn-danger);font-size:19px"><use href="#i-alert"/></svg>
+              <div><div class="dn-name" style="color:var(--dn-danger);">Delete this workspace</div><div class="dn-meta">Permanently removes all channels, documents and cortex memory. Owner only.</div></div>
+              <button class="dn-btn dn-btn--danger dn-spacer">Delete</button>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PROFILE DRAWER (final style) ============ -->
+    <div class="drawer-wrap dn-paper">
+      <aside class="dn-drawer">
+        <div class="dn-drawer-head">Profile
+          <svg class="dn-icon dn-spacer" style="color:var(--dn-t4)"><use href="#i-x"/></svg></div>
+        <div class="dn-drawer-body">
+          <!-- outlined card #1 -->
+          <div class="dn-row dn-row--outline">
+            <span class="dn-avatar dn-avatar--lg" style="background:var(--dn-coral);">RI<span class="dn-presence"></span></span>
+            <div><div class="dn-name">Rares Istoc</div><div class="dn-meta">rares.istoc@cube-digital.io</div>
+              <div class="dn-link" style="margin-top:4px;">Add picture</div></div>
+          </div>
+          <!-- outlined card #2 — green toggle -->
+          <div class="dn-row dn-row--outline">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--dn-ok);flex:none;"></span>
+            <div><div class="dn-name">Active</div><div class="dn-meta">Shown as active</div></div>
+            <div class="dn-toggle dn-toggle--presence is-on dn-spacer"></div>
+          </div>
+
+          <div class="dn-label" style="margin-top:16px;">Display name</div>
+          <input class="dn-input dn-input--profile" value="Rares Istoc">
+
+          <div class="dn-label" style="margin-top:14px;">Status</div>
+          <input class="dn-input dn-input--profile" placeholder="What are you up to?">
+
+          <div class="dn-pill-row" style="margin-top:11px;">
+            <span class="dn-pill">🎯 Focusing</span><span class="dn-pill">📅 In a meeting</span><span class="dn-pill">🌴 OOO</span>
+          </div>
+
+          <button class="dn-btn dn-btn--primary dn-btn--profile" style="margin-top:16px;">Save profile</button>
+        </div>
+        <div class="dn-drawer-foot">
+          <button class="dn-btn dn-btn--ghost dn-btn--profile dn-btn--block">Sign out</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <h1 class="kit-h1" style="margin-top:30px;">Channel panel</h1>
+  <p class="kit-p">Opens from the channel name / member chip / ⋯ menu. The <b>Agents</b> tab is the differentiator — agents live in a channel with their own <span class="dn-handle">@handle</span>.</p>
+
+  <div class="dn-panel dn-paper" style="background:var(--dn-bg);">
+    <header class="dn-panel-head">
+      <div class="dn-panel-title">
+        <span class="dn-hash">#</span>general
+        <span class="dn-chip dn-chip--neutral">public</span>
+        <div class="dn-actions">
+          <button class="dn-btn dn-btn--ghost"><svg class="dn-icon" style="font-size:14px"><use href="#i-bell"/></svg>Notifications</button>
+          <button class="dn-btn dn-btn--primary"><svg class="dn-icon" style="font-size:14px"><use href="#i-user-plus"/></svg>Add people</button>
+        </div>
+      </div>
+      <div class="dn-topic">Everything Cube Digital · created by you · Jun 12, 2026</div>
+      <nav class="dn-tabs">
+        <span class="dn-tab" data-ch="about">About</span>
+        <span class="dn-tab is-active" data-ch="members">Members · 3</span>
+        <span class="dn-tab" data-ch="agents">Agents · 2</span>
+        <span class="dn-tab" data-ch="settings">Settings</span>
+      </nav>
+    </header>
+    <div class="dn-body">
+
+      <section class="chpane is-active" id="ch-members">
+        <div class="dn-section">Add people</div>
+        <input class="dn-input" placeholder="Search teammates…" style="margin-bottom:13px;">
+        <div class="dn-row dn-row--dashed">
+          <span class="dn-avatar" style="background:var(--dn-blue);">SO</span>
+          <div><div class="dn-name">Sofia</div><div class="dn-meta">sofia@cube.digital · in workspace, not in this channel</div></div>
+          <button class="dn-mini dn-mini--grape dn-spacer">+ Add to channel</button>
+        </div>
+        <div class="dn-row dn-row--dashed">
+          <span class="dn-avatar dn-avatar--empty"><svg class="dn-icon"><use href="#i-mail"/></svg></span>
+          <div style="flex:1;"><div class="dn-name">Invite by email</div><div class="dn-meta">Adds them to the workspace <b>and</b> drops them into this channel</div></div>
+          <input class="dn-input" placeholder="name@company.com" style="max-width:200px;">
+          <button class="dn-mini dn-mini--grape">Invite</button>
+        </div>
+        <div class="dn-section" style="margin-top:18px;">In this channel · 3</div>
+        <div class="dn-row"><span class="dn-avatar" style="background:var(--dn-grape);">RI</span>
+          <div><div class="dn-name">Rares Istoc <span style="color:var(--dn-t4);font-weight:500;">(you)</span></div><div class="dn-meta">istoc.rares@gmail.com</div></div>
+          <div class="dn-actions"><span class="dn-chip dn-chip--grape">admin</span><svg class="dn-icon" style="color:var(--dn-t4)"><use href="#i-dots"/></svg></div></div>
+        <div class="dn-row"><span class="dn-avatar" style="background:var(--dn-coral);">MA</span>
+          <div><div class="dn-name">Marius</div><div class="dn-meta">marius@cube.digital</div></div>
+          <div class="dn-actions"><button class="dn-mini">Member <svg class="dn-icon" style="font-size:12px"><use href="#i-chevron-down"/></svg></button><button class="dn-mini dn-mini--danger">Remove</button></div></div>
+        <div class="dn-row"><span class="dn-avatar" style="background:var(--dn-blue);">NK</span>
+          <div><div class="dn-name">Nick</div><div class="dn-meta">nick@cube.digital</div></div>
+          <div class="dn-actions"><button class="dn-mini">Member <svg class="dn-icon" style="font-size:12px"><use href="#i-chevron-down"/></svg></button><button class="dn-mini dn-mini--danger">Remove</button></div></div>
+      </section>
+
+      <section class="chpane" id="ch-agents">
+        <div class="dn-section">Agents in this channel · 2</div>
+        <div class="dn-row"><span class="dn-avatar dn-avatar--round" style="background:var(--dn-grape);">D</span>
+          <div><div class="dn-name">Donna <span class="dn-handle">@donna</span></div><div class="dn-meta">Workspace teammate · reads cortex, drafts docs</div></div>
+          <div class="dn-actions"><span class="dn-chip dn-chip--ok">active</span><button class="dn-mini">Configure</button></div></div>
+        <div class="dn-row"><span class="dn-avatar dn-avatar--round" style="background:var(--dn-blue);">C</span>
+          <div><div class="dn-name">ContractBot <span class="dn-handle">@contracts</span></div><div class="dn-meta">Channel-resident · scoped to <span class="dn-mono">clients/cube-digital</span></div></div>
+          <div class="dn-actions"><span class="dn-chip dn-chip--ok">active</span><button class="dn-mini dn-mini--danger">Uninstall</button></div></div>
+        <div class="dn-row dn-row--dashed"><span class="dn-avatar dn-avatar--empty"><svg class="dn-icon" style="font-size:18px"><use href="#i-sparkles"/></svg></span>
+          <div><div class="dn-name">Install an agent</div><div class="dn-meta">Give it a <span class="dn-handle">@handle</span> so people can call it here</div></div>
+          <button class="dn-btn dn-btn--ghost dn-spacer">Install</button></div>
+        <div class="dn-section" style="margin-top:18px;">Channel context</div>
+        <div class="dn-row"><span class="dn-avatar dn-avatar--empty"><svg class="dn-icon" style="font-size:18px"><use href="#i-brain"/></svg></span>
+          <div><div class="dn-name">Linked to <span class="dn-mono">clients/cube-digital</span></div>
+            <div class="dn-meta">Agents here answer from this client's meetings, emails and docs first</div></div>
+          <div class="dn-toggle is-on dn-spacer"></div></div>
+      </section>
+
+      <section class="chpane" id="ch-about">
+        <div class="dn-section">About</div>
+        <div class="dn-row"><div><div class="dn-name">Topic</div><div class="dn-meta">Everything Cube Digital</div></div><button class="dn-mini dn-spacer">Edit</button></div>
+        <div class="dn-row"><div><div class="dn-name">Created</div><div class="dn-meta">by Rares Istoc · Jun 12, 2026</div></div></div>
+        <div class="dn-row"><div><div class="dn-name">Files &amp; docs</div><div class="dn-meta">1 draft · 0 finalized</div></div><button class="dn-mini dn-mini--grape dn-spacer">Open files</button></div>
+        <div class="dn-section" style="margin-top:18px;">Pinned</div>
+        <div class="dn-row dn-row--dashed"><div class="dn-meta">Nothing pinned yet — pin a message to keep it at the top.</div></div>
+      </section>
+
+      <section class="chpane" id="ch-settings">
+        <div class="dn-field"><div class="dn-label">Channel name</div><input class="dn-input" value="general"></div>
+        <div class="dn-field"><div class="dn-label">Topic</div><input class="dn-input" value="Everything Cube Digital"></div>
+        <div class="dn-section" style="margin-top:18px;">Visibility</div>
+        <div class="dn-row"><svg class="dn-icon" style="font-size:16px"><use href="#i-lock"/></svg>
+          <div><div class="dn-name">Private channel</div><div class="dn-meta">Only invited people can find or join. Public is visible to the whole workspace.</div></div>
+          <div class="dn-toggle dn-spacer"></div></div>
+        <div class="dn-section" style="margin-top:18px;color:var(--dn-danger);">Danger zone</div>
+        <div class="dn-danger-zone" style="margin-bottom:8px;">
+          <svg class="dn-icon" style="color:var(--dn-danger);font-size:18px"><use href="#i-archive"/></svg>
+          <div><div class="dn-name" style="color:var(--dn-danger);">Archive channel</div><div class="dn-meta">Hides it from the sidebar. History and cortex memory are kept.</div></div>
+          <button class="dn-btn dn-btn--danger dn-spacer">Archive</button></div>
+        <div class="dn-danger-zone">
+          <svg class="dn-icon" style="color:var(--dn-danger);font-size:18px"><use href="#i-alert"/></svg>
+          <div><div class="dn-name" style="color:var(--dn-danger);">Delete channel</div><div class="dn-meta">Removes all messages. Cortex keeps what it already ingested.</div></div>
+          <button class="dn-btn dn-btn--danger dn-spacer">Delete</button></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.dn-tab[data-ch]').forEach(function (t) {
+    t.addEventListener('click', function () {
+      document.querySelectorAll('.dn-tab[data-ch]').forEach(function (x) { x.classList.remove('is-active'); });
+      t.classList.add('is-active');
+      document.querySelectorAll('.chpane').forEach(function (p) { p.classList.remove('is-active'); });
+      document.getElementById('ch-' + t.dataset.ch).classList.add('is-active');
+    });
+  });
+
+  document.querySelectorAll('.dn-nav-row[data-pane]').forEach(function (row) {
+    row.addEventListener('click', function () {
+      document.querySelectorAll('.dn-nav-row').forEach(function (r) { r.classList.remove('is-active'); });
+      row.classList.add('is-active');
+      document.querySelectorAll('.pane').forEach(function (p) { p.classList.remove('is-active'); });
+      var pane = document.getElementById('pane-' + row.dataset.pane);
+      if (pane) pane.classList.add('is-active');
+    });
+  });
+  document.querySelectorAll('.dn-toggle').forEach(function (t) {
+    t.addEventListener('click', function () { t.classList.toggle('is-on'); });
+  });
+  document.querySelectorAll('.dn-pill').forEach(function (p) {
+    p.addEventListener('click', function () { p.classList.toggle('is-on'); });
+  });
+</script>
+</body>
+</html>

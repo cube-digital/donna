@@ -1,0 +1,249 @@
+/* ============================================================
+   Donna UI Kit — design tokens + components
+   Drop into any React app:  import "./css/donna.css";
+   All classes are prefixed `dn-` to avoid collisions.
+   ============================================================ */
+
+:root {
+  /* surfaces */
+  --dn-bg:        oklch(0.965 0.020 92);   /* page — warm cream */
+  --dn-surface:   oklch(0.978 0.013 92);   /* cards — WARM, never white */
+  --dn-panel:     oklch(0.955 0.020 92);   /* rails / nav */
+  --dn-dot:       oklch(0.26 0.03 285 / .05);
+
+  /* lines + ink */
+  --dn-line:      oklch(0.30 0.02 285 / .10);
+  --dn-line-2:    oklch(0.30 0.02 285 / .16);
+  --dn-ink:       oklch(0.26 0.03 285);    /* bold chrome border */
+
+  /* text */
+  --dn-t0: oklch(0.24 0.030 285);
+  --dn-t1: oklch(0.34 0.028 285);
+  --dn-t2: oklch(0.44 0.025 285);
+  --dn-t3: oklch(0.55 0.020 285);
+  --dn-t4: oklch(0.64 0.018 285);
+
+  /* brand — grape is the ONE accent */
+  --dn-grape:      oklch(0.52 0.21 288);
+  --dn-grape-deep: oklch(0.40 0.18 288);
+  --dn-grape-bg:   oklch(0.52 0.21 288 / .10);
+
+  /* status */
+  --dn-ok:        oklch(0.62 0.13 150);
+  --dn-ok-bg:     oklch(0.64 0.12 150 / .16);
+  --dn-amber:     oklch(0.42 0.11 60);
+  --dn-amber-bg:  oklch(0.84 0.16 80 / .32);
+  --dn-danger:    oklch(0.55 0.20 25);
+  --dn-danger-bg: oklch(0.60 0.20 25 / .10);
+  --dn-sun:       oklch(0.84 0.16 92);     /* workspace square */
+  --dn-on-bright: oklch(0.22 0.04 285);
+  --dn-blue:      oklch(0.50 0.18 262);
+  --dn-coral:     oklch(0.62 0.20 30);
+
+  --dn-r-sm: 6px; --dn-r: 9px; --dn-r-lg: 12px;
+  --dn-font: 'Inter', system-ui, -apple-system, sans-serif;
+  --dn-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------- base ---------- */
+.dn-root { font-family: var(--dn-font); color: var(--dn-t2); font-size: 13px; line-height: 1.5; }
+.dn-paper {
+  background: var(--dn-bg);
+  background-image: radial-gradient(var(--dn-dot) 1.3px, transparent 1.3px);
+  background-size: 20px 20px;
+}
+.dn-mono { font-family: var(--dn-mono); }
+
+/* ---------- icons ---------- */
+.dn-icon {
+  width: 1em; height: 1em; font-size: 16px;
+  stroke: currentColor; fill: none; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  flex: none; vertical-align: -0.15em;
+}
+
+/* ---------- settings shell ---------- */
+.dn-settings { display: grid; grid-template-columns: 200px 1fr; min-height: 520px;
+  border: 1px solid var(--dn-line-2); border-radius: var(--dn-r-lg); overflow: hidden; }
+.dn-nav { background: var(--dn-panel); border-right: 1px solid var(--dn-line); padding: 16px 11px; }
+.dn-nav-back { display: flex; align-items: center; gap: 7px; color: var(--dn-t3);
+  font-weight: 500; margin-bottom: 16px; padding: 0 4px; cursor: pointer; }
+.dn-nav-group { font-size: 10px; color: var(--dn-t4); text-transform: uppercase;
+  letter-spacing: .05em; font-weight: 700; margin: 14px 0 6px; padding: 0 5px; }
+.dn-nav-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: var(--dn-r-sm); color: var(--dn-t2); margin-bottom: 2px; cursor: pointer; }
+.dn-nav-row .dn-icon { color: var(--dn-t3); }
+.dn-nav-row:hover { background: var(--dn-line); }
+.dn-nav-row.is-active { background: var(--dn-grape-bg); color: var(--dn-grape-deep);
+  font-weight: 600; box-shadow: inset 3px 0 0 var(--dn-grape); }
+.dn-nav-row.is-active .dn-icon { color: var(--dn-grape); }
+.dn-nav-row.is-danger, .dn-nav-row.is-danger .dn-icon { color: var(--dn-danger); }
+
+.dn-main { display: flex; flex-direction: column; min-width: 0; }
+.dn-header { display: flex; align-items: center; gap: 13px; padding: 17px 20px;
+  border-bottom: 1px solid var(--dn-line); }
+.dn-title { font-size: 17px; font-weight: 700; color: var(--dn-t0); }
+.dn-body { padding: 18px 20px; overflow-y: auto; }
+
+/* ---------- text bits ---------- */
+.dn-section { font-size: 10px; color: var(--dn-t4); text-transform: uppercase;
+  letter-spacing: .05em; font-weight: 700; margin: 18px 0 9px; }
+.dn-section:first-child { margin-top: 0; }
+.dn-name { font-weight: 600; color: var(--dn-t0); font-size: 13px; }
+.dn-meta { font-size: 11.5px; color: var(--dn-t4); margin-top: 2px; }
+.dn-label { font-weight: 600; color: var(--dn-t0); font-size: 12.5px; margin-bottom: 5px; }
+.dn-hint { font-size: 11.5px; color: var(--dn-t4); margin-top: 5px; line-height: 1.45; }
+.dn-link { color: var(--dn-grape-deep); font-weight: 600; cursor: pointer; }
+
+/* ---------- surfaces ---------- */
+.dn-card { background: var(--dn-surface); border: 1px solid var(--dn-line);
+  border-radius: var(--dn-r); padding: 14px; }
+.dn-row { display: flex; align-items: center; gap: 12px; background: var(--dn-surface);
+  border: 1px solid var(--dn-line); border-radius: var(--dn-r); padding: 11px 13px; margin-bottom: 8px; }
+.dn-row--dashed { border-style: dashed; }
+.dn-row--muted { opacity: .65; }
+.dn-spacer { margin-left: auto; }
+.dn-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* ---------- form ---------- */
+.dn-input { background: var(--dn-surface); border: 1.5px solid var(--dn-line-2);
+  border-radius: 8px; padding: 10px 12px; color: var(--dn-t0); font: inherit;
+  font-weight: 500; width: 100%; outline: none; }
+.dn-input::placeholder { color: var(--dn-t4); font-weight: 400; }
+.dn-input:focus { border-color: var(--dn-grape); }
+.dn-input--bold { border: 2px solid var(--dn-ink); }
+.dn-field { margin-bottom: 14px; }
+.dn-select { background: var(--dn-surface); border: 1.5px solid var(--dn-line-2);
+  border-radius: 8px; padding: 10px 12px; color: var(--dn-t0); font: inherit;
+  font-weight: 600; cursor: pointer; }
+
+/* ---------- buttons ---------- */
+.dn-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font: inherit; font-weight: 600; font-size: 12.5px; padding: 9px 15px;
+  border-radius: 8px; cursor: pointer; border: 1.5px solid transparent; }
+.dn-btn--primary { background: var(--dn-grape); color: #fff; border-color: var(--dn-grape); }
+.dn-btn--primary:hover { filter: brightness(1.07); }
+.dn-btn--ghost { background: var(--dn-surface); color: var(--dn-t2); border-color: var(--dn-line-2); }
+.dn-btn--ghost:hover { border-color: var(--dn-ink); }
+.dn-btn--danger { background: var(--dn-surface); color: var(--dn-danger); border-color: var(--dn-danger); }
+.dn-btn--bold { border: 2px solid var(--dn-ink); }
+.dn-btn--block { width: 100%; }
+
+.dn-mini { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+  font-weight: 600; color: var(--dn-t2); background: var(--dn-panel);
+  border: 1px solid var(--dn-line-2); border-radius: var(--dn-r-sm);
+  padding: 5px 9px; cursor: pointer; }
+.dn-mini:hover { border-color: var(--dn-ink); }
+.dn-mini--grape { color: var(--dn-grape-deep); }
+.dn-mini--danger { color: var(--dn-danger); }
+
+/* ---------- chips ---------- */
+.dn-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  padding: 3px 9px; border-radius: 5px; }
+.dn-chip--grape   { background: var(--dn-grape-bg); color: var(--dn-grape-deep); }
+.dn-chip--solid   { background: var(--dn-grape); color: #fff; }
+.dn-chip--ok      { background: var(--dn-ok-bg); color: var(--dn-ok); }
+.dn-chip--pending { background: var(--dn-amber-bg); color: var(--dn-amber); }
+.dn-chip--neutral { background: var(--dn-panel); color: var(--dn-t3); }
+
+/* pill-style toggle chips (presence / status presets / filters) */
+.dn-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px;
+  font-weight: 600; padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--dn-line-2); background: var(--dn-surface);
+  color: var(--dn-t2); cursor: pointer; }
+.dn-pill.is-on { background: var(--dn-grape-bg); color: var(--dn-grape-deep); border-color: var(--dn-grape); }
+.dn-pill-row { display: flex; gap: 7px; flex-wrap: wrap; }
+
+/* ---------- avatar / squares ---------- */
+.dn-avatar { width: 34px; height: 34px; border-radius: var(--dn-r); display: grid;
+  place-items: center; color: #fff; font-weight: 700; font-size: 12.5px;
+  flex: none; position: relative; }
+.dn-avatar--lg { width: 46px; height: 46px; border-radius: 13px; font-size: 16px; }
+.dn-avatar--round { border-radius: 50%; }
+.dn-avatar--empty { background: var(--dn-panel); color: var(--dn-t4);
+  border: 1px dashed var(--dn-line-2); }
+.dn-presence { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--dn-ok); border: 2.5px solid var(--dn-surface); }
+/* workspace square — bold chrome, flat (no shadow) */
+.dn-square { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center;
+  font-weight: 700; font-size: 19px; background: var(--dn-sun); color: var(--dn-on-bright);
+  border: 2px solid var(--dn-ink); flex: none; }
+
+/* ---------- toggle ---------- */
+.dn-toggle { width: 38px; height: 21px; border-radius: 999px; background: var(--dn-line-2);
+  position: relative; flex: none; cursor: pointer; transition: background .12s; }
+.dn-toggle::after { content: ""; position: absolute; top: 2.5px; left: 2.5px;
+  width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .12s; }
+.dn-toggle.is-on { background: var(--dn-grape); }          /* grape, never green */
+.dn-toggle.is-on::after { left: auto; right: 2.5px; }
+
+/* ---------- danger zone ---------- */
+.dn-danger-zone { background: var(--dn-danger-bg); border: 1px solid var(--dn-danger);
+  border-radius: var(--dn-r); padding: 13px 15px; display: flex; align-items: center; gap: 13px; }
+
+/* ---------- profile drawer ---------- */
+.dn-drawer { width: 340px; display: flex; flex-direction: column;
+  border-left: 1px solid var(--dn-line-2); }
+.dn-drawer-head { display: flex; align-items: center; padding: 13px 16px;
+  border-bottom: 1px solid var(--dn-line); font-weight: 700; color: var(--dn-t0); font-size: 15px; }
+.dn-drawer-body { padding: 15px 16px; flex: 1; overflow-y: auto; }
+.dn-drawer-foot { padding: 13px 16px; border-top: 1px solid var(--dn-line); display: flex; gap: 8px; }
+
+.dn-grid-2 { display: grid; grid-template-columns: 1fr auto; gap: 18px; }
+
+/* ============================================================
+   FINAL PROFILE STYLE (chosen)
+   - first two cards: OUTLINED (transparent, dotted paper shows through)
+   - text fields:     WARM fill + bold ink border
+   - toggle "on":     GREEN (kept deliberately — reads as "you are live")
+   ============================================================ */
+
+/* outlined card — no fill, hairline border, background shows through */
+.dn-row--outline {
+  background: transparent;
+  border: 1px solid var(--dn-line-2);
+}
+.dn-row--outline .dn-presence { border-color: var(--dn-bg); }
+
+/* text fields — warm surface + bold ink border */
+.dn-input--profile {
+  background: var(--dn-surface);
+  border: 2px solid var(--dn-ink);
+  border-radius: 999px;
+  padding: 11px 16px;
+}
+.dn-input--profile::placeholder { color: var(--dn-t4); }
+
+/* toggle — green when on, bold ink outline */
+.dn-toggle--presence {
+  border: 2px solid var(--dn-ink);
+  width: 44px; height: 24px;
+}
+.dn-toggle--presence::after { width: 16px; height: 16px; top: 2px; left: 2px; }
+.dn-toggle--presence.is-on { background: var(--dn-ok); }   /* GREEN */
+.dn-toggle--presence.is-on::after { left: auto; right: 2px; }
+
+/* buttons in the drawer wear the bold ink outline */
+.dn-btn--profile { border: 2px solid var(--dn-ink); border-radius: 999px; }
+
+/* ============================================================
+   CHANNEL PANEL
+   ============================================================ */
+.dn-panel { border: 1px solid var(--dn-line-2); border-radius: var(--dn-r-lg); overflow: hidden; }
+.dn-panel-head { padding: 16px 18px 0; }
+.dn-panel-title { display: flex; align-items: center; gap: 9px; font-size: 19px;
+  font-weight: 700; color: var(--dn-t0); }
+.dn-panel-title .dn-hash { color: var(--dn-t4); }
+.dn-topic { color: var(--dn-t3); margin-top: 4px; font-size: 12.5px; }
+
+.dn-tabs { display: flex; gap: 18px; margin-top: 14px; border-bottom: 1px solid var(--dn-line); }
+.dn-tab { padding: 9px 0 10px; font-weight: 600; color: var(--dn-t3);
+  border-bottom: 2px solid transparent; cursor: pointer; font-size: 12.5px; }
+.dn-tab:hover { color: var(--dn-t2); }
+.dn-tab.is-active { color: var(--dn-grape-deep); border-bottom-color: var(--dn-grape); }
+
+/* @handle pill for channel-resident agents */
+.dn-handle { font-family: var(--dn-mono); background: var(--dn-grape-bg);
+  color: var(--dn-grape-deep); padding: 1px 6px; border-radius: 5px;
+  font-size: 11px; font-weight: 600; }

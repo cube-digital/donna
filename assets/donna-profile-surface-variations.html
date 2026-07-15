@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donna — profile surface variations (no white boxes)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:oklch(0.965 0.02 92);--warm:oklch(0.978 0.013 92);--paper:oklch(0.995 0.006 92);
+    --line:oklch(0.30 0.02 285/.10);--line2:oklch(0.30 0.02 285/.16);
+    --ink:oklch(0.26 0.03 285);
+    --t0:oklch(0.24 0.03 285);--t2:oklch(0.44 0.025 285);--t3:oklch(0.55 0.02 285);--t4:oklch(0.64 0.018 285);
+    --grape:oklch(0.52 0.21 288);--gdeep:oklch(0.40 0.18 288);--gbg:oklch(0.52 0.21 288/.10);
+    --ok:oklch(0.62 0.13 150);--coral:oklch(0.62 0.20 30);
+    --paper-dot:oklch(0.26 0.03 285/.05);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#cfcabb;font-family:'Inter',system-ui,sans-serif;color:var(--t2);padding:30px;font-size:12px;}
+  h1{font-size:19px;color:#2a2438;margin-bottom:4px;}
+  .note{font-size:13px;color:#6b6478;margin-bottom:6px;max-width:760px;line-height:1.5;}
+  .root{background:#fff;border:1px solid #ddd8cc;border-radius:8px;padding:10px 12px;font-size:12px;color:#4a4458;max-width:760px;margin-bottom:24px;font-family:ui-monospace,monospace;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;}
+  .lab{font-size:13px;font-weight:600;color:#2a2438;margin:0 0 8px 2px;}
+  .lab small{display:block;font-weight:400;color:#6b6478;font-size:11.5px;margin-top:2px;}
+  .i{width:1em;height:1em;font-size:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-0.15em;}
+  .drawer{background:var(--cream);background-image:radial-gradient(var(--paper-dot) 1.3px,transparent 1.3px);background-size:18px 18px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;}
+  .hd{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line);font-weight:700;color:var(--t0);font-size:14px;}
+  .in{padding:13px 14px;}
+  .sec{font-size:9.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:13px 0 7px;}
+  .sec:first-child{margin-top:0;}
+  .av{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;flex:none;position:relative;background:var(--coral);}
+  .pres{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;background:var(--ok);border:2px solid var(--cream);}
+  .nm{font-weight:700;color:var(--t0);font-size:13px;}
+  .em{font-size:10.5px;color:var(--t4);margin-top:2px;}
+  .tg{width:36px;height:20px;border-radius:999px;background:var(--grape);position:relative;flex:none;}
+  .tg::after{content:"";position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff;}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--t2);}
+  .chip.on{background:var(--gbg);color:var(--gdeep);border-color:var(--grape);}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;padding:9px 15px;border-radius:8px;background:var(--grape);color:#fff;border:2px solid var(--ink);}
+
+  .a .prow{display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid var(--line);}
+  .a .prow:last-of-type{border-bottom:none;}
+  .a .inp{background:transparent;border:none;border-bottom:2px solid var(--ink);border-radius:0;padding:7px 2px;color:var(--t0);font-weight:500;}
+
+  .b .prow{display:flex;align-items:center;gap:11px;background:var(--warm);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:7px;}
+  .b .inp{background:var(--warm);border:1.5px solid var(--line2);border-radius:8px;padding:9px 11px;color:var(--t0);font-weight:500;}
+  .b .pres{border-color:var(--warm);}
+
+  .c .prow{display:flex;align-items:center;gap:11px;background:transparent;border:1.5px solid var(--line2);border-radius:9px;padding:10px 12px;margin-bottom:7px;}
+  .c .inp{background:transparent;border:2px solid var(--ink);border-radius:8px;padding:9px 11px;color:var(--t0);font-weight:500;}
+
+  .d .grp{background:var(--warm);border:1px solid var(--line2);border-radius:10px;overflow:hidden;margin-bottom:10px;}
+  .d .prow{display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--line);}
+  .d .prow:last-child{border-bottom:none;}
+  .d .glab{padding:8px 12px 2px;font-size:9.5px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+  .d .inp{background:transparent;border:none;padding:10px 12px;color:var(--t0);font-weight:500;border-bottom:1px solid var(--line);}
+  .d .pres{border-color:var(--warm);}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <h1>Donna · profile — surface variations</h1>
+  <p class="note">The white boxes come from one token. <code>--bg-1</code> is near-white, so every card glares against the warm cream. Warming that single token fixes it app-wide (profile, settings, connection cards, file panel).</p>
+  <div class="root">--bg-1: oklch(0.995 0.006 92)   ← current, near-white<br>--bg-1: oklch(0.978 0.013 92)   ← suggested, warm</div>
+
+  <div class="grid">
+
+    <div>
+      <p class="lab">A · No cards<small>rows on cream, hairline dividers, underlined inputs</small></p>
+      <div class="drawer a">
+        <div class="hd">Profile <svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-x"/></svg></div>
+        <div class="in">
+          <div class="prow">
+            <span class="av">RI<span class="pres"></span></span>
+            <div><div class="nm">Rares Istoc</div><div class="em">rares.istoc@cube-digital.io</div></div>
+            <span class="chip on" style="margin-left:auto;">owner</span>
+          </div>
+          <div class="prow">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;"></span>
+            <div><div class="nm" style="font-size:12px;">Active</div><div class="em">Shown as active</div></div>
+            <span class="tg" style="margin-left:auto;"></span>
+          </div>
+          <div class="sec">Display name</div>
+          <div class="inp">Rares Istoc</div>
+          <div class="sec">Status</div>
+          <div class="inp" style="color:var(--t4);font-weight:400;">😌 What are you up to?</div>
+          <div style="display:flex;gap:6px;margin-top:10px;"><span class="chip">🎯 Focusing</span><span class="chip">🌴 OOO</span></div>
+          <div style="margin-top:14px;"><span class="btn" style="width:100%;">Save profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab">B · Warm cards<small>same structure, cream-tinted surface instead of white</small></p>
+      <div class="drawer b">
+        <div class="hd">Profile <svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-x"/></svg></div>
+        <div class="in">
+          <div class="prow">
+            <span class="av">RI<span class="pres"></span></span>
+            <div><div class="nm">Rares Istoc</div><div class="em">rares.istoc@cube-digital.io</div></div>
+            <span class="chip on" style="margin-left:auto;">owner</span>
+          </div>
+          <div class="prow">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;"></span>
+            <div><div class="nm" style="font-size:12px;">Active</div><div class="em">Shown as active</div></div>
+            <span class="tg" style="margin-left:auto;"></span>
+          </div>
+          <div class="sec">Display name</div>
+          <div class="inp">Rares Istoc</div>
+          <div class="sec">Status</div>
+          <div class="inp" style="color:var(--t4);font-weight:400;">😌 What are you up to?</div>
+          <div style="display:flex;gap:6px;margin-top:10px;"><span class="chip">🎯 Focusing</span><span class="chip">🌴 OOO</span></div>
+          <div style="margin-top:14px;"><span class="btn" style="width:100%;">Save profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab">C · Outlined<small>transparent fill, the dotted paper shows through</small></p>
+      <div class="drawer c">
+        <div class="hd">Profile <svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-x"/></svg></div>
+        <div class="in">
+          <div class="prow">
+            <span class="av">RI<span class="pres"></span></span>
+            <div><div class="nm">Rares Istoc</div><div class="em">rares.istoc@cube-digital.io</div></div>
+            <span class="chip on" style="margin-left:auto;background:var(--gbg);">owner</span>
+          </div>
+          <div class="prow">
+            <span style="width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;"></span>
+            <div><div class="nm" style="font-size:12px;">Active</div><div class="em">Shown as active</div></div>
+            <span class="tg" style="margin-left:auto;"></span>
+          </div>
+          <div class="sec">Display name</div>
+          <div class="inp">Rares Istoc</div>
+          <div class="sec">Status</div>
+          <div class="inp" style="color:var(--t4);font-weight:400;border:1.5px solid var(--line2);">😌 What are you up to?</div>
+          <div style="display:flex;gap:6px;margin-top:10px;"><span class="chip">🎯 Focusing</span><span class="chip">🌴 OOO</span></div>
+          <div style="margin-top:14px;"><span class="btn" style="width:100%;">Save profile</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="lab">D · One grouped panel<small>single surface per section, internal dividers (iOS-settings style)</small></p>
+      <div class="drawer d">
+        <div class="hd">Profile <svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-x"/></svg></div>
+        <div class="in">
+          <div class="grp">
+            <div class="prow">
+              <span class="av">RI<span class="pres"></span></span>
+              <div><div class="nm">Rares Istoc</div><div class="em">rares.istoc@cube-digital.io</div></div>
+              <span class="chip on" style="margin-left:auto;">owner</span>
+            </div>
+            <div class="prow">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;"></span>
+              <div><div class="nm" style="font-size:12px;">Active</div><div class="em">Shown as active</div></div>
+              <span class="tg" style="margin-left:auto;"></span>
+            </div>
+          </div>
+          <div class="grp">
+            <div class="glab">Display name</div>
+            <div class="inp">Rares Istoc</div>
+            <div class="glab">Status</div>
+            <div class="inp" style="color:var(--t4);font-weight:400;border-bottom:none;">😌 What are you up to?</div>
+          </div>
+          <div style="display:flex;gap:6px;"><span class="chip">🎯 Focusing</span><span class="chip">🌴 OOO</span></div>
+          <div style="margin-top:14px;"><span class="btn" style="width:100%;">Save profile</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donna — workspace settings mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:oklch(0.965 0.02 92);--paper:oklch(0.995 0.006 92);--panel:oklch(0.955 0.02 92);
+    --line:oklch(0.30 0.02 285/.10);--line2:oklch(0.30 0.02 285/.16);
+    --ink:oklch(0.26 0.03 285);--onbright:oklch(0.22 0.04 285);
+    --t0:oklch(0.24 0.03 285);--t2:oklch(0.44 0.025 285);--t3:oklch(0.55 0.02 285);--t4:oklch(0.64 0.018 285);
+    --grape:oklch(0.52 0.21 288);--gdeep:oklch(0.40 0.18 288);--gbg:oklch(0.52 0.21 288/.10);
+    --sun:oklch(0.84 0.16 92);--ok:oklch(0.62 0.13 150);--okbg:oklch(0.64 0.12 150/.16);
+    --amberbg:oklch(0.84 0.16 80/.32);--amberink:oklch(0.42 0.11 60);
+    --danger:oklch(0.55 0.20 25);--dangerbg:oklch(0.60 0.20 25/.10);
+    --blue:oklch(0.50 0.18 262);--coral:oklch(0.58 0.20 33);
+    --paper-dot:oklch(0.26 0.03 285/.05);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#cfcabb;font-family:'Inter',system-ui,sans-serif;color:var(--t2);padding:30px;font-size:12px;}
+  h1{font-size:19px;color:#2a2438;margin-bottom:4px;}
+  .note{font-size:13px;color:#6b6478;margin-bottom:24px;}
+  .wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:26px;}
+  .cap{font-size:14px;font-weight:600;color:#2a2438;margin-bottom:8px;}
+  /* inline SVG icons — no CDN, always render */
+  .i{width:1em;height:1em;font-size:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-0.15em;}
+  .tab{background:var(--cream);background-image:radial-gradient(var(--paper-dot) 1.3px,transparent 1.3px);background-size:20px 20px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;}
+  .tt{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line);font-weight:700;color:var(--t0);font-size:14px;background:var(--panel);}
+  .tt .i{color:var(--grape);font-size:17px;}
+  .in{padding:16px 18px;}
+  .sec{font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:0 0 9px;}
+  .field{margin-bottom:12px;}
+  .flab{font-weight:600;color:var(--t0);font-size:12px;margin-bottom:4px;}
+  .fhint{font-size:11px;color:var(--t4);margin-top:4px;line-height:1.45;}
+  .inp{background:var(--paper);border:1.5px solid var(--line2);border-radius:8px;padding:9px 12px;color:var(--t2);display:flex;align-items:center;}
+  .inp .pre{color:var(--t4);}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12px;padding:8px 14px;border-radius:8px;}
+  .bprim{background:var(--grape);color:#fff;}
+  .bghost{background:var(--paper);color:var(--t2);border:1.5px solid var(--line2);}
+  .bdanger{background:var(--paper);color:var(--danger);border:1.5px solid var(--danger);}
+  .row{display:flex;align-items:center;gap:11px;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:7px;}
+  .av{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;flex:none;}
+  .nm{font-weight:600;color:var(--t0);font-size:12.5px;}
+  .em{font-size:11px;color:var(--t4);margin-top:2px;}
+  .chip{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:5px;}
+  .mini{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--t2);background:var(--panel);border:1px solid var(--line2);border-radius:6px;padding:5px 9px;}
+  .mini .i{font-size:13px;}
+  .sq{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-weight:700;font-size:19px;background:var(--sun);color:var(--onbright);border:2px solid var(--ink);}
+  .danger{background:var(--dangerbg);border:1px solid var(--danger);border-radius:9px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
+  .mono{font-family:ui-monospace,monospace;}
+  .page{display:grid;grid-template-columns:180px 1fr;min-height:440px;}
+  .nav{background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;}
+  .back{display:flex;align-items:center;gap:6px;color:var(--t3);font-weight:500;margin-bottom:14px;padding:0 4px;}
+  .nrow{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;color:var(--t2);margin-bottom:2px;}
+  .nrow.act{background:var(--gbg);color:var(--gdeep);font-weight:600;box-shadow:inset 3px 0 0 var(--grape);}
+  .nrow .i{color:var(--t3);} .nrow.act .i{color:var(--grape);}
+  .ngrp{font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:14px 0 6px;padding:0 5px;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);}
+  .invite{display:flex;gap:8px;margin-bottom:16px;}
+  .pend{display:flex;align-items:center;gap:11px;background:var(--paper);border:1px dashed var(--line2);border-radius:9px;padding:10px 12px;margin-bottom:7px;}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.5.55.87 1.06 1H21a2 2 0 1 1 0 4h-.09c-.51.13-.92.5-1.06 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></symbol>
+  <symbol id="i-mail-off" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="2" x2="22" y2="22"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="2"/><path d="M12 13v3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-broadcast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></symbol>
+  <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 3A2.5 2.5 0 0 0 7 5.5v.5a2.5 2.5 0 0 0-1 4.77V13a3 3 0 0 0 3 3h2V3z"/><path d="M14.5 3A2.5 2.5 0 0 1 17 5.5v.5a2.5 2.5 0 0 1 1 4.77V13a3 3 0 0 1-3 3h-2V3z"/><path d="M12 16v5"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <div>
+    <h1>Donna · workspace settings</h1>
+    <p class="note">Reached by clicking the workspace logo. Role-gated: Members read-only · Admins invite &amp; configure · Owner sees Danger zone.</p>
+  </div>
+
+  <div>
+    <p class="cap">1 · Members (landing page, with sub-nav)</p>
+    <div class="tab">
+      <div class="page">
+        <div class="nav">
+          <div class="back"><svg class="i" style="font-size:14px"><use href="#i-arrow-left"/></svg>Back to chat</div>
+          <div class="ngrp">workspace</div>
+          <div class="nrow"><svg class="i"><use href="#i-settings"/></svg>General</div>
+          <div class="nrow act"><svg class="i"><use href="#i-users"/></svg>Members</div>
+          <div class="nrow"><svg class="i"><use href="#i-mail"/></svg>Invitations</div>
+          <div class="ngrp">integrations</div>
+          <div class="nrow"><svg class="i"><use href="#i-plug"/></svg>Connections</div>
+          <div class="nrow"><svg class="i"><use href="#i-sparkles"/></svg>Agents</div>
+          <div class="ngrp">advanced</div>
+          <div class="nrow"><svg class="i"><use href="#i-shield"/></svg>Security</div>
+          <div class="nrow" style="color:var(--danger);"><svg class="i" style="color:var(--danger)"><use href="#i-alert"/></svg>Danger zone</div>
+        </div>
+        <div>
+          <div class="hd">
+            <div class="sq">C</div>
+            <div><div style="font-size:17px;font-weight:700;color:var(--t0);">Cube Digital</div>
+              <div class="em">cube-digital · cube.digital · 3 members</div></div>
+            <span class="chip" style="background:var(--gbg);color:var(--gdeep);margin-left:6px;">owner</span>
+            <span style="margin-left:auto;display:flex;gap:8px;">
+              <span class="btn bghost"><svg class="i" style="font-size:13px"><use href="#i-pencil"/></svg>Edit</span>
+              <span class="btn bprim"><svg class="i" style="font-size:13px"><use href="#i-user-plus"/></svg>Invite people</span>
+            </span>
+          </div>
+          <div class="in">
+            <div class="sec">Invite by email</div>
+            <div class="invite">
+              <div class="inp" style="flex:1;color:var(--t4);">name@company.com</div>
+              <div class="inp" style="gap:6px;font-weight:600;">Member <svg class="i" style="font-size:13px"><use href="#i-chevron-down"/></svg></div>
+              <span class="btn bprim">Send invite</span>
+            </div>
+            <div class="sec">Members · 3</div>
+            <div class="row">
+              <span class="av" style="background:var(--grape);">RI</span>
+              <div><div class="nm">Rares Istoc <span style="font-size:11px;color:var(--t4);font-weight:500;">(you)</span></div><div class="em">istoc.rares@gmail.com</div></div>
+              <span style="margin-left:auto;display:flex;align-items:center;gap:9px;">
+                <span class="chip" style="background:var(--gbg);color:var(--gdeep);">owner</span>
+                <svg class="i" style="color:var(--t4)"><use href="#i-dots"/></svg></span>
+            </div>
+            <div class="row">
+              <span class="av" style="background:var(--blue);">NK</span>
+              <div><div class="nm">Nick</div><div class="em">nick@cube.digital · joined Jun 12</div></div>
+              <span style="margin-left:auto;display:flex;align-items:center;gap:9px;">
+                <span class="mini">Admin <svg class="i" style="font-size:12px"><use href="#i-chevron-down"/></svg></span>
+                <svg class="i" style="color:var(--t4)"><use href="#i-dots"/></svg></span>
+            </div>
+            <div class="row">
+              <span class="av" style="background:var(--coral);">MA</span>
+              <div><div class="nm">Marius</div><div class="em">marius@cube.digital · joined Jun 14</div></div>
+              <span style="margin-left:auto;display:flex;align-items:center;gap:9px;">
+                <span class="mini">Member <svg class="i" style="font-size:12px"><use href="#i-chevron-down"/></svg></span>
+                <svg class="i" style="color:var(--t4)"><use href="#i-dots"/></svg></span>
+            </div>
+            <div class="sec" style="margin-top:16px;">Pending invitations · 1</div>
+            <div class="pend">
+              <span class="av" style="background:var(--panel);color:var(--t4);border:1px dashed var(--line2);"><svg class="i" style="font-size:14px"><use href="#i-mail"/></svg></span>
+              <div><div class="nm">adi@acme.com</div><div class="em">invited by you · expires in 6 days</div></div>
+              <span style="margin-left:auto;display:flex;align-items:center;gap:7px;">
+                <span class="chip" style="background:var(--amberbg);color:var(--amberink);">pending</span>
+                <span class="mini">Guest</span><span class="mini" style="color:var(--gdeep);">Resend</span><span class="mini" style="color:var(--danger);">Revoke</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="cap">2 · General</p>
+    <div class="tab">
+      <div class="tt"><svg class="i"><use href="#i-settings"/></svg>General</div>
+      <div class="in">
+        <div style="display:flex;gap:18px;">
+          <div style="flex:1;">
+            <div class="field"><div class="flab">Workspace name</div><div class="inp">Cube Digital</div></div>
+            <div class="field"><div class="flab">Workspace URL</div><div class="inp"><span class="pre">donna.app/</span>cube-digital</div><div class="fhint">Changing this breaks existing links.</div></div>
+            <div class="field"><div class="flab">Primary domain</div><div class="inp">cube.digital</div>
+              <div class="fhint">People with this email domain are treated as internal — Donna files their meetings and emails under your workspace, not under a client org.</div></div>
+          </div>
+          <div style="width:180px;">
+            <div class="sec">Icon</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div class="sq">C</div><span class="mini">Change</span></div>
+            <div class="sec" style="margin-top:16px;">Your role</div>
+            <span class="chip" style="background:var(--gbg);color:var(--gdeep);">owner</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin:6px 0 18px;"><span class="btn bprim">Save changes</span><span class="btn bghost">Cancel</span></div>
+        <div class="sec" style="color:var(--danger);">Danger zone</div>
+        <div class="danger">
+          <svg class="i" style="color:var(--danger);font-size:18px"><use href="#i-alert"/></svg>
+          <div><div class="nm" style="color:var(--danger);">Delete this workspace</div><div class="em">Permanently removes all channels, documents and cortex memory. Owner only.</div></div>
+          <span class="btn bdanger" style="margin-left:auto;">Delete</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="cap">3 · Invitations</p>
+    <div class="tab">
+      <div class="tt"><svg class="i"><use href="#i-mail"/></svg>Invitations</div>
+      <div class="in">
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <div class="inp" style="flex:1;color:var(--t4);">name@company.com</div>
+          <div class="inp" style="gap:6px;font-weight:600;">Member <svg class="i" style="font-size:13px"><use href="#i-chevron-down"/></svg></div>
+          <span class="btn bprim">Send invite</span>
+        </div>
+        <div style="display:flex;gap:7px;margin-bottom:11px;">
+          <span class="mini" style="background:var(--grape);color:#fff;border-color:var(--grape);">All · 4</span>
+          <span class="mini">Pending 2</span><span class="mini">Accepted 1</span><span class="mini">Expired 1</span>
+        </div>
+        <div class="row">
+          <span class="av" style="background:var(--panel);color:var(--t4);border:1px dashed var(--line2);"><svg class="i" style="font-size:14px"><use href="#i-mail"/></svg></span>
+          <div><div class="nm">adi@acme.com</div><div class="em">Guest · invited by you · expires in 6 days</div></div>
+          <span style="margin-left:auto;display:flex;gap:7px;align-items:center;">
+            <span class="chip" style="background:var(--amberbg);color:var(--amberink);">pending</span>
+            <span class="mini"><svg class="i" style="font-size:12px"><use href="#i-link"/></svg>Copy link</span>
+            <span class="mini" style="color:var(--gdeep);">Resend</span><span class="mini" style="color:var(--danger);">Revoke</span></span>
+        </div>
+        <div class="row">
+          <span class="av" style="background:var(--blue);">SO</span>
+          <div><div class="nm">sofia@cube.digital</div><div class="em">Member · accepted Jun 20</div></div>
+          <span style="margin-left:auto;"><span class="chip" style="background:var(--okbg);color:var(--ok);">accepted</span></span>
+        </div>
+        <div class="row" style="opacity:.65;">
+          <span class="av" style="background:var(--panel);color:var(--t4);border:1px dashed var(--line2);"><svg class="i" style="font-size:14px"><use href="#i-mail-off"/></svg></span>
+          <div><div class="nm">old@vendor.com</div><div class="em">Guest · invited by Nick · expired Jun 10</div></div>
+          <span style="margin-left:auto;display:flex;gap:7px;align-items:center;">
+            <span class="chip" style="background:var(--panel);color:var(--t3);">expired</span>
+            <span class="mini" style="color:var(--gdeep);">Re-invite</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="cap">4 · Connections</p>
+    <div class="tab">
+      <div class="tt"><svg class="i"><use href="#i-plug"/></svg>Connections</div>
+      <div class="in">
+        <div class="sec">Connected · 2</div>
+        <div class="row">
+          <span class="av" style="background:oklch(0.55 0.18 262/.15);color:var(--blue);"><svg class="i" style="font-size:17px"><use href="#i-broadcast"/></svg></span>
+          <div><div class="nm">Fathom</div><div class="em">Meeting recordings → <span class="mono">meetings/</span> · synced 12m ago</div></div>
+          <span style="margin-left:auto;display:flex;gap:7px;align-items:center;">
+            <span class="chip" style="background:var(--okbg);color:var(--ok);">live</span>
+            <span class="mini">Configure</span><span class="mini" style="color:var(--danger);">Disconnect</span></span>
+        </div>
+        <div class="row">
+          <span class="av" style="background:oklch(0.66 0.20 33/.15);color:var(--coral);"><svg class="i" style="font-size:17px"><use href="#i-mail"/></svg></span>
+          <div><div class="nm">Gmail</div><div class="em">Email → <span class="mono">emails/YYYY/MM</span> · synced 6d ago</div></div>
+          <span style="margin-left:auto;display:flex;gap:7px;align-items:center;">
+            <span class="chip" style="background:var(--okbg);color:var(--ok);">live</span>
+            <span class="mini">Configure</span><span class="mini" style="color:var(--danger);">Disconnect</span></span>
+        </div>
+        <div class="sec" style="margin-top:14px;">Available</div>
+        <div class="row" style="border-style:dashed;">
+          <span class="av" style="background:var(--panel);color:var(--t3);"><svg class="i" style="font-size:17px"><use href="#i-cloud"/></svg></span>
+          <div><div class="nm">Google Drive</div><div class="em">Docs &amp; folders → <span class="mono">docs/</span></div></div>
+          <span class="btn bprim" style="margin-left:auto;padding:6px 12px;">Connect</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="cap">5 · Agents</p>
+    <div class="tab">
+      <div class="tt"><svg class="i"><use href="#i-sparkles"/></svg>Agents</div>
+      <div class="in">
+        <div class="row" style="align-items:flex-start;">
+          <span class="av" style="background:var(--grape);width:40px;height:40px;border-radius:50%;font-size:15px;">D</span>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:7px;"><div class="nm" style="font-size:14px;">Donna</div>
+              <span class="chip" style="background:var(--gbg);color:var(--gdeep);">agent</span>
+              <span class="chip" style="background:var(--okbg);color:var(--ok);">active</span></div>
+            <div class="em" style="margin-top:4px;">Your AI teammate. Reads cortex, drafts docs, answers in channels.</div>
+            <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;">
+              <span class="mini"><svg class="i" style="font-size:12px"><use href="#i-cpu"/></svg>claude-sonnet-4-6</span>
+              <span class="mini"><svg class="i" style="font-size:12px"><use href="#i-tool"/></svg>6 tools</span>
+              <span class="mini"><svg class="i" style="font-size:12px"><use href="#i-hash"/></svg>All channels</span>
+              <span class="mini"><svg class="i" style="font-size:12px"><use href="#i-brain"/></svg>Cortex read + write</span>
+            </div>
+          </div>
+          <span style="display:flex;flex-direction:column;gap:7px;">
+            <span class="btn bghost" style="padding:6px 12px;">Configure</span>
+            <span class="mini" style="justify-content:center;">Disable</span>
+          </span>
+        </div>
+        <div class="row" style="border-style:dashed;">
+          <span class="av" style="background:var(--panel);color:var(--t3);"><svg class="i" style="font-size:17px"><use href="#i-plus"/></svg></span>
+          <div><div class="nm">Add an agent</div><div class="em">Give a teammate a narrower scope — e.g. a sales agent limited to one client.</div></div>
+          <span class="btn bghost" style="margin-left:auto;padding:6px 12px;">New agent</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

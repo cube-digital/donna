@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donna — profile panel ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:oklch(0.965 0.02 92);--paper:oklch(0.995 0.006 92);--panel:oklch(0.955 0.02 92);
+    --line:oklch(0.30 0.02 285/.10);--line2:oklch(0.30 0.02 285/.16);
+    --ink:oklch(0.26 0.03 285);--onbright:oklch(0.22 0.04 285);
+    --t0:oklch(0.24 0.03 285);--t2:oklch(0.44 0.025 285);--t3:oklch(0.55 0.02 285);--t4:oklch(0.64 0.018 285);
+    --grape:oklch(0.52 0.21 288);--gdeep:oklch(0.40 0.18 288);--gbg:oklch(0.52 0.21 288/.10);
+    --sun:oklch(0.84 0.16 92);--ok:oklch(0.62 0.13 150);
+    --coral:oklch(0.62 0.20 30);--danger:oklch(0.55 0.20 25);
+    --paper-dot:oklch(0.26 0.03 285/.05);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#cfcabb;font-family:'Inter',system-ui,sans-serif;color:var(--t2);padding:30px;font-size:12px;}
+  h1{font-size:19px;color:#2a2438;margin-bottom:4px;}
+  .note{font-size:13px;color:#6b6478;margin-bottom:22px;}
+  .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:26px;}
+  .cap{font-size:14px;font-weight:600;color:#2a2438;margin-bottom:8px;}
+  .i{width:1em;height:1em;font-size:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-0.15em;}
+  .card{background:var(--cream);background-image:radial-gradient(var(--paper-dot) 1.3px,transparent 1.3px);background-size:20px 20px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;}
+  .hd{display:flex;align-items:center;padding:12px 15px;border-bottom:1px solid var(--line);font-weight:700;color:var(--t0);font-size:15px;}
+  .in{padding:14px 15px;}
+  .sec{font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:14px 0 8px;}
+  .sec:first-child{margin-top:0;}
+  .prow{display:flex;align-items:center;gap:11px;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:7px;}
+  .av{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px;flex:none;position:relative;}
+  .pres{position:absolute;right:-2px;bottom:-2px;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--paper);}
+  .nm{font-weight:700;color:var(--t0);font-size:13px;}
+  .em{font-size:11px;color:var(--t4);margin-top:2px;}
+  .lnk{color:var(--gdeep);font-weight:600;font-size:11px;margin-top:4px;display:inline-block;}
+  .inp{background:var(--paper);border:2px solid var(--ink);border-radius:9px;padding:9px 12px;color:var(--t0);font-weight:500;}
+  .inp.ph{color:var(--t4);border:1.5px solid var(--line2);font-weight:400;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:12px;padding:9px 15px;border-radius:8px;}
+  .bprim{background:var(--grape);color:#fff;border:2px solid var(--ink);}
+  .bghost{background:var(--paper);color:var(--t2);border:2px solid var(--ink);}
+  .tg{width:38px;height:21px;border-radius:999px;background:var(--grape);position:relative;flex:none;}
+  .tg::after{content:"";position:absolute;top:2.5px;right:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;}
+  .tgoff{background:var(--line2);}
+  .tgoff::after{right:auto;left:2.5px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line2);background:var(--paper);color:var(--t2);}
+  .chip.on{background:var(--gbg);color:var(--gdeep);border-color:var(--grape);}
+  .mini{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--t2);background:var(--panel);border:1px solid var(--line2);border-radius:6px;padding:5px 9px;}
+  .page{display:grid;grid-template-columns:170px 1fr;min-height:360px;}
+  .nav{background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;}
+  .nrow{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;color:var(--t2);margin-bottom:2px;}
+  .nrow.act{background:var(--gbg);color:var(--gdeep);font-weight:600;box-shadow:inset 3px 0 0 var(--grape);}
+  .nrow .i{color:var(--t3);} .nrow.act .i{color:var(--grape);}
+  .ngrp{font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:12px 0 6px;padding:0 5px;}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-google" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <div>
+    <h1>Donna · profile panel ideas</h1>
+    <p class="note">Key fix: the green toggle is the only pure green in the UI — swap it to grape, and reserve green strictly for connector "live" dots.</p>
+  </div>
+
+  <div>
+    <p class="cap">A · Enriched drawer (keeps your current panel, fills the dead space)</p>
+    <div class="card" style="max-width:360px;">
+      <div class="hd">Profile <svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-x"/></svg></div>
+      <div class="in">
+        <div class="prow">
+          <span class="av" style="background:var(--coral);">RI<span class="pres" style="background:var(--ok);"></span></span>
+          <div><div class="nm">Rares Istoc</div><div class="em">rares.istoc@cube-digital.io</div><span class="lnk">Add picture</span></div>
+          <span class="chip on" style="margin-left:auto;">owner</span>
+        </div>
+
+        <div class="sec">Presence</div>
+        <div class="prow" style="gap:9px;">
+          <span style="width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none;"></span>
+          <div><div class="nm" style="font-size:12px;">Active</div><div class="em">Shown as active</div></div>
+          <span class="tg" style="margin-left:auto;"></span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="chip on">Active</span><span class="chip">Away</span><span class="chip">Do not disturb</span>
+        </div>
+
+        <div class="sec">Display name</div>
+        <div class="inp">Rares Istoc</div>
+
+        <div class="sec">Status</div>
+        <div class="inp ph">😌 &nbsp;What are you up to?</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;">
+          <span class="chip">🎯 Focusing</span><span class="chip">📅 In a meeting</span><span class="chip">🌴 OOO</span>
+        </div>
+
+        <div class="sec">Preferences</div>
+        <div class="prow"><svg class="i"><use href="#i-moon"/></svg><div class="nm" style="font-size:12px;">Dark mode</div><span class="tg tgoff" style="margin-left:auto;"></span></div>
+        <div class="prow"><svg class="i"><use href="#i-bell"/></svg><div><div class="nm" style="font-size:12px;">Notifications</div><div class="em">Mentions only</div></div><svg class="i" style="margin-left:auto;color:var(--t4)"><use href="#i-chevron-right"/></svg></div>
+
+        <div style="display:flex;gap:8px;margin-top:13px;">
+          <span class="btn bprim" style="flex:1;">Save profile</span>
+          <span class="btn bghost">Sign out</span>
+        </div>
+        <div style="text-align:center;margin-top:10px;"><span class="lnk">More settings →</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="cap">B · Full personal settings page (matches your workspace settings)</p>
+    <div class="card">
+      <div class="page">
+        <div class="nav">
+          <div style="display:flex;align-items:center;gap:6px;color:var(--t3);font-weight:500;margin-bottom:13px;padding:0 4px;"><svg class="i" style="font-size:14px"><use href="#i-arrow-left"/></svg>Back to chat</div>
+          <div class="ngrp">you</div>
+          <div class="nrow act"><svg class="i"><use href="#i-user"/></svg>Profile</div>
+          <div class="nrow"><svg class="i"><use href="#i-sliders"/></svg>Preferences</div>
+          <div class="nrow"><svg class="i"><use href="#i-bell"/></svg>Notifications</div>
+          <div class="ngrp">account</div>
+          <div class="nrow"><svg class="i"><use href="#i-key"/></svg>Account</div>
+          <div class="nrow"><svg class="i"><use href="#i-laptop"/></svg>Sessions</div>
+          <div class="nrow" style="color:var(--danger);"><svg class="i" style="color:var(--danger)"><use href="#i-alert"/></svg>Danger zone</div>
+        </div>
+        <div>
+          <div class="hd" style="gap:11px;">
+            <span class="av" style="width:38px;height:38px;border-radius:11px;font-size:14px;background:var(--coral);">RI<span class="pres" style="background:var(--ok);width:11px;height:11px;"></span></span>
+            <div><div style="font-size:15px;font-weight:700;color:var(--t0);">Rares Istoc</div><div class="em">rares.istoc@cube-digital.io · Owner in Cube Digital</div></div>
+            <span class="btn bprim" style="margin-left:auto;padding:7px 13px;">Save changes</span>
+          </div>
+          <div class="in">
+            <div style="display:flex;gap:18px;">
+              <div style="flex:1;">
+                <div class="sec">Display name</div>
+                <div class="inp">Rares Istoc</div>
+                <div class="sec">Status</div>
+                <div class="inp ph">😌 &nbsp;What are you up to?</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;">
+                  <span class="chip">🎯 Focusing</span><span class="chip">📅 In a meeting</span><span class="chip">🌴 OOO</span>
+                </div>
+                <div class="sec">Presence</div>
+                <div style="display:flex;gap:6px;"><span class="chip on">Active</span><span class="chip">Away</span><span class="chip">Do not disturb</span></div>
+              </div>
+              <div style="width:190px;">
+                <div class="sec">Picture</div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span class="av" style="background:var(--coral);">RI</span>
+                  <div style="display:flex;flex-direction:column;gap:6px;"><span class="mini">Upload</span><span class="mini" style="color:var(--danger);">Remove</span></div>
+                </div>
+                <div class="sec">Signed in with</div>
+                <span class="mini"><svg class="i" style="font-size:13px"><use href="#i-google"/></svg>Google</span>
+                <div class="sec">Member since</div>
+                <div style="color:var(--t3);">Jun 2026</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
