@@ -301,7 +301,7 @@ celery -A donna inspect scheduled  # → confirms beat jobs registered
 After PR 1 lands:
 
 - `server/plans/cortex/03 - contracts/04-linter-r1-r10.md` — renamed mentally to "R1-R11"; R11 added in PR 2
-- `server/plans/cortex/06 - status/03-roadmap-remaining-work.md` — add narrative + pattern phases, mark items A1-A8 as in-flight
+- `server/plans/16-remaining-work.md` — the consolidated remaining-work doc (this Narrio adoption is tracked there under §2 "Cortex — missing features")
 - `server/plans/cortex/01 - architecture/03-data-model.md` — add `CortexPattern` + `CortexNarrative` to the model inventory diagram
 - `server/plans/cortex/04 - flows/05-pattern-and-narrative-compile.md` — NEW flow doc (PR 3) describing the cascade
 
@@ -378,6 +378,6 @@ test -f server/plans/cortex/model-tier-policy.md && echo OK
 
 Three PRs. Docs first (governance), structural second (models + linter + embed policy), task third (Sonnet narrative compile).
 
-Eight items from Narrio. None speculative — every one fills a known gap in Cortex per `06 - status/02-spec-gap-analysis.md` (R6/R7/R8 deferred) and `03-roadmap-remaining-work.md` (synthesis layer absent).
+Eight items from Narrio. None speculative — every one fills a known gap in Cortex (R6/R7/R8 deferred, synthesis layer absent) tracked in `../../16-remaining-work.md` §1–§2.
 
 Reuses every existing utility in `donna/cortex/`. One new module (`synthesis.py`). Two new models (`CortexPattern`, `CortexNarrative`). One linter rule (R11). One TypeSpec field (`embed_policy`). Two staleness booleans. Plus docs.

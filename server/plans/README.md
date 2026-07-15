@@ -30,7 +30,7 @@ The `/docs/` files remain useful as background on the original problem and trust
 13. [12-deployment-pipelines.md](12-deployment-pipelines.md) — Cloud GitOps + self-host tagged releases (GHCR + Helm); settings split; Dockerfile + entrypoint hardening; CI/CD workflows. Coordinates w/ [13](13-agent-runtime-maturity.md) Phase 3.4 on the `worker-io` / `worker-cpu` compose split.
 14. [13-agent-runtime-maturity.md](13-agent-runtime-maturity.md) — Drafting, memory, multi-agent, automation. Eight-phase build sequence taking the chat agent from generic to channel-resident ambient teammates. Renamed 2026-06-25 from the original "Claude Code pattern adoption" framing — every pattern is adopted *because* it serves Donna's Cowork shape, not because Donna is becoming Claude Code.
 15. [14-frontend-integration.md](14-frontend-integration.md) — Eight frontend feature deliverables; tracks the web client against the backend phases shipped by 09, 10, 13.
-16. [15-remaining-roadmap.md](15-remaining-roadmap.md) — Consolidated index of what's left across plans 11, 12, 13, 14 + cortex. Fourteen phases tier-ordered S/A/B/C with cross-references back to each originating plan. Refreshed 2026-06-28 from the post-v1 audit.
+16. [16-remaining-work.md](16-remaining-work.md) — **Single source of truth for what's left.** Consolidated 2026-07-15 from a live code audit: verified cortex integrity bugs (A1–A5), missing cortex features, cortex-frontend gaps, non-cortex backend/infra, frontend robustness, and security rotations — each checked against the actual code. Supersedes the old `15-*` roadmap/deferred docs and the `cortex/06 - status/{01,02,03}` files (deleted; they overstated open work).
 
 ## Reference / deep dives
 

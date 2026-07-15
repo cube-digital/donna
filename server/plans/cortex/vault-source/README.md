@@ -42,7 +42,7 @@ vault-source/IMPLEMENTATION-ROADMAP.md            ← vault roadmap (phases F0-F
        │
        │  current state tracked in
        ▼
-server/plans/cortex/06 - status/01-implementation-state.md
+server/plans/16-remaining-work.md
 ```
 
 ## Re-sync procedure

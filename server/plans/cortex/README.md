@@ -69,12 +69,13 @@ Python + Postgres.
    03-adr-supersession.md
    04-contradiction-open-questions.md
 06 - status/                           ← state of the world
-   01-implementation-state.md
-   02-spec-gap-analysis.md
-   03-roadmap-remaining-work.md
-   04-p0.14-storage-and-embedding-refactor.md   ← next phase plan
-   05-deferred-document-chunking.md             ← deferred P0.15
-   06-narrio-adoptions.md                       ← 8 items pulled from Narrio
+   (01-implementation-state / 02-spec-gap-analysis / 03-roadmap-remaining-work
+    were deleted 2026-07-15 — superseded by ../../16-remaining-work.md, the
+    single verified remaining-work doc)
+   04-p0.14-storage-and-embedding-refactor.md   ← SHIPPED (kept for reference)
+   05-deferred-document-chunking.md             ← deferred P0.15 (feature spec)
+   06-narrio-adoptions.md                       ← 8 items pulled from Narrio (feature spec)
+   06-p0.15-long-document-support.md            ← deferred long-doc (feature spec)
 vault-source/                          ← verbatim mirror of vault canonical docs
    README.md
    SPEC.md                                       ← Universal Silver Specification (rev 3)
