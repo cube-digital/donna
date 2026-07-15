@@ -28,6 +28,7 @@ import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
 import IntegrationDetail from "./views/IntegrationDetail";
+import Settings from "./views/Settings";
 import AcceptInvitation from "./views/AcceptInvitation";
 import ResetPassword from "./views/ResetPassword";
 
@@ -124,6 +125,8 @@ export default function App() {
           <Route path="/personal/:channelId" element={<Personal />} />
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/integrations/:slug" element={<IntegrationDetail />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/:tab" element={<Settings />} />
           <Route path="/search" element={<ComingSoon title="Search & history" />} />
           <Route path="/cortex" element={<Files />} />
           <Route path="/files" element={<Navigate to="/cortex" replace />} />

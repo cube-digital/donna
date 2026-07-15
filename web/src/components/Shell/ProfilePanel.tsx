@@ -1,12 +1,17 @@
 // Global profile panel — a right-side drawer opened from the WsRail avatar
-// pill. Edit display name + status, set yourself active/away, upload a
-// profile picture, and sign out. Reads/writes the /me store; renders nothing
-// when closed.
+// pill. Ported from assets/donna-ui-kit/react/ProfileDrawer.jsx onto the
+// real /me store: edit display name + status, set yourself active/away,
+// upload/remove a profile picture, and sign out. Renders nothing when closed.
+//
+// `UserAvatar` is still exported from this module (WsRail imports it).
 
 import { useEffect, useRef, useState } from "react";
 
+import "../../styles/donna-kit.css";
 import { deletePicture, updateMe, uploadPicture } from "../../api/users";
-import { GAvatar, GButton, GFormField, GInput, GSwitch, GlyphSlot } from "../Goofy";
+import { GAvatar } from "../Goofy";
+import Icon from "../kit/Icon";
+import { initialsFrom } from "../../lib/kitAvatar";
 import { useAuth } from "../../state/auth";
 import { useMe } from "../../state/me";
 import { useProfilePanel } from "../../state/profilePanel";
@@ -56,7 +61,9 @@ export function UserAvatar({
   );
 }
 
-export default function ProfilePanel() {
+const PRESETS = ["🎯 Focusing", "📅 In a meeting", "🌴 OOO"];
+
+export default function ProfileDrawer() {
   const open = useProfilePanel((s) => s.open);
   const close = useProfilePanel((s) => s.closePanel);
   const me = useMe((s) => s.me);
@@ -64,22 +71,23 @@ export default function ProfilePanel() {
   const load = useMe((s) => s.load);
   const signOut = useAuth((s) => s.signOut);
 
-  const [fullName, setFullName] = useState("");
+  const [active, setActive] = useState(true);
+  const [name, setName] = useState("");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) void load();
   }, [open, load]);
 
+  // Seed local state from the profile whenever it changes.
   useEffect(() => {
     if (me) {
-      setFullName(me.full_name ?? "");
+      setName(me.full_name ?? "");
       setStatus(me.status ?? "");
+      setActive(!me.is_away);
     }
   }, [me]);
 
@@ -95,29 +103,16 @@ export default function ProfilePanel() {
   if (!open) return null;
 
   const displayName = me?.full_name || me?.email || "You";
-  const isAway = !!me?.is_away;
+  const initials = initialsFrom(displayName);
 
   async function save() {
     setSaving(true);
-    setErr(null);
-    setSaved(false);
     try {
-      setMe(await updateMe({ full_name: fullName.trim(), status }));
-      setSaved(true);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not save your profile.");
+      setMe(await updateMe({ full_name: name.trim(), status, is_away: !active }));
+    } catch {
+      /* leave fields as-is on failure */
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function toggleAway(next: boolean) {
-    if (!me) return;
-    setMe({ ...me, is_away: next }); // optimistic
-    try {
-      setMe(await updateMe({ is_away: next }));
-    } catch {
-      setMe({ ...me, is_away: !next }); // revert
     }
   }
 
@@ -125,11 +120,10 @@ export default function ProfilePanel() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setErr(null);
     try {
       setMe(await uploadPicture(file));
     } catch {
-      setErr("Picture upload failed — use a PNG/JPEG/WebP under 5 MB.");
+      /* ignore */
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -138,158 +132,175 @@ export default function ProfilePanel() {
 
   async function removePicture() {
     setUploading(true);
-    setErr(null);
     try {
       setMe(await deletePicture());
     } catch {
-      setErr("Could not remove the picture.");
+      /* ignore */
     } finally {
       setUploading(false);
     }
   }
 
-  // Soft, warm cards — thin border + gentle tint instead of the heavy ink
-  // sticker chrome (too strong + too white in a dense panel).
-  const softCard = "bg-bg-1/70 border border-border-soft rounded-[12px]";
-  const linkBtn =
-    "text-[12px] font-semibold underline-offset-2 hover:underline disabled:opacity-50";
-  // Small height, a touch wider than hug-content.
-  const wideSm = "min-w-[132px] justify-center";
+  function onSignOut() {
+    close();
+    signOut();
+  }
 
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-[60] flex justify-end"
+      role="dialog"
+      aria-modal="true"
+    >
       <div
         className="flex-1 bg-[oklch(0.26_0.03_285/0.30)]"
         onClick={close}
         aria-hidden
       />
-      <aside className="w-[360px] max-w-[88vw] h-full bg-bg-2 paper-dots border-l border-border-soft shadow-2 flex flex-col">
-        <header className="px-4 py-3 flex items-center gap-2 border-b border-border-soft">
-          <span className="font-display font-semibold text-[17px] text-text-0 flex-1 tracking-[-0.01em]">
-            Profile
-          </span>
+      <aside
+        className="dn-root dn-drawer dn-paper h-full"
+        style={{ boxShadow: "-8px 0 24px oklch(0.26 0.03 285 / 0.18)" }}
+      >
+        <div className="dn-drawer-head">
+          Profile
           <button
             type="button"
-            onClick={close}
             aria-label="Close"
-            className="text-text-3 hover:text-text-0"
+            onClick={close}
+            className="dn-spacer"
+            style={{ background: "none", border: 0, padding: 0, cursor: "pointer", color: "var(--dn-t4)" }}
           >
-            <GlyphSlot name="x" />
+            <Icon name="x" />
           </button>
-        </header>
+        </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3.5">
-          {/* Identity sticker */}
-          <div className={`${softCard} p-3 flex items-center gap-3`}>
-            <UserAvatar
-              pictureUrl={me?.picture_url}
-              name={displayName}
-              sizePx={52}
-              isAway={isAway}
-              showDot
-            />
-            <div className="min-w-0 flex-1">
-              <div className="font-display font-semibold text-[15px] text-text-0 truncate">
-                {displayName}
-              </div>
-              <div className="text-[11.5px] text-text-3 truncate">{me?.email}</div>
-              <div className="flex gap-2.5 mt-1.5">
-                <button
-                  type="button"
+        <div className="dn-drawer-body">
+          <div className="dn-row dn-row--outline">
+            <span
+              className="dn-avatar dn-avatar--lg"
+              style={{
+                background: me?.picture_url ? "transparent" : "var(--dn-coral)",
+                overflow: "hidden",
+              }}
+            >
+              {me?.picture_url ? (
+                <img
+                  src={me.picture_url}
+                  alt={displayName}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                initials
+              )}
+              {active && <span className="dn-presence" />}
+            </span>
+            <div>
+              <div className="dn-name">{displayName}</div>
+              <div className="dn-meta">{me?.email}</div>
+              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                <span
+                  className="dn-link"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                  className={`${linkBtn} text-ai`}
                 >
                   {uploading ? "Uploading…" : me?.picture_url ? "Change" : "Add picture"}
-                </button>
+                </span>
                 {me?.picture_url ? (
-                  <button
-                    type="button"
+                  <span
+                    className="dn-link"
+                    role="button"
+                    tabIndex={0}
+                    style={{ color: "var(--dn-t4)" }}
                     onClick={removePicture}
-                    disabled={uploading}
-                    className={`${linkBtn} text-text-3 hover:text-danger`}
                   >
                     Remove
-                  </button>
+                  </span>
                 ) : null}
               </div>
               <input
                 ref={fileRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
+                style={{ display: "none" }}
                 onChange={onPickFile}
               />
             </div>
           </div>
 
-          {/* Availability toggle */}
-          <div className={`${softCard} p-3 flex items-center gap-2.5`}>
+          <div className="dn-row dn-row--outline">
             <span
-              className={
-                "w-2.5 h-2.5 rounded-full shrink-0 " + (isAway ? "bg-text-4" : "bg-ok")
-              }
+              style={{
+                width: 9,
+                height: 9,
+                borderRadius: "50%",
+                flex: "none",
+                background: active ? "var(--dn-ok)" : "var(--dn-t4)",
+              }}
             />
-            <div className="flex-1 leading-tight">
-              <div className="font-display font-semibold text-[13.5px] text-text-0">
-                {isAway ? "Away" : "Active"}
-              </div>
-              <div className="text-[11px] text-text-3">
-                {isAway ? "Shown as away to teammates" : "Shown as active"}
+            <div>
+              <div className="dn-name">{active ? "Active" : "Away"}</div>
+              <div className="dn-meta">
+                {active ? "Shown as active" : "Shown as away"}
               </div>
             </div>
-            <GSwitch on={!isAway} onChange={(next) => void toggleAway(!next)} aria-label="Active" />
+            <div
+              className={`dn-toggle dn-toggle--presence dn-spacer ${active ? "is-on" : ""}`}
+              role="switch"
+              aria-checked={active}
+              onClick={() => setActive((v) => !v)}
+            />
           </div>
 
-          <GFormField label="Display name">
-            <GInput
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your name"
-              icon={null}
-            />
-          </GFormField>
+          <div className="dn-label" style={{ marginTop: 16 }}>
+            Display name
+          </div>
+          <input
+            className="dn-input dn-input--profile"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-          <GFormField label="Status">
-            <GInput
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              placeholder="What are you up to?"
-              icon={null}
-            />
-          </GFormField>
+          <div className="dn-label" style={{ marginTop: 14 }}>
+            Status
+          </div>
+          <input
+            className="dn-input dn-input--profile"
+            placeholder="What are you up to?"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          />
 
-          {err ? (
-            <div role="alert" className="text-danger text-[12px] leading-[1.45]">
-              {err}
-            </div>
-          ) : null}
-          {saved ? <div className="text-ok text-[12px]">Saved.</div> : null}
+          <div className="dn-pill-row" style={{ marginTop: 11 }}>
+            {PRESETS.map((p) => (
+              <span
+                key={p}
+                className={`dn-pill ${status === p ? "is-on" : ""}`}
+                onClick={() => setStatus(p)}
+              >
+                {p}
+              </span>
+            ))}
+          </div>
 
-          <GButton
-            variant="ai"
-            size="sm"
-            onClick={save}
+          <button
+            className="dn-btn dn-btn--primary dn-btn--profile"
+            style={{ marginTop: 16 }}
             disabled={saving}
-            className={`self-start ${wideSm}`}
+            onClick={save}
           >
             {saving ? "Saving…" : "Save profile"}
-          </GButton>
+          </button>
         </div>
 
-        <footer className="px-4 py-3 border-t border-border-soft">
-          <GButton
-            variant="default"
-            size="sm"
-            onClick={() => {
-              close();
-              signOut();
-            }}
-            className={wideSm}
+        <div className="dn-drawer-foot">
+          <button
+            className="dn-btn dn-btn--ghost dn-btn--profile dn-btn--block"
+            onClick={onSignOut}
           >
             Sign out
-          </GButton>
-        </footer>
+          </button>
+        </div>
       </aside>
     </div>
   );

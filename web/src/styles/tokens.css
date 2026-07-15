@@ -21,7 +21,11 @@
 
   /* Cream goofy (light, default) */
   --bg-0: oklch(0.962 0.022 92);
-  --bg-1: oklch(0.995 0.006 92);
+  /* Card / raised surface. Was near-white (0.995 L / 0.006 C), which read as
+   * harsh white boxes glaring against the warm cream. Warmed + tinted so cards
+   * lift off the page without the glare — fixes every card app-wide (profile,
+   * settings, connector cards, file panel). */
+  --bg-1: oklch(0.978 0.013 92);
   --bg-2: oklch(0.945 0.026 92);
   --bg-3: oklch(0.905 0.045 92);
   --bg-4: oklch(0.86 0.06 92);

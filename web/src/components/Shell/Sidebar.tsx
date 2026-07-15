@@ -163,24 +163,27 @@ export default function Sidebar() {
       className="h-full bg-bg-2 border-r border-border-soft overflow-y-auto py-3 px-[11px]"
       aria-label="Channels and direct messages"
     >
-      <header className="flex items-center justify-between px-1.5 pt-1 pb-2.5">
-        <div>
-          <div className="font-display font-semibold text-text-0 text-[14px] tracking-[-0.005em]">
-            {activeWorkspace?.name ?? "Workspace"}
-          </div>
-          {activeWorkspace?.slug ? (
-            <div className="text-[11px] text-text-4">
-              {activeWorkspace.slug}
-            </div>
-          ) : null}
-        </div>
+      <header className="px-1.5 pt-1 pb-2.5">
         <button
           type="button"
           title="Workspace settings"
-          aria-label="Workspace settings"
-          className="text-text-4 hover:text-text-1 bg-transparent border-0 p-0"
+          aria-label="Open workspace settings"
+          onClick={() => navigate("/settings")}
+          className="w-full flex items-center gap-2.5 rounded-[10px] p-1 -mx-1 text-left hover:bg-bg-3 transition-colors"
         >
-          <GlyphSlot name="edit" size={15} />
+          <span className="w-8 h-8 shrink-0 grid place-items-center rounded-[9px] bg-pop-sun border-2 border-ink text-on-bright font-display font-bold text-[14px]">
+            {(activeWorkspace?.name ?? "W").trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display font-semibold text-text-0 text-[14px] tracking-[-0.005em] truncate">
+              {activeWorkspace?.name ?? "Workspace"}
+            </span>
+            {activeWorkspace?.slug ? (
+              <span className="block text-[11px] text-text-4 truncate">
+                {activeWorkspace.slug}
+              </span>
+            ) : null}
+          </span>
         </button>
       </header>
 

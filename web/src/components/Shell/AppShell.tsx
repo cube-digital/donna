@@ -44,6 +44,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import WsRail from "./WsRail";
 import ProfilePanel from "./ProfilePanel";
+import ChannelPanelContainer from "../Channel/panel/ChannelPanelContainer";
 
 function WorkspaceBootstrap() {
   const loadChannels = useChannels((s) => s.loadChannels);
@@ -221,6 +222,7 @@ export default function AppShell() {
         </Group>
       </div>
       <ProfilePanel />
+      <ChannelPanelContainer />
     </RightRailProvider>
   );
 }

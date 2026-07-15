@@ -38,11 +38,38 @@ export async function createWorkspace(input: {
   });
 }
 
+export async function getWorkspace(id: string): Promise<Workspace> {
+  return apiFetch<Workspace>(`/api/v1/workspaces/${id}/`);
+}
+
+export async function updateWorkspace(
+  id: string,
+  patch: Partial<Pick<Workspace, "name" | "slug" | "primary_domain">>,
+): Promise<Workspace> {
+  return apiFetch<Workspace>(`/api/v1/workspaces/${id}/`, {
+    method: "PATCH",
+    body: patch,
+  });
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  await apiFetch(`/api/v1/workspaces/${id}/`, { method: "DELETE" });
+}
+
 // ── Members ─────────────────────────────────────────────────────────────
+
+export interface MemberUser {
+  id: string;
+  email: string;
+  full_name: string;
+  picture_url: string | null;
+  is_away: boolean;
+  status: string;
+}
 
 export interface WorkspaceMemberRow {
   id: string;
-  user: { id: string; email: string; full_name: string };
+  user: MemberUser;
   role: WorkspaceRole;
   created_at: string;
 }
@@ -52,6 +79,20 @@ export async function listMembers(): Promise<WorkspaceMemberRow[]> {
     WorkspaceMemberRow[] | Paginated<WorkspaceMemberRow>
   >("/api/v1/members/");
   return Array.isArray(data) ? data : data.results;
+}
+
+export async function updateMemberRole(
+  userId: string,
+  role: WorkspaceRole,
+): Promise<WorkspaceMemberRow> {
+  return apiFetch<WorkspaceMemberRow>(`/api/v1/members/${userId}/`, {
+    method: "PATCH",
+    body: { role },
+  });
+}
+
+export async function removeMember(userId: string): Promise<void> {
+  await apiFetch(`/api/v1/members/${userId}/`, { method: "DELETE" });
 }
 
 // ── Invitations ─────────────────────────────────────────────────────────
@@ -75,6 +116,15 @@ export async function createInvitation(
 
 export async function revokeInvitation(id: string): Promise<void> {
   await apiFetch(`/api/v1/workspaces/invitations/${id}/`, { method: "DELETE" });
+}
+
+export async function resendInvitation(
+  id: string,
+): Promise<WorkspaceInvitation> {
+  return apiFetch<WorkspaceInvitation>(
+    `/api/v1/workspaces/invitations/${id}/resend/`,
+    { method: "POST", body: {} },
+  );
 }
 
 /** Public preview — no auth, no workspace header. */

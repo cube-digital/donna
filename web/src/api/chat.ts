@@ -150,6 +150,29 @@ export async function unpinChannel(channelId: UUID): Promise<void> {
 
 // ── Channel members ───────────────────────────────────────────────────────
 
+export interface ChannelMemberRow {
+  id: UUID;
+  user: {
+    id: UUID;
+    email: string;
+    full_name: string;
+    picture_url: string | null;
+    is_away: boolean;
+    status: string;
+  };
+  role: "admin" | "member";
+  created_at: string;
+}
+
+export async function listChannelMembers(
+  channelId: UUID,
+): Promise<ChannelMemberRow[]> {
+  const data = await apiFetch<ChannelMemberRow[] | { results: ChannelMemberRow[] }>(
+    `/api/v1/chat/channels/${channelId}/members/`,
+  );
+  return Array.isArray(data) ? data : data.results;
+}
+
 export async function addChannelMember(
   channelId: UUID,
   userId: UUID,
@@ -159,6 +182,17 @@ export async function addChannelMember(
     method: "POST",
     body: { user_id: userId, role },
   });
+}
+
+export async function updateChannelMemberRole(
+  channelId: UUID,
+  userId: UUID,
+  role: "admin" | "member",
+): Promise<ChannelMemberRow> {
+  return apiFetch<ChannelMemberRow>(
+    `/api/v1/chat/channels/${channelId}/members/${userId}/`,
+    { method: "PATCH", body: { role } },
+  );
 }
 
 export async function removeChannelMember(

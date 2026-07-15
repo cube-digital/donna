@@ -16,6 +16,11 @@ export interface Workspace {
   id: UUID;
   name: string;
   slug: string;
+  primary_domain?: string;
+  member_count?: number;
+  my_role?: WorkspaceRole;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "guest";
@@ -83,6 +88,7 @@ export interface WorkspaceInvitation {
   role: WorkspaceRole;
   status: "pending" | "accepted" | "revoked" | "expired";
   invited_by: User;
+  accept_url: string | null;
   expires_at: ISODateTime;
   accepted_at: ISODateTime | null;
   created_at: ISODateTime;

@@ -25,10 +25,12 @@
 // `<GChip/>` and `<GButton/>`. The more-actions menu is a `<GPopover/>`
 // with `<GMenuItem/>`s and a danger row at the end.
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { GIconButton, GlyphSlot } from "../Goofy";
+import { listChannelMembers } from "../../api/chat";
 import { useChannels } from "../../state/channels";
+import { useChannelPanel } from "../../state/channelPanel";
 import type { AgentRef, Channel, Message, User } from "../../types";
 import { AgentStatusChip } from "./AgentStatusChip";
 import { FilesToggle } from "./FilesToggle";
@@ -84,20 +86,56 @@ export default function ChannelHeader({
     [channelMessages],
   );
 
+  const openPanel = useChannelPanel((s) => s.open);
+
+  // Real channel member count (falls back to the derived author count until
+  // the fetch resolves, and for DMs which have no member roster).
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (isDM) {
+      setMemberCount(null);
+      return;
+    }
+    let cancelled = false;
+    void listChannelMembers(channel.id)
+      .then((rows) => {
+        if (!cancelled) setMemberCount(rows.length);
+      })
+      .catch(() => {
+        if (!cancelled) setMemberCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [channel.id, isDM]);
+
+  const shownCount = memberCount ?? humans.length;
+
   const pinned = channel.topic ? channel.topic : "—";
 
   return (
     <div className="flex items-center gap-[9px] px-[18px] py-[11px] border-b border-border-soft shrink-0">
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5">
-          {isDM ? (
-            <GlyphSlot name="at" size={15} className="text-text-3" />
-          ) : (
-            <GlyphSlot name="hash" size={15} className="text-text-3" />
-          )}
-          <span className="font-display font-semibold text-[16px] text-text-0">
-            {channel.name || (isDM ? "Direct message" : "channel")}
-          </span>
+          <button
+            type="button"
+            disabled={isDM}
+            onClick={() => !isDM && openPanel(channel.id)}
+            title={isDM ? undefined : "Channel details & settings"}
+            className="flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded-[7px] hover:bg-bg-3 disabled:hover:bg-transparent"
+          >
+            {isDM ? (
+              <GlyphSlot name="at" size={15} className="text-text-3" />
+            ) : (
+              <GlyphSlot name="hash" size={15} className="text-text-3" />
+            )}
+            <span className="font-display font-semibold text-[16px] text-text-0">
+              {channel.name || (isDM ? "Direct message" : "channel")}
+            </span>
+            {!isDM ? (
+              <GlyphSlot name="caret" size={11} className="text-text-4" />
+            ) : null}
+          </button>
           {/* Plan 13 §8.2 — ambient agent state inline next to the name. */}
           <AgentStatusChip channelId={channel.id} />
           {/* Plan 13 §1.2 — Haiku one-liner under the header when fresh. */}
@@ -129,12 +167,15 @@ export default function ChannelHeader({
         {agents.length || 0} AI
       </span>
 
-      <span
-        className="inline-flex items-center gap-[5px] text-[11px] font-semibold px-[9px] py-[3px] rounded-md bg-bg-1 text-text-3"
-        title="Channel members"
+      <button
+        type="button"
+        className="inline-flex items-center gap-[5px] text-[11px] font-semibold px-[9px] py-[3px] rounded-md bg-bg-1 text-text-3 hover:text-text-0 hover:bg-bg-0 disabled:cursor-default disabled:hover:bg-bg-1 disabled:hover:text-text-3"
+        title={isDM ? "Channel members" : "Channel details"}
+        disabled={isDM}
+        onClick={() => !isDM && openPanel(channel.id)}
       >
-        {humans.length} {humans.length === 1 ? "member" : "members"}
-      </span>
+        {shownCount} {shownCount === 1 ? "member" : "members"}
+      </button>
 
       <span className="text-[11px] text-text-4">Pinned: {pinned}</span>
     </div>
