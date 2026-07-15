@@ -131,6 +131,14 @@ export async function startDM(peerUserId: UUID): Promise<Channel> {
   });
 }
 
+/** Open (or reuse) the caller's private, isolated DM with the workspace agent (Donna). */
+export async function openAgentDM(): Promise<Channel> {
+  return apiFetch<Channel>("/api/v1/chat/dms/agent/", {
+    method: "POST",
+    body: {},
+  });
+}
+
 export async function startGroupDM(peerUserIds: UUID[]): Promise<Channel> {
   return apiFetch<Channel>("/api/v1/chat/dms/group/", {
     method: "POST",

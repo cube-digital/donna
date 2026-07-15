@@ -22,12 +22,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useMatch, useNavigate } from "react-router-dom";
 
 import { cn } from "../../lib/cn";
-import { hueForAgent } from "../../lib/hueForAgent";
+import { openAgentDM } from "../../api/chat";
 import { useChannels } from "../../state/channels";
 import { useIntegrations } from "../../state/integrations";
-import { useMessages } from "../../state/messages";
 import { useWorkspace } from "../../state/workspace";
-import type { AgentRef, Channel, IntegrationProvider } from "../../types";
+import type { Channel, IntegrationProvider } from "../../types";
 import {
   GAvatar,
   GConnectorIcon,
@@ -105,13 +104,10 @@ function TrailDot({ kind }: { kind: GListDot }) {
 export default function Sidebar() {
   const { workspaces, activeId } = useWorkspace();
   const channels = useChannels((s) => s.channels);
-  const byChannel = useMessages((s) => s.byChannel);
   const location = useLocation();
   const navigate = useNavigate();
   const channelMatch = useMatch("/channels/:channelId");
-  const agentMatch = useMatch("/agents/:agentId");
   const activeChannelId = channelMatch?.params.channelId ?? null;
-  const activeAgentId = agentMatch?.params.agentId ?? null;
   const [createOpen, setCreateOpen] = useState(false);
   const [startDmOpen, setStartDmOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -125,8 +121,11 @@ export default function Sidebar() {
     const pin: Channel[] = [];
     const chs: Channel[] = [];
     for (const c of channels) {
-      if (c.kind === "direct") dms.push(c);
-      else if (c.is_pinned) pin.push(c);
+      // Agent DMs (the user's private Donna chat) are surfaced under
+      // "AI teammates", not the human direct-messages list.
+      if (c.kind === "direct") {
+        if (!c.is_agent_dm) dms.push(c);
+      } else if (c.is_pinned) pin.push(c);
       else chs.push(c);
     }
     chs.sort((a, b) => a.name.localeCompare(b.name));
@@ -135,28 +134,23 @@ export default function Sidebar() {
     return { directs: dms, pinned: pin, publicChannels: chs };
   }, [channels]);
 
-  // AI teammates — scan every loaded message across every channel,
-  // dedupe authoring agents by id. The backend has no /agents endpoint
-  // yet, so we infer the roster from observed message authorship. If
-  // nothing's been said, fall back to a single hardcoded Donna row so
-  // the section isn't empty.
-  const teammates = useMemo(() => {
-    const seen = new Map<string, AgentRef>();
-    for (const list of Object.values(byChannel)) {
-      for (const m of list) {
-        const a = m.author_agent;
-        if (a && a.id && a.name && !seen.has(a.id)) {
-          seen.set(a.id, a);
-        }
-      }
-    }
-    return Array.from(seen.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  }, [byChannel]);
-
   const isSearchActive = location.pathname.startsWith("/search");
-  const isPersonalActive = location.pathname.startsWith("/personal");
+
+  // The active channel is the user's Donna DM when it's flagged is_agent_dm.
+  const agentDmActive = channels.some(
+    (c) => c.id === activeChannelId && c.is_agent_dm,
+  );
+
+  // Open (or reuse) the caller's isolated Donna DM, then navigate to it.
+  const openDonna = async () => {
+    try {
+      const ch = await openAgentDM();
+      await useChannels.getState().loadChannels();
+      navigate(`/channels/${ch.id}`);
+    } catch {
+      /* surfaced by the channel view if it fails */
+    }
+  };
 
   return (
     <aside
@@ -202,21 +196,6 @@ export default function Sidebar() {
             ⌘&nbsp;K
           </kbd>
         </button>
-        <GListItem
-          active={isPersonalActive}
-          aria-label="Personal AI"
-          onClick={() => navigate("/personal")}
-          icon={<GlyphSlot name="sparkle" size={16} className="text-ai" />}
-          badge={<TrailDot kind="ai" />}
-        >
-          Personal · Donna
-        </GListItem>
-        <GListItem aria-label="Activity" icon={<GlyphSlot name="bell" size={16} />}>
-          Activity
-        </GListItem>
-        <GListItem aria-label="Threads" icon={<GlyphSlot name="thread" size={16} />}>
-          Threads
-        </GListItem>
       </div>
 
       {/* Pinned channels — surfaced above DMs / Channels for quick access. */}
@@ -251,70 +230,27 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Direct messages */}
-      <div>
-        <GroupHeader label="direct messages" onAdd={() => setStartDmOpen(true)} />
-        {directs.length === 0 ? (
-          <GListItem className="text-text-3 italic">
-            No direct messages yet
-          </GListItem>
-        ) : (
-          directs.map((c) => (
-            <GListItem
-              key={c.id}
-              active={activeChannelId === c.id}
-              aria-label={c.name || "Direct message"}
-              onClick={() => navigate(`/channels/${c.id}`)}
-              icon={<GAvatar size="sm" name={c.name || "DM"} />}
-            >
-              {c.name || "Direct message"}
-            </GListItem>
-          ))
-        )}
-      </div>
-
-      {/* AI teammates — derived from observed message authorship; falls
-          back to a single Donna placeholder when no agent has spoken yet. */}
+      {/* AI teammates — clicking Donna opens the user's private, isolated
+          DM with her (context separate from channels, per-user memory). */}
       <div>
         <GroupHeader label="ai teammates" ai />
-        {teammates.length === 0 ? (
-          <GListItem
-            aria-label="Donna"
-            icon={
-              <GAvatar
-                kind="agent"
-                size="sm"
-                name="Donna"
-                hue={282}
-                className="!bg-ai !bg-none !border-0 !rounded-md"
-              />
-            }
-            badge={<TrailDot kind="ai" />}
-          >
-            Donna
-          </GListItem>
-        ) : (
-          teammates.map((a) => (
-            <GListItem
-              key={a.id}
-              active={activeAgentId === a.id}
-              aria-label={a.name}
-              onClick={() => navigate(`/agents/${a.id}`)}
-              icon={
-                <GAvatar
-                  kind="agent"
-                  size="sm"
-                  name={a.name}
-                  hue={hueForAgent(a.id)}
-                  className="!bg-ai !bg-none !border-0 !rounded-md"
-                />
-              }
-              badge={<TrailDot kind="ai" />}
-            >
-              {a.name}
-            </GListItem>
-          ))
-        )}
+        <GListItem
+          active={agentDmActive}
+          aria-label="Donna"
+          onClick={() => void openDonna()}
+          icon={
+            <GAvatar
+              kind="agent"
+              size="sm"
+              name="Donna"
+              hue={282}
+              className="!bg-ai !bg-none !border-0 !rounded-md"
+            />
+          }
+          badge={<TrailDot kind="ai" />}
+        >
+          Donna
+        </GListItem>
       </div>
 
       {/* Channels — flat list (no project grouping in v1; backend has no Project model) */}
@@ -350,6 +286,38 @@ export default function Sidebar() {
               {c.name}
             </GListItem>
           ))
+        )}
+      </div>
+
+      {/* Direct messages — below Channels; each row shows the peer's avatar
+          + name (the person this DM is with). */}
+      <div>
+        <GroupHeader label="direct messages" onAdd={() => setStartDmOpen(true)} />
+        {directs.length === 0 ? (
+          <GListItem className="text-text-3 italic">
+            No direct messages yet
+          </GListItem>
+        ) : (
+          directs.map((c) => {
+            const label = c.peer?.full_name || c.peer?.email || c.name || "Direct message";
+            return (
+              <GListItem
+                key={c.id}
+                active={activeChannelId === c.id}
+                aria-label={label}
+                onClick={() => navigate(`/channels/${c.id}`)}
+                icon={
+                  <GAvatar
+                    size="sm"
+                    name={label}
+                    src={c.peer?.picture_url ?? undefined}
+                  />
+                }
+              >
+                {label}
+              </GListItem>
+            );
+          })
         )}
       </div>
 

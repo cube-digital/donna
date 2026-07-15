@@ -41,14 +41,6 @@ const NAV: NavItem[] = [
   },
   { key: "dms", label: "Direct messages", icon: "msg" },
   {
-    key: "personal",
-    label: "Personal AI",
-    icon: "sparkle",
-    ai: true,
-    href: "/personal",
-    matcher: (p) => p.startsWith("/personal"),
-  },
-  {
     key: "search",
     label: "Search",
     icon: "search",

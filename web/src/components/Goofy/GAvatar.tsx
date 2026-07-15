@@ -39,6 +39,8 @@ type AvatarDomBase = Omit<HTMLAttributes<HTMLDivElement>, "color">;
 export interface GAvatarHumanProps extends AvatarDomBase {
   kind?: "human";
   name?: string;
+  /** Optional photo URL. When set, renders the image instead of initials. */
+  src?: string;
   /** Solid background colour (any CSS value, e.g. `var(--pop-coral)`). */
   color?: string;
   /** Pulsing ring while mid-stream. Visually only useful on agent avatars
@@ -107,6 +109,7 @@ export const GAvatar = forwardRef<HTMLDivElement, GAvatarProps>(function GAvatar
   const {
     kind: _kind,
     name = "??",
+    src,
     color,
     size = "md",
     pulsing = false,
@@ -120,11 +123,21 @@ export const GAvatar = forwardRef<HTMLDivElement, GAvatarProps>(function GAvatar
     <div
       ref={ref}
       aria-label={ariaLabel ?? name}
-      className={cn(BASE, SIZE_CLS[size], pulsing && "av-pulse-ring", className)}
+      className={cn(
+        BASE,
+        SIZE_CLS[size],
+        "overflow-hidden",
+        pulsing && "av-pulse-ring",
+        className,
+      )}
       style={{ background: color ?? "var(--pop-coral)", ...style }}
       {...rest}
     >
-      <span aria-hidden="true">{makeInitials(name)}</span>
+      {src ? (
+        <img src={src} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span aria-hidden="true">{makeInitials(name)}</span>
+      )}
     </div>
   );
 });

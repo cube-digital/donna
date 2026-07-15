@@ -62,6 +62,8 @@ export interface MessageWsPayload {
   created_at: ISODateTime | null;
   updated_at: ISODateTime | null;
   client_msg_id?: string | null;
+  /** Set on thread replies → routed to the ThreadPanel, not the timeline. */
+  parent_id?: UUID | null;
   // Plan 13 §1.3 / §1.5 — only present on question/answer rows.
   server_kind?: "chat" | "question" | "answer";
   question_options?: { label: string; value: string; description?: string }[];

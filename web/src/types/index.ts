@@ -35,6 +35,15 @@ export interface WorkspaceMembership {
 export type ChannelKind = "channel" | "direct";
 export type ChannelVisibility = "public" | "private";
 
+export interface ChannelPeer {
+  id: UUID;
+  email: string;
+  full_name: string;
+  picture_url: string | null;
+  is_away?: boolean;
+  status?: string;
+}
+
 export interface Channel {
   id: UUID;
   kind: ChannelKind;
@@ -44,6 +53,11 @@ export interface Channel {
   visibility: ChannelVisibility;
   workspace: UUID;
   is_pinned?: boolean;
+  /** For 1:1 human DMs — the other member. Null on agent DMs + named channels. */
+  peer?: ChannelPeer | null;
+  /** True when this direct channel is the user's private agent (Donna) chat. */
+  is_agent_dm?: boolean;
+  agent_name?: string | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }

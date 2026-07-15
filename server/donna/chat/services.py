@@ -487,6 +487,46 @@ class ChannelService:
 
     @staticmethod
     @transaction.atomic
+    def get_or_create_agent_dm(*, user, workspace, agent_name: str = "Donna") -> Channel:
+        """Return this user's private DM with the workspace agent, creating it
+        if needed.
+
+        An "agent DM" is a ``kind=DIRECT`` channel whose only human member is
+        ``user`` and which carries its own ``AgentSession`` — so every message
+        auto-dispatches to the agent (``maybe_dispatch_agent``: DM → always)
+        and the agent's memory is isolated per (user, workspace). One per
+        (workspace, user).
+        """
+        existing = (
+            Channel.objects.filter(
+                kind=Channel.Kind.DIRECT,
+                workspace=workspace,
+                memberships__user_id=user.id,
+                agent_sessions__isnull=False,
+            )
+            .distinct()
+            .first()
+        )
+        if existing is not None:
+            return existing
+
+        channel = Channel.objects.create(
+            kind=Channel.Kind.DIRECT,
+            visibility=Channel.Visibility.PRIVATE,
+            workspace=workspace,
+            name=agent_name,
+            slug="",
+            created_by=user,
+            modified_by=user,
+        )
+        ChannelMembership.objects.create(
+            channel=channel, user=user, role=ChannelMembership.Role.ADMIN
+        )
+        AgentSession.objects.create(channel=channel, name=agent_name)
+        return channel
+
+    @staticmethod
+    @transaction.atomic
     def create_group_dm(*, workspace, users: list) -> Channel:
         """
         Open a group DM (a ``Channel(kind=DIRECT)`` with N≥2 members).
@@ -950,6 +990,9 @@ def _serialize_message(message: Message, client_msg_id: str | None = None) -> di
         "created_at":   message.created_at.isoformat() if message.created_at else None,
         "updated_at":   message.updated_at.isoformat() if message.updated_at else None,
         "client_msg_id": client_msg_id,
+        # Present so the client can route a reply into its ThreadPanel
+        # (and keep it out of the main timeline). Null for top-level rows.
+        "parent_id":    str(message.parent_id) if message.parent_id else None,
     }
     # Plan 13 §1.3 / §1.5 — emit HIL fields only when this row is a
     # question or answer. The chat fast path stays compact.

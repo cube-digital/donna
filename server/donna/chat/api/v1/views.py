@@ -220,7 +220,14 @@ class ChannelMessageListCreateView(APIView):
 
         limit = min(int(request.query_params.get("limit", 50)), 200)
         before = request.query_params.get("before")
-        qs = Message.objects.filter(channel=channel).order_by("-created_at")
+        # Top-level timeline only — thread replies (parent set) are fetched
+        # separately via GET /messages/{id}/replies/ and rendered in the
+        # ThreadPanel, so they must not double-render in the channel.
+        qs = (
+            Message.objects
+            .filter(channel=channel, parent__isnull=True)
+            .order_by("-created_at")
+        )
         if before:
             try:
                 anchor = Message.objects.get(id=before)
@@ -577,6 +584,24 @@ class DMOpenView(APIView):
         except ValueError as exc:
             raise ValidationError({"peer_user_id": str(exc)}) from exc
         return Response(ChannelSerializer(channel).data)
+
+
+class AgentDMOpenView(APIView):
+    """POST /chat/dms/agent/ → the caller's private DM with the workspace agent.
+
+    Idempotent per (workspace, user): opens an isolated Donna chat that
+    auto-dispatches every message to the agent. Returns the Channel.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        channel = ChannelService.get_or_create_agent_dm(
+            user=request.user, workspace=request.workspace
+        )
+        return Response(
+            ChannelSerializer(channel, context={"request": request}).data
+        )
 
 
 class GroupDMOpenView(APIView):

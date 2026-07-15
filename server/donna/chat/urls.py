@@ -22,6 +22,7 @@ from .api.v1.views import (
     MentionCandidatesView,
     ChannelPinView,
     ChannelReadStateView,
+    AgentDMOpenView,
     DMOpenView,
     GroupDMOpenView,
     MessageAnswerView,
@@ -51,5 +52,6 @@ urlpatterns = [
     path("messages/<uuid:id>/answer/",             MessageAnswerView.as_view(),           name="chat-message-answer"),
     path("artifacts/<uuid:artifact_id>/",          WorkspaceArtifactDetailView.as_view(),  name="chat-workspace-artifact-detail"),
     path("dms/",                                   DMOpenView.as_view(),                  name="chat-dm-open"),
+    path("dms/agent/",                             AgentDMOpenView.as_view(),             name="chat-dm-agent-open"),
     path("dms/group/",                             GroupDMOpenView.as_view(),             name="chat-dm-group-open"),
 ]

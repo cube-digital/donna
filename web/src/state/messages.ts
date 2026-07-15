@@ -147,6 +147,7 @@ function fromEvent(payload: MessageWsPayload): Message {
     created_at: payload.created_at ?? new Date().toISOString(),
     updated_at: payload.updated_at ?? new Date().toISOString(),
     client_msg_id: payload.client_msg_id ?? null,
+    parent_id: payload.parent_id ?? null,
     // Plan 13 §1.3 / §1.5 — forward HIL fields when the wire includes them.
     server_kind: payload.server_kind,
     question_options: payload.question_options,
@@ -225,6 +226,26 @@ export const useMessages = create<MessagesState>((set, get) => ({
 
   appendFromEvent: (channelId, payload) => {
     const incoming = fromEvent(payload);
+
+    // Thread reply → route into the parent's thread (if loaded) and bump the
+    // parent's reply_count in the timeline, instead of inserting inline.
+    if (incoming.parent_id) {
+      get().appendReply(incoming.parent_id, incoming);
+      set((s) => {
+        const list = s.byChannel[channelId];
+        if (!list) return s;
+        const idx = list.findIndex((m) => m.id === incoming.parent_id);
+        if (idx < 0) return s;
+        const copy = list.slice();
+        copy[idx] = {
+          ...copy[idx],
+          reply_count: (copy[idx].reply_count ?? 0) + 1,
+        };
+        return { byChannel: { ...s.byChannel, [channelId]: copy } };
+      });
+      return;
+    }
+
     const list = get().byChannel[channelId] ?? [];
 
     // Dedupe optimistic inserts via client_msg_id.

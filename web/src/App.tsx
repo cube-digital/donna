@@ -24,7 +24,6 @@ import AppShell from "./components/Shell/AppShell";
 import { ToastStack } from "./components/Shell/ToastStack";
 import Channel from "./views/Channel";
 import Files from "./views/Files";
-import Personal from "./views/Personal";
 import ComingSoon from "./views/ComingSoon";
 import Integrations from "./views/Integrations";
 import IntegrationDetail from "./views/IntegrationDetail";
@@ -121,8 +120,6 @@ export default function App() {
           <Route index element={<Navigate to="/channels" replace />} />
           <Route path="/channels" element={<ComingSoon title="Pick a channel" />} />
           <Route path="/channels/:channelId" element={<Channel />} />
-          <Route path="/personal" element={<Personal />} />
-          <Route path="/personal/:channelId" element={<Personal />} />
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/integrations/:slug" element={<IntegrationDetail />} />
           <Route path="/settings" element={<Settings />} />

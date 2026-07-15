@@ -19,6 +19,13 @@ from ...models import (
 
 class ChannelSerializer(serializers.ModelSerializer):
     is_pinned = serializers.SerializerMethodField()
+    # Direct-channel extras: `peer` is the *other* human member of a 1:1
+    # human DM; `is_agent_dm` marks a direct channel that carries an
+    # AgentSession (the user's private Donna chat), in which case
+    # `agent_name` names it. Both are null on regular named channels.
+    peer = serializers.SerializerMethodField()
+    is_agent_dm = serializers.SerializerMethodField()
+    agent_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Channel
@@ -31,10 +38,16 @@ class ChannelSerializer(serializers.ModelSerializer):
             "visibility",
             "workspace",
             "is_pinned",
+            "peer",
+            "is_agent_dm",
+            "agent_name",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "is_pinned", "created_at", "updated_at"]
+        read_only_fields = [
+            "id", "is_pinned", "peer", "is_agent_dm", "agent_name",
+            "created_at", "updated_at",
+        ]
 
     def get_is_pinned(self, obj):
         request = self.context.get("request") if hasattr(self, "context") else None
@@ -44,6 +57,37 @@ class ChannelSerializer(serializers.ModelSerializer):
         if hasattr(obj, "_is_pinned"):
             return bool(obj._is_pinned)
         return ChannelPin.objects.filter(user=request.user, channel=obj).exists()
+
+    def _first_agent_session(self, obj):
+        # Cached per instance to avoid re-querying across the 3 fields.
+        if not hasattr(obj, "_agent_session_cache"):
+            obj._agent_session_cache = (
+                obj.agent_sessions.first()
+                if obj.kind == Channel.Kind.DIRECT
+                else None
+            )
+        return obj._agent_session_cache
+
+    def get_is_agent_dm(self, obj) -> bool:
+        return self._first_agent_session(obj) is not None
+
+    def get_agent_name(self, obj):
+        session = self._first_agent_session(obj)
+        return session.name if session else None
+
+    def get_peer(self, obj):
+        # Only 1:1 human DMs have a peer. Agent DMs and named channels don't.
+        if obj.kind != Channel.Kind.DIRECT or self._first_agent_session(obj) is not None:
+            return None
+        request = self.context.get("request") if hasattr(self, "context") else None
+        user = getattr(request, "user", None) if request else None
+        members = list(
+            ChannelMembership.objects.filter(channel=obj).select_related("user")
+        )
+        others = [m.user for m in members if not (user and m.user_id == user.id)]
+        if not others:
+            return None
+        return UserShortSerializer(others[0]).data
 
 
 class ChannelCreateSerializer(serializers.Serializer):

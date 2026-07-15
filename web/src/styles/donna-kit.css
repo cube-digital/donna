@@ -185,7 +185,9 @@
   border-radius: var(--dn-r); padding: 13px 15px; display: flex; align-items: center; gap: 13px; }
 
 /* ---------- profile drawer ---------- */
-.dn-drawer { width: 340px; display: flex; flex-direction: column;
+/* Match the resizable File right-rail (AppShell rightrail Panel defaultSize 32%). */
+.dn-drawer { width: 32vw; min-width: 400px; max-width: 92vw;
+  display: flex; flex-direction: column;
   border-left: 1px solid var(--dn-line-2); }
 .dn-drawer-head { display: flex; align-items: center; padding: 13px 16px;
   border-bottom: 1px solid var(--dn-line); font-weight: 700; color: var(--dn-t0); font-size: 15px; }
