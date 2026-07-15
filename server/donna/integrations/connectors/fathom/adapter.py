@@ -136,7 +136,15 @@ class FathomMeetingAdapter(BaseEntityAdapter):
 
     def to_text(self) -> str:
         """Concatenated transcript text — useful for agent memory / search."""
-        segments = self._transcript.get("segments") or self._transcript.get("entries") or []
+        # Fathom's ``/recordings/{id}/transcript`` returns the lines under a
+        # ``transcript`` key (list of {speaker, text, timestamp}); older/other
+        # shapes used ``segments``/``entries``. Accept all three.
+        segments = (
+            self._transcript.get("segments")
+            or self._transcript.get("entries")
+            or self._transcript.get("transcript")
+            or []
+        )
         if not segments:
             # Some shapes carry the transcript as a single string field.
             return self._transcript.get("text") or self._transcript.get("body") or ""
@@ -146,6 +154,15 @@ class FathomMeetingAdapter(BaseEntityAdapter):
             if not isinstance(segment, dict):
                 continue
             speaker = segment.get("speaker") or segment.get("speaker_name") or "Unknown"
+            # Fathom's speaker is a dict ({display_name, matched_calendar_invitee_email});
+            # collapse it to a printable name.
+            if isinstance(speaker, dict):
+                speaker = (
+                    speaker.get("display_name")
+                    or speaker.get("name")
+                    or speaker.get("matched_calendar_invitee_email")
+                    or "Unknown"
+                )
             text = segment.get("text") or segment.get("transcript") or ""
             if text:
                 lines.append(f"{speaker}: {text}")
